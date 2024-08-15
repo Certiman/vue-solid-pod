@@ -1,6 +1,7 @@
 <template>
   <div class="about">
-    <h1>This is an about page</h1>
+    <h1>About this application</h1>
+    <section>This web app converted the <a href="https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/">Solid App JS</a> to a Vue3 SPA.</section>
   </div>
 </template>
 
