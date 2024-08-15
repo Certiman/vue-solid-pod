@@ -1,6 +1,6 @@
 # vue-solid-pod
 
-This template should help get you started developing with Vue 3 in Vite.
+This web application reproduces the [SOLID POD Tutorial App](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/#) using the vite & vue3 starter template. The intention is to demo how Solid pods can easily be integrated into Vue3 apps.
 
 ## Recommended IDE Setup
 
@@ -23,6 +23,8 @@ npm run dev
 ```
 
 ### Compile and Minify for Production
+
+Not recommended.
 
 ```sh
 npm run build
