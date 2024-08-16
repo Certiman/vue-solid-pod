@@ -4,16 +4,15 @@ import { ref } from 'vue'
 // import HelloWorld from './components/HelloWorld.vue'
 import { vBColorMode } from 'bootstrap-vue-next';
 
-const currentCMode = ref('dark')
-
+const currentCMode = ref('light')
 
 </script>
 
 <template >
-  <header v-b-color-mode="currentCMode">
+  <header >
     <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->
 
-    <div class="wrapper">
+    <div class="wrapper" v-b-color-mode="currentCMode">
       <!-- <HelloWorld msg="You did it!" /> -->
 
       <nav>
@@ -23,7 +22,7 @@ const currentCMode = ref('dark')
     </div>
   </header>
 
-  <RouterView />
+  <RouterView v-b-color-mode="currentCMode" />
 </template>
 
 <style scoped>

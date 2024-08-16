@@ -2,7 +2,7 @@
   <BFormGroup
     description="a. Write to your Pod"
     label="3. Create a private reading list in my Pod."
-    class="mt-3"
+    class="mt-2"
   >
     <BInputGroup prepend="Pod Container">
       <BFormSelect

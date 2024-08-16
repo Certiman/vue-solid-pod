@@ -14,7 +14,7 @@
         height="4px"
       />
     </BAlert>
-    <BCard class="my-3" no-body>
+    <BCard class="mt-2" no-body>
       <BListGroup flush>
         <BListGroupItem
           v-for="book of allBooks"

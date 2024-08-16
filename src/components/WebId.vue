@@ -7,7 +7,7 @@
       <button name="btnRead" id="btnRead" :disabled="disabled"></button>
     </div>
   </div> -->
-  <BFormGroup label="2. Logged in with your WebID:" id="readlabel">
+  <BFormGroup label="2. Logged in with your WebID:" id="readlabel" class="mt-2">
     <BInputGroup prepend="Your WebId">
       <BFormInput disabled :placeholder="myWebId"></BFormInput>
       <BButton name="btnRead" id="btnRead" :disabled="disabled" @click="getMyPods"

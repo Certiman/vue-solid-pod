@@ -4,7 +4,7 @@
     description="Please select an Identity Provider (IdP)"
     id="select-idp"
     label="1. Select your Identity Provider:"
-    class="my-2"
+    class="mt-2"
   >
     <BInputGroup prepend="IDP">
       <BFormSelect v-model="SELECTED_IDP" :options="idpProviders" :disabled="loggedIn" />
