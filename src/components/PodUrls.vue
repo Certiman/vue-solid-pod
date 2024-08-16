@@ -1,17 +1,23 @@
 <template>
-  <BFormGroup description="a. Write to your Pod" label="3.Create a private reading list in my Pod.">
-    <BFormSelect
-      v-model="selectedPodUrl"
-      :options="podUrls"
-      @change="emit('podUrl', selectedPodUrl)"
-    ></BFormSelect>
-    <!--     {{ selectedPodUrl }} -->
+  <BFormGroup
+    description="a. Write to your Pod"
+    label="3. Create a private reading list in my Pod."
+    class="mt-3"
+  >
+    <BInputGroup prepend="Pod Container">
+      <BFormSelect
+        v-model="selectedPodUrl"
+        :options="podUrls"
+        @change="emit('podUrl', selectedPodUrl)"
+      ></BFormSelect>
+      <!--     {{ selectedPodUrl }} -->
+    </BInputGroup>
   </BFormGroup>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { BFormGroup } from 'bootstrap-vue-next'
+import { BFormGroup, BInputGroup } from 'bootstrap-vue-next'
 const selectedPodUrl = ref('')
 
 /** Takes available podUrls and construts a drop down, emits selected podUrl */

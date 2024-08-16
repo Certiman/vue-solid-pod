@@ -4,15 +4,15 @@
     description="Please select an Identity Provider (IdP)"
     id="select-idp"
     label="1. Select your Identity Provider:"
-    v-if="!loggedIn"
+    class="my-2"
   >
     <BInputGroup prepend="IDP">
-      <BFormSelect v-model="SELECTED_IDP" :options="idpProviders" />
+      <BFormSelect v-model="SELECTED_IDP" :options="idpProviders" :disabled="loggedIn" />
       <BButton
         name="btnLogin"
         id="btnLogin"
         size="md"
-        :disabled="!SELECTED_IDP"
+        :disabled="lockPodLogin"
         @click="loginToSelectedIdP"
       >
         Login</BButton
@@ -23,7 +23,7 @@
 
 <script setup>
 // Imports
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   login,
   handleIncomingRedirect,
@@ -34,16 +34,20 @@ import { BFormGroup, BFormSelect } from 'bootstrap-vue-next'
 // Emitters
 const emit = defineEmits(['podSession', 'loggedIn'])
 
+// Data
+const idpProviders = [
+  // { value: null, text: 'Please select an Identity Provider (IdP)' },
+  { value: 'https://login.inrupt.com', text: 'Inrupt.com (PodSpaces)' }
+]
+
 // v-model
 const SELECTED_IDP = ref('https://login.inrupt.com')
 const WEBID = ref('')
 const loggedIn = ref(false)
 
-// dropdown options
-const idpProviders = [
-  // { value: null, text: 'Please select an Identity Provider (IdP)' },
-  { value: 'https://login.inrupt.com', text: 'Inrupt.com (PodSpaces)' }
-]
+// Computed
+const lockPodLogin = computed(() => !SELECTED_IDP.value || loggedIn.value)
+
 
 // functions
 function loginToSelectedIdP() {
