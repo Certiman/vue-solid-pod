@@ -40,8 +40,6 @@ async function getMyPods() {
     selectorPod.push(podOption)
   })
 
-  console.log(selectorPod)
-
   emit('podUrls', selectorPod)
 }
 </script>

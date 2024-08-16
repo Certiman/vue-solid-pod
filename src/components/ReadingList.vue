@@ -1,15 +1,25 @@
 <template>
   <BFormGroup description="b. Enter items to read" class="my-3">
     <BAlert
-      v-model="dismissCountDown"
+      v-model="statusLabelsDuration"
+      ref="Subscription"
+      variant="warning"
+      @close-countdown="countdown = $event"
+    >
+      <p v-if="statusLabelSubscriptionHTML.length === 0">{{ statusLabelSubscription }}</p>
+      <p v-else v-html="statusLabelSubscriptionHTML"></p>
+      <BProgress variant="warning" :max="statusLabelsDuration" :value="countdown" height="4px" />
+    </BAlert>
+    <BAlert
+      v-model="statusLabelsDuration"
       ref="Alert"
-      :variant="statusLabelVariant"
+      :variant="statusLabelAlertVariant"
       @close-countdown="countdown = $event"
     >
       <p>{{ statusLabelAlert }}</p>
       <BProgress
-        :variant="statusLabelVariant"
-        :max="dismissCountDown"
+        :variant="statusLabelAlertVariant"
+        :max="statusLabelsDuration"
         :value="countdown"
         height="4px"
       />
@@ -40,7 +50,8 @@
       <BCardFooter>
         <BInputGroup prepend="Book List">
           <BFormInput v-model="newList" type="text"></BFormInput>
-          <BButton @click="createList">Rewrite this list</BButton>
+          <BButton @click="createList" variant="warning">Rewrite this list</BButton>
+          <BButton @click="subscribeToList" variant="success">Subscribe</BButton>
         </BInputGroup>
       </BCardFooter>
     </BCard>
@@ -62,6 +73,7 @@ import {
 } from '@inrupt/solid-client'
 
 import { fetch } from '@inrupt/solid-client-authn-browser'
+import { WebsocketNotification } from '@inrupt/solid-client-notifications'
 
 import { SCHEMA_INRUPT, RDF, AS } from '@inrupt/vocab-common-rdf'
 
@@ -89,11 +101,15 @@ const newList = ref('myList')
 const handledBook = ref('')
 const itemGroupClass = ref('list-group-item-primary')
 
-// Alert messages
+// Alert qand Subscription messages
+const Subscription = ref(null)
+const statusLabelSubscription = ref('No messages received, maybe there are no Subscriptions.')
+const statusLabelSubscriptionHTML = ref('')
+
 const Alert = ref(null) // gives access to pause, restart etc
 const statusLabelAlert = ref('Add books to a named list in your POD.')
-const statusLabelVariant = ref('primary')
-const dismissCountDown = ref(10000)
+const statusLabelAlertVariant = ref('primary')
+const statusLabelsDuration = ref(10000)
 const countdown = ref(10)
 onBeforeMount(() => Alert.value?.pause())
 // Functions
@@ -101,7 +117,7 @@ onBeforeMount(() => Alert.value?.pause())
  * Returns @return true when the book with given title is being written into the Dataset
  * @param bookTitle the string containing the book, which is potentially being written, deleted etc
  */
-const bookBeingHandled = (bookTitle) => bookTitle === handledBook.value
+const bookBeingHandled = (bookTitle) => bookTitle == handledBook.value
 
 /** Adds book from input field 'newBookToAdd'to the list */
 function addBook() {
@@ -111,6 +127,28 @@ function addBook() {
 
 function removeBook(book) {
   allBooks.value.splice(allBooks.value.indexOf(book), 1)
+}
+
+async function subscribeToList() {
+  const SELECTED_POD = props.podUrl
+
+  // For simplicity and brevity, this tutorial hardcodes the  SolidDataset URL.
+  // In practice, you should add in your profile a link to this resource
+  // such that applications can follow to find your list.
+  // https://storage.inrupt.com/DATASET_ID/getting-started/readingList/myList
+  const containerUrl = `${SELECTED_POD}getting-started/readingList/${newList.value}`
+
+  const websocket = new WebsocketNotification(containerUrl, { fetch: fetch })
+
+  websocket.on('message', (message) => {
+    Subscription.value?.restart()
+    statusLabelSubscriptionHTML.value = `<pre><code>${JSON.stringify(message)}</code></pre>`
+  })
+
+  websocket.connect()
+
+  Subscription.value?.restart()
+  statusLabelSubscription.value = `Subscribed to changes in the ${containerUrl}...'`
 }
 
 async function createList() {
@@ -186,7 +224,7 @@ async function createList() {
     handledBook.value = ''
   } catch (error) {
     statusLabelAlert.value = error
-    statusLabelVariant.value = 'danger'
+    statusLabelAlertVariant.value = 'danger'
   } finally {
     Alert.value?.pause()
   }
