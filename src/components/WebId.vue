@@ -21,6 +21,7 @@
 // Inpoirts
 import { BButton, BFormInput, BInputGroup } from 'bootstrap-vue-next'
 import { getPodUrlAll } from '@inrupt/solid-client'
+import { fetch } from '@inrupt/solid-client-authn-browser'
 
 // Emitters & Props
 const emit = defineEmits(['podUrls'])
