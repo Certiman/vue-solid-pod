@@ -1,90 +1,41 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
-import { ref } from 'vue'
-// import HelloWorld from './components/HelloWorld.vue'
-import { vBColorMode } from 'bootstrap-vue-next';
+import { BButton, BNavbarNav, BNavItem, vBColorMode } from 'bootstrap-vue-next'
 
-const currentCMode = ref('light')
+// store holds mode
+import { store } from './stores/store'
 
+// TODO: This is currently in the LoginPod compomnent, should it be there?
+// if reloaded, check if previous session cannot be used
+// import { onMounted } from 'vue'
+// import { handleIncomingRedirect } from '@inrupt/solid-client-authn-browser'
+// onMounted(() => handleIncomingRedirect({ restorePreviousSession: true }))
 </script>
 
-<template >
-  <header >
-    <!-- <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" /> -->
-
-    <div class="wrapper" v-b-color-mode="currentCMode">
-      <!-- <HelloWorld msg="You did it!" /> -->
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
+<template>
+  <header>
+    <BNavbar :variant="store.mode" v-b-color-mode="store.mode">
+      <BNavbarBrand tag="h1" class="mb-0">BootstrapVue</BNavbarBrand>
+      <BNavbarToggle target="nav-collapse" />
+      <BCollapse id="nav-collapse" is-nav>
+        <BNavbarNav>
+          <BNavItem><RouterLink to="/">Home</RouterLink></BNavItem>
+          <BNavItem><RouterLink to="/about">About</RouterLink></BNavItem>
+        </BNavbarNav>
+        <BNavbarNav class="ms-auto mb-2 mb-lg-0">
+          <BNavText class="mt-2">{{ store.mode }}</BNavText>
+          <BNavItem
+            ><BButton @click="store.switch()"
+              ><IMaterialSymbolsLightLightMode v-if="store.mode == 'dark'" />
+              <IMaterialSymbolsLightDarkModeRounded v-else /></BButton
+          ></BNavItem>
+        </BNavbarNav>
+      </BCollapse>
+    </BNavbar>
   </header>
-
-  <RouterView v-b-color-mode="currentCMode" />
+  <BContainer v-b-color-mode="store.mode">
+    <RouterView />
+  </BContainer>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>
+<style scoped></style>

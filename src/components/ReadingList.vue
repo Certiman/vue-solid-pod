@@ -1,14 +1,14 @@
 <template>
   <BFormGroup description="b. Enter items to read" class="my-3">
     <BAlert
-      v-model="statusLabelsDuration"
+      v-model="statusLabelsSubscriptionDuration"
       ref="Subscription"
       variant="warning"
-      @close-countdown="countdown = $event"
+      @close-countdown="countdownSubscription = $event"
     >
       <p v-if="statusLabelSubscriptionHTML.length === 0">{{ statusLabelSubscription }}</p>
       <p v-else v-html="statusLabelSubscriptionHTML"></p>
-      <BProgress variant="warning" :max="statusLabelsDuration" :value="countdown" height="4px" />
+      <BProgress variant="warning" :max="statusLabelsDuration" :value="countdownSubscription" height="4px" />
     </BAlert>
     <BAlert
       v-model="statusLabelsDuration"
@@ -33,7 +33,7 @@
           :active="bookBeingHandled(book)"
           :active-class="itemGroupClass"
           @click="removeBook(book)"
-          >{{ book }}</BListGroupItem
+          ><IMdiDeleteForeverOutline class="me-2 mb-1"/>{{ book }}</BListGroupItem
         >
       </BListGroup>
       <BCardBody>
@@ -44,14 +44,14 @@
             type="text"
             @keyup.enter="addBook"
           ></BFormInput>
-          <BButton @click="addBook">+</BButton>
+          <BButton @click="addBook"><IMdiNoteAdd class="mb-1" /></BButton>
         </BInputGroup>
       </BCardBody>
       <BCardFooter>
-        <BInputGroup prepend="Book List">
+        <BInputGroup prepend="Book List Container: /getting-started/readingList/">
           <BFormInput v-model="newList" type="text"></BFormInput>
-          <BButton @click="createList" variant="warning">Rewrite this list</BButton>
-          <BButton @click="subscribeToList" variant="success">Subscribe</BButton>
+          <BButton @click="createList" variant="warning"><IJamWriteF class="me-2 mb-1"/>List</BButton>
+          <BButton @click="subscribeToList" variant="success"><IMdiBellRing class="me-2 mb-1"/>Subscribe</BButton>
         </BInputGroup>
       </BCardFooter>
     </BCard>
@@ -105,12 +105,14 @@ const itemGroupClass = ref('list-group-item-primary')
 const Subscription = ref(null)
 const statusLabelSubscription = ref('No messages received, maybe there are no Subscriptions.')
 const statusLabelSubscriptionHTML = ref('')
+const statusLabelsSubscriptionDuration = ref(10000)
+const countdownSubscription = ref(1000)
 
 const Alert = ref(null) // gives access to pause, restart etc
 const statusLabelAlert = ref('Add books to a named list in your POD.')
 const statusLabelAlertVariant = ref('primary')
 const statusLabelsDuration = ref(10000)
-const countdown = ref(10)
+const countdown = ref(1000)
 onBeforeMount(() => Alert.value?.pause())
 // Functions
 /**

@@ -14,9 +14,20 @@
         size="md"
         :disabled="lockPodLogin"
         @click="loginToSelectedIdP"
+        v-b-tooltip="{ title: 'Login with new session' }"
       >
-        Login</BButton
+        <IMdiLogin class="mb-1"
+      /></BButton>
+      <BButton
+        name="btnReLogin"
+        id="btnReLogin"
+        size="md"
+        :disabled="lockPodLogin"
+        @click="reloginToSelectedIdP"
+        v-b-tooltip="{ title: 'Reuse existing session' }"
       >
+        <IMdiLoginVariant class="mb-1"
+      /></BButton>
     </BInputGroup>
   </BFormGroup>
 </template>
@@ -37,7 +48,10 @@ const emit = defineEmits(['podSession', 'loggedIn'])
 // Data
 const idpProviders = [
   // { value: null, text: 'Please select an Identity Provider (IdP)' },
-  { value: 'https://login.inrupt.com', text: 'Inrupt.com (PodSpaces)' }
+  { value: 'https://login.inrupt.com', text: 'Inrupt.com (PodSpaces)' },
+  { value: 'https://solid.redpencil.io/idp/login/', text: 'Redpencil.io (CSS)' },
+  { value: 'https://solidcommunity.net/login', text: 'Solid Community (CSS)' },
+  { value: 'https://solidweb.org/login', text: 'Solid Web (CSS)' }
 ]
 
 // v-model
@@ -48,7 +62,6 @@ const loggedIn = ref(false)
 // Computed
 const lockPodLogin = computed(() => !SELECTED_IDP.value || loggedIn.value)
 
-
 // functions
 function loginToSelectedIdP() {
   return login({
@@ -58,8 +71,18 @@ function loginToSelectedIdP() {
   })
 }
 
+async function reloginToSelectedIdP() {
+  // try to reconnect with the ongoing session
+  try {
+    await handleIncomingRedirect({ restorePreviousSession: true })
+  } catch (err) {
+    console.error(`Relogin failed with error ${err}`)
+  }
+}
+
 // 1b. Login Redirect. Call handleIncomingRedirect() function.
 // When redirected after login, finish the process by retrieving session information.
+// TODO: This may need to be placed in App.vue (core startup)
 async function handleRedirectAfterLogin() {
   await handleIncomingRedirect() // no-op if not part of login redirect
 

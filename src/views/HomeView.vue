@@ -29,20 +29,18 @@ function getDataFromPodUrl(podUrl) {
 </script>
 
 <template>
-  <BContainer>
-    <LoginPod @podSession="setSession" />
-    <WebId
-      :myWebId="loggedInWebId"
-      :disabled="allPodUrls.length > 0"
-      v-if="canGetPodURLs"
-      @podUrls="setPodUrls"
-    />
-    <PodUrls
-      v-if="allPodUrls.length > 0"
-      :podUrls="allPodUrls"
-      class="mt-2"
-      @podUrl="getDataFromPodUrl"
-    />
-    <ReadingList :podUrl="selectedPodUrl" v-if="canDisplayData" />
-  </BContainer>
+  <LoginPod @podSession="setSession" />
+  <WebId
+    :myWebId="loggedInWebId"
+    :disabled="allPodUrls.length > 0"
+    v-if="canGetPodURLs"
+    @podUrls="setPodUrls"
+  />
+  <PodUrls
+    v-if="allPodUrls.length > 0"
+    :podUrls="allPodUrls"
+    class="mt-2"
+    @podUrl="getDataFromPodUrl"
+  />
+  <ReadingList :podUrl="selectedPodUrl" v-if="canDisplayData" />
 </template>
