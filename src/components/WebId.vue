@@ -1,15 +1,7 @@
 <template>
-  <!-- <div id="read" class="panel">
-    <div class="row">
-      <label id="readlabel" for="myWebID">2. Logged in with your WebID: </label>
-      <input type="text" id="myWebID" name="myWebID" size="50" :value="myWebId" disabled>
-
-      <button name="btnRead" id="btnRead" :disabled="disabled"></button>
-    </div>
-  </div> -->
   <BFormGroup label="2. Logged in with your WebID:" id="readlabel" class="mt-2">
     <BInputGroup prepend="Your WebId">
-      <BFormInput disabled :placeholder="myWebId"></BFormInput>
+      <BFormInput disabled :placeholder="store.loggedInWebId"></BFormInput>
       <BButton name="btnRead" id="btnRead" :disabled="disabled" @click="getMyPods"
         >Get Pod URL(s)</BButton
       >
@@ -22,14 +14,15 @@
 import { BButton, BFormInput, BInputGroup } from 'bootstrap-vue-next'
 import { getPodUrlAll } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
+import { store } from '../stores/store'
 
 // Emitters & Props
 const emit = defineEmits(['podUrls'])
-const props = defineProps({ myWebId: String, disabled: Boolean })
+// const props = defineProps({ myWebId: String, disabled: Boolean })
 
 // 2. Get Pod(s) associated with the WebID
 async function getMyPods() {
-  const mypods = await getPodUrlAll(props.myWebId, { fetch: fetch })
+  const mypods = await getPodUrlAll(store.loggedInWebId, { fetch: fetch })
 
   // Update the page with the retrieved values.
   let selectorPod = []

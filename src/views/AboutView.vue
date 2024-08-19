@@ -1,5 +1,4 @@
 <script setup>
-import { store } from '../stores/store'
 </script>
 
 <template>

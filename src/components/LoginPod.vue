@@ -41,11 +41,7 @@ import {
   getDefaultSession
 } from '@inrupt/solid-client-authn-browser'
 import { BFormGroup, BFormSelect } from 'bootstrap-vue-next'
-// import { store } from '../stores/store'
-
-
-// Emitters
-const emit = defineEmits(['podSession', 'loggedIn'])
+import { store } from '../stores/store'
 
 // Data
 const idpProviders = [
@@ -58,7 +54,6 @@ const idpProviders = [
 
 // v-model
 const SELECTED_IDP = ref('https://login.inrupt.com')
-const WEBID = ref('')
 const loggedIn = ref(false)
 const lockRetry = ref(false)
 
@@ -96,13 +91,8 @@ async function handleRedirectAfterLogin() {
   const session = getDefaultSession()
   if (session.info.isLoggedIn) {
     loggedIn.value = true
-    WEBID.value = session.info.webId
-
-    // Update the page with the status.
-    emit('podSession', session.info)
-
-    // Enable Read button to read Pod URL (via emit)
-    emit('loggedIn', true)
+    store.canGetPodURLs = true
+    store.loggedInWebId = session.info.webId
   }
 }
 
