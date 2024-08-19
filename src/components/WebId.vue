@@ -10,15 +10,14 @@
 </template>
 
 <script setup>
-// Inpoirts
+// Imports
 import { BButton, BFormInput, BInputGroup } from 'bootstrap-vue-next'
 import { getPodUrlAll } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { store } from '../stores/store'
 
 // Emitters & Props
-const emit = defineEmits(['podUrls'])
-// const props = defineProps({ myWebId: String, disabled: Boolean })
+defineProps({ disabled: Boolean })
 
 // 2. Get Pod(s) associated with the WebID
 async function getMyPods() {
@@ -33,7 +32,7 @@ async function getMyPods() {
     selectorPod.push(podOption)
   })
 
-  emit('podUrls', selectorPod)
+  store.allPodUrls = selectorPod
 }
 </script>
 

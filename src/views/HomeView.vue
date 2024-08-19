@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { store } from '../stores/store'
 
 import LoginPod from '@/components/LoginPod.vue'
@@ -8,10 +8,11 @@ import PodUrls from '@/components/PodUrls.vue'
 import ReadingList from '@/components/ReadingList.vue'
 
 // const loggedInWebId = ref('')
-const selectedPodUrl = ref('')
+// const selectedPodUrl = ref('')
 // const canGetPodURLs = ref(false)
-const canDisplayData = ref(false)
-const allPodUrls = ref([])
+// const canDisplayData = ref(false)
+// const allPodUrls = ref([])
+const allPodUrlsKnown = computed(() => store.allPodUrls.length > 0)
 
 // function setSession(sess) {
 //   // loggedInWebId.value = sess.webId
@@ -19,25 +20,20 @@ const allPodUrls = ref([])
 //   canGetPodURLs.value = true
 // }
 
-function setPodUrls(allUrls) {
-  allPodUrls.value = allUrls
-  // canGetPodURLs.value = false
-}
+// function setPodUrls(allUrls) {
+//   allPodUrls.value = allUrls
+//   // canGetPodURLs.value = false
+// }
 
-function getDataFromPodUrl(podUrl) {
-  selectedPodUrl.value = podUrl
-  canDisplayData.value = true
-}
+// function getDataFromPodUrl(podUrl) {
+//   selectedPodUrl.value = podUrl
+//   canDisplayData.value = true
+// }
 </script>
 
 <template>
   <LoginPod />
-  <WebId :disabled="allPodUrls.length > 0" v-if="store.canGetPodURLs" @podUrls="setPodUrls" />
-  <PodUrls
-    v-if="allPodUrls.length > 0"
-    :podUrls="allPodUrls"
-    class="mt-2"
-    @podUrl="getDataFromPodUrl"
-  />
-  <ReadingList :podUrl="selectedPodUrl" v-if="canDisplayData" />
+  <WebId :disabled="allPodUrlsKnown" v-if="store.canGetPodURLs" />
+  <PodUrls v-if="allPodUrlsKnown" class="mt-2" />
+  <ReadingList v-if="store.selectedPodUrl.length > 0" />
 </template>

@@ -69,16 +69,28 @@ function loginToSelectedIdP() {
   })
 }
 
+function setSession() {
+  const session = getDefaultSession()
+  if (session.info.isLoggedIn) {
+    loggedIn.value = true
+    store.canGetPodURLs = true
+    store.loggedInWebId = session.info.webId
+  } else {
+    console.warn(`No active session found`)
+    // SOLVED: the above never resolves in an error so catch is useless
+    lockRetry.value = true
+  }
+}
+
 // Allows to try logging in again by using an active session, instead of passing again through the IDP.
 // TODO: this should somehow be done automatically after reload, while it now is just a button.
-// FIXME: the below never resolves in an error so catch is useless
 async function reloginToSelectedIdP() {
   // try to reconnect with the ongoing session
   try {
     console.log(`Retrying to use session...`)
     await handleIncomingRedirect({ restorePreviousSession: true })
+    setSession()
   } catch (err) {
-    lockRetry.value = true
     console.error(`Relogin failed with error ${err}`)
   }
 }
@@ -87,13 +99,7 @@ async function reloginToSelectedIdP() {
 // When redirected after login, finish the process by retrieving session information.
 async function handleRedirectAfterLogin() {
   await handleIncomingRedirect() // no-op if not part of login redirect
-
-  const session = getDefaultSession()
-  if (session.info.isLoggedIn) {
-    loggedIn.value = true
-    store.canGetPodURLs = true
-    store.loggedInWebId = session.info.webId
-  }
+  setSession()
 }
 
 onMounted(() => handleRedirectAfterLogin())

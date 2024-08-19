@@ -71,10 +71,8 @@ import {
   saveSolidDatasetAt,
   setThing
 } from '@inrupt/solid-client'
-
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { WebsocketNotification } from '@inrupt/solid-client-notifications'
-
 import { SCHEMA_INRUPT, RDF, AS } from '@inrupt/vocab-common-rdf'
 
 import {
@@ -90,8 +88,7 @@ import {
 } from 'bootstrap-vue-next'
 import { ref, onBeforeMount } from 'vue'
 
-const props = defineProps(['podUrl'])
-
+import { store } from '../stores/store'
 const allBooks = ref(['Leaves of Grass', 'RDF 1.1 Primer'])
 const booksRewritten = ref([]) //
 const newBook = ref('')
@@ -132,7 +129,7 @@ function removeBook(book) {
 }
 
 async function subscribeToList() {
-  const SELECTED_POD = props.podUrl
+  const SELECTED_POD = store.selectedPodUrl
 
   // For simplicity and brevity, this tutorial hardcodes the  SolidDataset URL.
   // In practice, you should add in your profile a link to this resource
@@ -155,7 +152,7 @@ async function subscribeToList() {
 
 async function createList() {
   Alert.value?.restart()
-  const SELECTED_POD = props.podUrl
+  const SELECTED_POD = store.selectedPodUrl
 
   // For simplicity and brevity, this tutorial hardcodes the  SolidDataset URL.
   // In practice, you should add in your profile a link to this resource
