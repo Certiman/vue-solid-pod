@@ -10,7 +10,7 @@ import { store } from './stores/store'
 <template>
   <header>
     <BNavbar :variant="store.mode" v-b-color-mode="store.mode">
-      <BNavbarBrand tag="h1" class="mb-0">BootstrapVue</BNavbarBrand>
+      <BNavbarBrand tag="h1" class="mb-0">Solid Pod Starter</BNavbarBrand>
       <BNavbarToggle target="nav-collapse" />
       <BCollapse id="nav-collapse" is-nav>
         <BNavbarNav>

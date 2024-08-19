@@ -5,25 +5,17 @@
     class="mt-2"
   >
     <BInputGroup prepend="Pod Container">
-      <!-- @change="emit('podUrl', selectedPodUrl)" -->
       <BFormSelect
         v-model="store.selectedPodUrl"
         :options="store.allPodUrls"
       ></BFormSelect>
-      <!--     {{ selectedPodUrl }} -->
     </BInputGroup>
   </BFormGroup>
 </template>
 
 <script setup>
-// import { ref } from 'vue'
 import { BFormGroup, BInputGroup } from 'bootstrap-vue-next'
 import { store } from '@/stores/store';
-// const selectedPodUrl = ref('')
-
-/** Takes available podUrls and construts a drop down, emits selected podUrl */
-// defineProps(['podUrls'])
-// const emit = defineEmits(['podUrl'])
 </script>
 
 <style lang="scss" scoped></style>
