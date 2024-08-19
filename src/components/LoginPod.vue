@@ -22,7 +22,7 @@
         name="btnReLogin"
         id="btnReLogin"
         size="md"
-        :disabled="lockPodLogin"
+        :disabled="lockPodLogin || lockRetry"
         @click="reloginToSelectedIdP"
         v-b-tooltip="{ title: 'Reuse existing session' }"
       >
@@ -41,6 +41,8 @@ import {
   getDefaultSession
 } from '@inrupt/solid-client-authn-browser'
 import { BFormGroup, BFormSelect } from 'bootstrap-vue-next'
+// import { store } from '../stores/store'
+
 
 // Emitters
 const emit = defineEmits(['podSession', 'loggedIn'])
@@ -58,6 +60,7 @@ const idpProviders = [
 const SELECTED_IDP = ref('https://login.inrupt.com')
 const WEBID = ref('')
 const loggedIn = ref(false)
+const lockRetry = ref(false)
 
 // Computed
 const lockPodLogin = computed(() => !SELECTED_IDP.value || loggedIn.value)
@@ -71,18 +74,22 @@ function loginToSelectedIdP() {
   })
 }
 
+// Allows to try logging in again by using an active session, instead of passing again through the IDP.
+// TODO: this should somehow be done automatically after reload, while it now is just a button.
+// FIXME: the below never resolves in an error so catch is useless
 async function reloginToSelectedIdP() {
   // try to reconnect with the ongoing session
   try {
+    console.log(`Retrying to use session...`)
     await handleIncomingRedirect({ restorePreviousSession: true })
   } catch (err) {
+    lockRetry.value = true
     console.error(`Relogin failed with error ${err}`)
   }
 }
 
 // 1b. Login Redirect. Call handleIncomingRedirect() function.
 // When redirected after login, finish the process by retrieving session information.
-// TODO: This may need to be placed in App.vue (core startup)
 async function handleRedirectAfterLogin() {
   await handleIncomingRedirect() // no-op if not part of login redirect
 

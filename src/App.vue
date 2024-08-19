@@ -5,11 +5,6 @@ import { BButton, BNavbarNav, BNavItem, vBColorMode } from 'bootstrap-vue-next'
 // store holds mode
 import { store } from './stores/store'
 
-// TODO: This is currently in the LoginPod compomnent, should it be there?
-// if reloaded, check if previous session cannot be used
-// import { onMounted } from 'vue'
-// import { handleIncomingRedirect } from '@inrupt/solid-client-authn-browser'
-// onMounted(() => handleIncomingRedirect({ restorePreviousSession: true }))
 </script>
 
 <template>
