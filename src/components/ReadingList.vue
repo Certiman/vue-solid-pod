@@ -8,7 +8,12 @@
     >
       <p v-if="statusLabelSubscriptionHTML.length === 0">{{ statusLabelSubscription }}</p>
       <p v-else v-html="statusLabelSubscriptionHTML"></p>
-      <BProgress variant="warning" :max="statusLabelsDuration" :value="countdownSubscription" height="4px" />
+      <BProgress
+        variant="warning"
+        :max="statusLabelsDuration"
+        :value="countdownSubscription"
+        height="4px"
+      />
     </BAlert>
     <BAlert
       v-model="statusLabelsDuration"
@@ -33,7 +38,7 @@
           :active="bookBeingHandled(book)"
           :active-class="itemGroupClass"
           @click="removeBook(book)"
-          ><IMdiDeleteForeverOutline class="me-2 mb-1"/>{{ book }}</BListGroupItem
+          ><IMdiDeleteForeverOutline class="me-2 mb-1" />{{ book }}</BListGroupItem
         >
       </BListGroup>
       <BCardBody>
@@ -50,8 +55,12 @@
       <BCardFooter>
         <BInputGroup prepend="Book List Container: /getting-started/readingList/">
           <BFormInput v-model="newList" type="text"></BFormInput>
-          <BButton @click="createList" variant="warning"><IJamWriteF class="me-2 mb-1"/>List</BButton>
-          <BButton @click="subscribeToList" variant="success"><IMdiBellRing class="me-2 mb-1"/>Subscribe</BButton>
+          <BButton @click="createList" variant="warning"
+            ><IJamWriteF class="me-2 mb-1" />List</BButton
+          >
+          <BButton @click="subscribeToList" variant="success"
+            ><IMdiBellRing class="me-2 mb-1" />Subscribe</BButton
+          >
         </BInputGroup>
       </BCardFooter>
     </BCard>
