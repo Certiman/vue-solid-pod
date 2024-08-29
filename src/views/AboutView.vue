@@ -46,20 +46,20 @@
     </li>
   </ul>
 
-  <p>Intended additions:</p>
+  <p>Additions with <a href="https://github.com/ULB-Darmstadt/shacl-form/tree/main">SHACL-FORM</a></p>
   <ol>
     <li>
       Defining the shape of a book in SHACL, integrate the entering of a new Book using
       <code>shacl-form</code>.
     </li>
     <li>
-      This would mean that the TTL as provided by that library would be entered as a new Thing
+      This means that the TTL as provided by that library is converted into a Solid DS and inserted in the data resource.
     </li>
     <li>
       This update would be based on
       <a
         href="https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/read-write-data/#write-data"
-      ></a>
+      ></a> but was eventually just based on Solid's <code>fromRdfJsDataset</code> which operated on the <code>shacl-form's .toRDF()</code> result.
     </li>
     <li>
       Function

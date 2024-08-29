@@ -20,10 +20,12 @@
 
 ex:Dataset
   a               sh:NodeShape, rdfs:Class ;
-  sh:property   [ sh:datatype     rdf:langString ;
-                  sh:languageIn   ( "en" "de" "fr") ;
-                  sh:uniqueLang   true ;
-                  sh:description  "Title of the book" , "Name des Buches"@de, "Nom du livre"@fr ;
+  sh:property   [ sh:datatype     xsd:string ;
+                  # Having all these props in the shape makes this ?p not found using getStringNoLocale !
+                  # sh:datatype     rdf:langString ;
+                  # sh:languageIn   ( "en" "de" "fr") ;
+                  # sh:uniqueLang   true ;
+                  sh:description  "Title of the book" ; #  , "Name des Buches"@de, "Nom du livre"@fr
                   sh:minCount     1 ;
                   sh:maxCount     1 ;
                   sh:name         "Title" ;

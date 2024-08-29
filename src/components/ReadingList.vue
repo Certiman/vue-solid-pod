@@ -58,16 +58,20 @@
       <BCardFooter>
         <BInputGroup prepend="Book List Container: /getting-started/readingList/">
           <BFormInput v-model="newList" type="text"></BFormInput>
+          <BButton @click="downloadList" variant="danger"
+            ><IMaterialSymbolsCloudDownloadOutline class="me-2 mb-1" />Download</BButton
+          >
           <BButton @click="createList" variant="warning"
-            ><IJamWriteF class="me-2 mb-1" />List</BButton
+            ><IJamWriteF class="me-2 mb-1" />Write</BButton
           >
           <BButton @click="subscribeToList" variant="success"
-            ><IMdiBellRing class="me-2 mb-1" />Subscribe</BButton
+            ><IMdiBellRing class="me-2 mb-1" />Subscribe to changes</BButton
           >
         </BInputGroup>
       </BCardFooter>
     </BCard>
   </BFormGroup>
+  <ShaclAddBookModal @DataSetUpdated="rebuildBookList(newReadingList)" />
 </template>
 
 <script setup>
@@ -100,10 +104,14 @@ import {
 } from 'bootstrap-vue-next'
 import { ref, onBeforeMount, watch } from 'vue'
 
+import ShaclAddBookModal from '@/components/ShaclAddBookModal.vue'
+
 import { store } from '../stores/store'
-const allBooks = ref(['Leaves of Grass', 'RDF 1.1 Primer'])
-const booksRewritten = ref([]) //
-const newBook = ref('')
+const allBooks = ref(['Leaves of Grass', 'RDF 1.1 Primer']) // TODO: This should come from the POd and not hard-coded. But it is hard-code in the demo app.
+const booksRewritten = ref([]) // contains the rewrittenbooks and is not really used. Idea was to mark these books in the list differently.
+const newBook = ref('') // v-models the book title to add
+
+// Creates and Updates the DATA RESOURCE to add Things to (via global store).
 const newList = ref('myList')
 watch(newList, (list) => {
   const SELECTED_POD = store.selectedPodUrl
@@ -115,17 +123,19 @@ watch(newList, (list) => {
   store.readingListURL = `${SELECTED_POD}getting-started/readingList/${list}` // used in the Modal
 })
 
-// Visualize the node bing handled
+// Visualize the node bing handled, as this happens too fast it i barely visible.
 const handledBook = ref('')
 const itemGroupClass = ref('list-group-item-primary')
 
-// Alert qand Subscription messages
+// Alert and Subscription messages
+// Subscription reacts to the WS
 const Subscription = ref(null)
 const statusLabelSubscription = ref('No messages received, maybe there are no Subscriptions.')
 const statusLabelSubscriptionHTML = ref('')
 const statusLabelsSubscriptionDuration = ref(10000)
 const countdownSubscription = ref(1000)
 
+// Alert reports on the Solid Client operations
 const Alert = ref(null) // gives access to pause, restart etc
 const statusLabelAlert = ref('Add books to a named list in your POD.')
 const statusLabelAlertVariant = ref('primary')
@@ -138,12 +148,22 @@ onBeforeMount(() => {
   // initial value of the readingListURL
   store.readingListURL = `${store.selectedPodUrl}getting-started/readingList/${newList.value}`
 })
+
 // Functions
 /**
  * Returns @return true when the book with given title is being written into the Dataset
  * @param bookTitle the string containing the book, which is potentially being written, deleted etc
  */
 const bookBeingHandled = (bookTitle) => bookTitle == handledBook.value
+
+/**
+ * Function triggers the reload of the resource book list and update of the view.
+ */
+const downloadList = async () => {
+  let myReadingList
+
+  await rebuildBookList(myReadingList)
+}
 
 /** Adds book from input field 'newBookToAdd'to the list */
 function addBook() {
@@ -155,8 +175,11 @@ function removeBook(book) {
   allBooks.value.splice(allBooks.value.indexOf(book), 1)
 }
 
+/**
+ * Function activates a WSN on the selected readinglist data resource, which will trigger the Subscription BAlert.
+ */
 async function subscribeToList() {
-  // URI of the ReadbngList DATA RESOURCE
+  // URI of the ReadingList DATA RESOURCE
   const containerUrl = store.readingListURL
 
   // Create the websocket on that data resource
@@ -173,21 +196,40 @@ async function subscribeToList() {
   statusLabelSubscription.value = `Subscribed to changes in the ${containerUrl}...'`
 }
 
+/**
+ * Refetch the Reading List, refactored because of the Modal, and update the view allBooks list
+ * @param dsToUpdate dataset to get all Things from and from which to pull out schema:name ?o for the list
+ */
 async function rebuildBookList(dsToUpdate) {
-  // Refetch the Reading List, refactored because of the Modal
+  booksRewritten.value = []
+  
   dsToUpdate = await getSolidDataset(store.readingListURL, { fetch: fetch })
-
+  
   let items = getThingAll(dsToUpdate)
+  console.log(`Downloading resource list at ${store.readingListURL}. Items: `, items)
 
   for (let i = 0; i < items.length; i++) {
     let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name) // Note the requirement to use this ?p
-    handledBook.value = item
+
     if (item !== null) {
+      handledBook.value = item
       booksRewritten.value.push(item)
     }
   }
+
+  // Update the view
+  allBooks.value = booksRewritten.value
 }
 
+/**
+ * 1. Gets the readingList dataset
+ * 2. If the Datset exists: Gets all Things in that dataset and removes them
+ * 3. If the dataset does not exist, creates the dataset
+ * 4. Based on only the titles from the titles in the allBooks array, creates a basic Thing (a as:Article)
+ * 5. Using the confusingly named setThing, adds the Thing to the reading list dataset
+ * 6. Saves the whole dataset
+ * 7. rebuilds the bookList from the saved ds
+ */
 async function createList() {
   Alert.value?.restart()
 
@@ -240,7 +282,7 @@ async function createList() {
     statusLabelAlert.value = 'Saved'
     itemGroupClass.value = 'list-group-item-success' // mark items being re-added in green
 
-    await rebuildBookList(savedReadingList)
+    await rebuildBookList(savedReadingList) // 7.
 
     handledBook.value = ''
   } catch (error) {

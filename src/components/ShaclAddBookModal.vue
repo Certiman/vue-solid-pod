@@ -49,6 +49,8 @@ import {
 // import { Store } from 'n3'
 // import { RDF } from '@inrupt/vocab-common-rdf'
 
+const emit = defineEmits(['DataSetUpdated'])
+
 import { store } from '../stores/store'
 
 // Option to read shape from a Pod (as a file)
@@ -129,9 +131,10 @@ const addBookAsRDF = async () => {
     })
 
     // EMIT the signal to the main page in order to refesh the list
-    // maybe emit the savedReadingList itself?
+    // Also emit the savedReadingList itself, to reuse the cycle of the basic app
     numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
+    emit('DataSetUpdated', savedReadingList) // pushes the saved DS to the root App
     store.canShowModal = false
   } catch (err) {
     console.error(`Storing book failed with error ${err}!`)
