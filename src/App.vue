@@ -16,6 +16,7 @@ import { store } from './stores/store'
         <BNavbarNav>
           <BNavItem><RouterLink to="/">Home</RouterLink></BNavItem>
           <BNavItem><RouterLink to="/about">About</RouterLink></BNavItem>
+          <!-- <BNavItem><RouterLink to="/form">Data Forms</RouterLink></BNavItem> -->
         </BNavbarNav>
         <BNavbarNav class="ms-auto mb-2 mb-lg-0">
           <BNavText class="mt-2">{{ store.mode }}</BNavText>

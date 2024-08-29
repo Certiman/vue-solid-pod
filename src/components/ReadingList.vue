@@ -49,7 +49,8 @@
             type="text"
             @keyup.enter="addBook"
           ></BFormInput>
-          <BButton @click="addBook"><IMdiNoteAdd class="mb-1" /></BButton>
+          <BButton @click="store.canShowModal = !store.canShowModal" variant="primary">Add complete book</BButton>
+          <BButton @click="addBook"><IMdiNoteAdd class="mb-1 me-2" />Add Title</BButton>
         </BInputGroup>
       </BCardBody>
       <BCardFooter>

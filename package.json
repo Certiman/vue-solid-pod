@@ -16,6 +16,7 @@
     "@inrupt/solid-client-notifications": "^2.0.0",
     "@inrupt/vocab-common-rdf": "^1.0.5",
     "@inrupt/vocab-solid": "^1.0.4",
+    "@ulb-darmstadt/shacl-form": "^1.5.3",
     "bootstrap": "^5.3.3",
     "bootstrap-vue-next": "^0.24.7",
     "pinia": "^2.1.7",

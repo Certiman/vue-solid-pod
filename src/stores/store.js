@@ -2,12 +2,16 @@
 import { reactive } from 'vue'
 
 export const store = reactive({
-  mode: 'light',
-  loggedInWebId: '',
-  selectedPodUrl: '',
-  canGetPodURLs: false,
-  canDisplayData: false,
   allPodUrls: [],
+  allShapeBlobUrls: [],
+  canGetPodURLs: false,
+  canShowModal: false,
+  loggedInWebId: '',
+  mode: 'light',
+  selectedPodUrl: '',
+  canDisplayData() {
+    return this.selectedPodUrl.length > 0
+  },
   switch() {
     this.mode = this.mode == 'dark' ? 'light' : 'dark'
   }

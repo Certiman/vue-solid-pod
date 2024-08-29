@@ -1,0 +1,108 @@
+@prefix dash:    <http://datashapes.org/dash#> .
+@prefix dbpedia: <http://dbpedia.org/ontology/> .
+@prefix dcat:    <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix geo:     <http://www.opengis.net/ont/geosparql#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema:  <http://schema.org/> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <http://example.org/> .
+@prefix as:      <https://www.w3.org/ns/activitystreams#> .
+
+# ex:BookModelDataset
+#   a               sh:NodeShape, rdfs:Class ;
+#   sh:node         ex:Dataset .
+
+ex:Dataset
+  a               sh:NodeShape, rdfs:Class ;
+  sh:property   [ sh:datatype     rdf:langString ;
+                  sh:languageIn   ( "en" "de" "fr") ;
+                  sh:uniqueLang   true ;
+                  sh:description  "Title of the book" , "Name des Buches"@de, "Nom du livre"@fr ;
+                  sh:minCount     1 ;
+                  sh:maxCount     1 ;
+                  sh:name         "Title" ;
+                  sh:path         schema:name
+                ] ;
+  sh:property   [ dash:singleLine false ;
+                  sh:datatype     rdf:langString ;
+                  sh:languageIn   ( "en" "de" "fr") ;
+                  sh:uniqueLang   true ;
+                  sh:description  "Short summary of the book" , "Kurze zusammenfassung"@de , "Sommaire du livre"@fr;
+                  sh:minCount     1 ;
+                  sh:maxCount     1 ;
+                  sh:name         "Description" ;
+                  sh:path         dcterms:description
+                ] ;
+  sh:property   [ sh:description  "License of the book" ;
+                  sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:name         "License" ;
+                  sh:nodeKind     sh:IRI ;
+                  sh:path         dcterms:license ;
+                  sh:in (
+                    # see below how labels are added to the list entries
+                    <http://creativecommons.org/licenses/by/4.0/>
+                    <http://creativecommons.org/licenses/by-nc/4.0/>
+                  )
+                ] ;
+  sh:property   [ sh:datatype     xsd:date ;
+                  sh:description  "Date the book has been published" ;
+                  sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:name         "Issued" ;
+                  sh:path         dcterms:issued
+                ] ;
+  sh:property   [ sh:description  "Author of the book" ;
+                  sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:node         ex:Person ;
+                  sh:path         dcterms:creator ;
+                  sh:name         "Author"
+                ] ;
+  sh:property   [ sh:description  "Publisher of the book" ;
+                  sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:node         ex:Organisation ;
+                  sh:name         "Publisher" ;
+                  sh:path         dcterms:publisher
+                ] ;
+  sh:targetClass  as:Article .
+
+ex:Person
+  a               sh:NodeShape ;
+  rdfs:label      "Author" ;
+  sh:property   [ sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:name         "Name" ;
+                  sh:path         foaf:name
+                ] ;
+  sh:property   [ sh:datatype     xsd:string ;
+                  sh:maxCount     1 ;
+                  sh:name         "ORCID ID" ;
+                  sh:path         dcterms:identifier ;
+                  sh:pattern      "^https://orcid.org/\\d{4}-\\d{4}-\\d{4}-\\d{4}$"
+                ] ;
+  sh:targetClass  foaf:Person .
+
+ex:Organisation
+  a               sh:NodeShape ;
+  rdfs:label      "Organisation" ;
+  sh:property   [ sh:maxCount     1 ;
+                  sh:minCount     1 ;
+                  sh:name         "Name" ;
+                  sh:path         foaf:name
+                ] ;
+  sh:property   [ sh:name         "Address" ;
+                  sh:path         ex:Address
+                ] ;
+  sh:targetClass  foaf:Organisation .
+
+# add a label to the license IRIs
+<http://creativecommons.org/licenses/by/4.0/>    rdfs:label "CC-BY" .
+<http://creativecommons.org/licenses/by-nc/4.0/> rdfs:label "CC-BY-NC" .

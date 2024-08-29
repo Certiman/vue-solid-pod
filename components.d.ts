@@ -23,7 +23,7 @@ declare module 'vue' {
     BNavItem: typeof import('bootstrap-vue-next')['BNavItem']
     BNavText: typeof import('bootstrap-vue-next')['BNavText']
     BProgress: typeof import('bootstrap-vue-next')['BProgress']
-    HelloWorld: typeof import('./src/components/unused/HelloWorld.vue')['default']
+    HelloWorld: typeof import('./src/exclude/HelloWorld.vue')['default']
     IBi0Circle: typeof import('~icons/bi/0-circle')['default']
     ICarbonCircle: typeof import('~icons/carbon/circle')['default']
     ICarbonLogin: typeof import('~icons/carbon/login')['default']
