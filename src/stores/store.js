@@ -9,6 +9,7 @@ export const store = reactive({
   loggedInWebId: '',
   mode: 'light',
   selectedPodUrl: '',
+  readingListURL: '',
   canDisplayData() {
     return this.selectedPodUrl.length > 0
   },

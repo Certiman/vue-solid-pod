@@ -49,7 +49,9 @@
             type="text"
             @keyup.enter="addBook"
           ></BFormInput>
-          <BButton @click="store.canShowModal = !store.canShowModal" variant="primary">Add complete book</BButton>
+          <BButton @click="store.canShowModal = !store.canShowModal" variant="primary"
+            >Add complete book</BButton
+          >
           <BButton @click="addBook"><IMdiNoteAdd class="mb-1 me-2" />Add Title</BButton>
         </BInputGroup>
       </BCardBody>
@@ -96,13 +98,22 @@ import {
   BInputGroup,
   BListGroupItem
 } from 'bootstrap-vue-next'
-import { ref, onBeforeMount } from 'vue'
+import { ref, onBeforeMount, watch } from 'vue'
 
 import { store } from '../stores/store'
 const allBooks = ref(['Leaves of Grass', 'RDF 1.1 Primer'])
 const booksRewritten = ref([]) //
 const newBook = ref('')
 const newList = ref('myList')
+watch(newList, (list) => {
+  const SELECTED_POD = store.selectedPodUrl
+
+  // For simplicity and brevity, this tutorial hardcodes the SolidDataset URL.
+  // In practice, you should add in your profile a link to this resource
+  // such that applications can follow to find your list.
+  // https://storage.inrupt.com/DATASET_ID/getting-started/readingList/myList
+  store.readingListURL = `${SELECTED_POD}getting-started/readingList/${list}` // used in the Modal
+})
 
 // Visualize the node bing handled
 const handledBook = ref('')
@@ -120,7 +131,13 @@ const statusLabelAlert = ref('Add books to a named list in your POD.')
 const statusLabelAlertVariant = ref('primary')
 const statusLabelsDuration = ref(10000)
 const countdown = ref(1000)
-onBeforeMount(() => Alert.value?.pause())
+onBeforeMount(() => {
+  // seems required for the alerts to appaer
+  Alert.value?.pause()
+
+  // initial value of the readingListURL
+  store.readingListURL = `${store.selectedPodUrl}getting-started/readingList/${newList.value}`
+})
 // Functions
 /**
  * Returns @return true when the book with given title is being written into the Dataset
@@ -139,14 +156,10 @@ function removeBook(book) {
 }
 
 async function subscribeToList() {
-  const SELECTED_POD = store.selectedPodUrl
+  // URI of the ReadbngList DATA RESOURCE
+  const containerUrl = store.readingListURL
 
-  // For simplicity and brevity, this tutorial hardcodes the  SolidDataset URL.
-  // In practice, you should add in your profile a link to this resource
-  // such that applications can follow to find your list.
-  // https://storage.inrupt.com/DATASET_ID/getting-started/readingList/myList
-  const containerUrl = `${SELECTED_POD}getting-started/readingList/${newList.value}`
-
+  // Create the websocket on that data resource
   const websocket = new WebsocketNotification(containerUrl, { fetch: fetch })
 
   websocket.on('message', (message) => {
@@ -160,15 +173,23 @@ async function subscribeToList() {
   statusLabelSubscription.value = `Subscribed to changes in the ${containerUrl}...'`
 }
 
+async function rebuildBookList(dsToUpdate) {
+  // Refetch the Reading List, refactored because of the Modal
+  dsToUpdate = await getSolidDataset(store.readingListURL, { fetch: fetch })
+
+  let items = getThingAll(dsToUpdate)
+
+  for (let i = 0; i < items.length; i++) {
+    let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name) // Note the requirement to use this ?p
+    handledBook.value = item
+    if (item !== null) {
+      booksRewritten.value.push(item)
+    }
+  }
+}
+
 async function createList() {
   Alert.value?.restart()
-  const SELECTED_POD = store.selectedPodUrl
-
-  // For simplicity and brevity, this tutorial hardcodes the  SolidDataset URL.
-  // In practice, you should add in your profile a link to this resource
-  // such that applications can follow to find your list.
-  // https://storage.inrupt.com/DATASET_ID/getting-started/readingList/myList
-  const readingListUrl = `${SELECTED_POD}getting-started/readingList/${newList.value}`
 
   let titles = allBooks.value
 
@@ -180,7 +201,7 @@ async function createList() {
     statusLabelAlert.value = 'Retrieving existing Dataset or creating new Dataset...'
     itemGroupClass.value = 'list-group-item-danger' // mark items being deleted in red
 
-    myReadingList = await getSolidDataset(readingListUrl, { fetch: fetch })
+    myReadingList = await getSolidDataset(store.readingListURL, { fetch: fetch })
     // Clear the list to override the whole list
     let items = getThingAll(myReadingList)
     items.forEach((item) => {
@@ -212,23 +233,14 @@ async function createList() {
 
   try {
     // Save the SolidDataset
-    let savedReadingList = await saveSolidDatasetAt(readingListUrl, myReadingList, { fetch: fetch })
+    let savedReadingList = await saveSolidDatasetAt(store.readingListURL, myReadingList, {
+      fetch: fetch
+    })
 
     statusLabelAlert.value = 'Saved'
     itemGroupClass.value = 'list-group-item-success' // mark items being re-added in green
 
-    // Refetch the Reading List
-    savedReadingList = await getSolidDataset(readingListUrl, { fetch: fetch })
-
-    let items = getThingAll(savedReadingList)
-
-    for (let i = 0; i < items.length; i++) {
-      let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name)
-      handledBook.value = item
-      if (item !== null) {
-        booksRewritten.value.push(item)
-      }
-    }
+    await rebuildBookList(savedReadingList)
 
     handledBook.value = ''
   } catch (error) {
