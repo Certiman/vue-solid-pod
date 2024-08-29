@@ -43,10 +43,10 @@ import { store } from '../stores/store'
 // Option to read shape from a Pod (as a file)
 const DATA_URL = `${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
 const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > 0)
-const form = document.querySelector('shacl-form')
 
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
+  const form = document.querySelector('shacl-form')
   console.log('Change triggered. Event:', event)
   // check if form data validates according to the SHACL shapes
   if (event.detail?.valid) {
@@ -83,9 +83,10 @@ const loadShapesFromNonRDFFile = async () => {
 }
 
 const addBookAsRDF = async () => {
+  const form = document.querySelector('shacl-form')
+
   console.log('adding Book, based on data in form...')
   const tstore = new Store()
-
 }
 
 onMounted(async () => await loadShapesFromNonRDFFile())
