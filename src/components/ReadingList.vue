@@ -1,34 +1,5 @@
 <template>
   <BFormGroup description="b. Enter items to read" class="my-3">
-    <BAlert
-      v-model="statusLabelsSubscriptionDuration"
-      ref="Subscription"
-      variant="warning"
-      @close-countdown="countdownSubscription = $event"
-    >
-      <p v-if="statusLabelSubscriptionHTML.length === 0">{{ statusLabelSubscription }}</p>
-      <p v-else v-html="statusLabelSubscriptionHTML"></p>
-      <BProgress
-        variant="warning"
-        :max="statusLabelsDuration"
-        :value="countdownSubscription"
-        height="4px"
-      />
-    </BAlert>
-    <BAlert
-      v-model="statusLabelsDuration"
-      ref="Alert"
-      :variant="statusLabelAlertVariant"
-      @close-countdown="countdown = $event"
-    >
-      <p>{{ statusLabelAlert }}</p>
-      <BProgress
-        :variant="statusLabelAlertVariant"
-        :max="statusLabelsDuration"
-        :value="countdown"
-        height="4px"
-      />
-    </BAlert>
     <BCard class="mt-2" no-body>
       <BListGroup flush>
         <BListGroupItem
@@ -58,19 +29,48 @@
       <BCardFooter>
         <BInputGroup prepend="Book List Container: /getting-started/readingList/">
           <BFormInput v-model="newList" type="text"></BFormInput>
-          <BButton @click="downloadList" variant="danger"
+          <BButton @click="downloadList" variant="warning"
             ><IMaterialSymbolsCloudDownloadOutline class="me-2 mb-1" />Download</BButton
           >
-          <BButton @click="createList" variant="warning"
-            ><IJamWriteF class="me-2 mb-1" />Write</BButton
+          <BButton @click="createList" variant="danger"
+            ><IJamWriteF class="me-2 mb-1" />Overwrite</BButton
           >
           <BButton @click="subscribeToList" variant="success"
-            ><IMdiBellRing class="me-2 mb-1" />Subscribe to changes</BButton
+            ><IMdiBellRing class="me-2 mb-1" />Subscribe</BButton
           >
         </BInputGroup>
       </BCardFooter>
     </BCard>
   </BFormGroup>
+  <BAlert
+    v-model="statusLabelsSubscriptionDuration"
+    ref="Subscription"
+    variant="warning"
+    @close-countdown="countdownSubscription = $event"
+  >
+    <p v-if="statusLabelSubscriptionHTML.length === 0">{{ statusLabelSubscription }}</p>
+    <p v-else v-html="statusLabelSubscriptionHTML"></p>
+    <BProgress
+      variant="warning"
+      :max="statusLabelsDuration"
+      :value="countdownSubscription"
+      height="4px"
+    />
+  </BAlert>
+  <BAlert
+    v-model="statusLabelsDuration"
+    ref="Alert"
+    :variant="statusLabelAlertVariant"
+    @close-countdown="countdown = $event"
+  >
+    <p>{{ statusLabelAlert }}</p>
+    <BProgress
+      :variant="statusLabelAlertVariant"
+      :max="statusLabelsDuration"
+      :value="countdown"
+      height="4px"
+    />
+  </BAlert>
   <ShaclAddBookModal @DataSetUpdated="rebuildBookList(newReadingList)" />
 </template>
 
@@ -201,24 +201,33 @@ async function subscribeToList() {
  * @param dsToUpdate dataset to get all Things from and from which to pull out schema:name ?o for the list
  */
 async function rebuildBookList(dsToUpdate) {
-  booksRewritten.value = []
-  
-  dsToUpdate = await getSolidDataset(store.readingListURL, { fetch: fetch })
-  
-  let items = getThingAll(dsToUpdate)
-  console.log(`Downloading resource list at ${store.readingListURL}. Items: `, items)
+  try {
+    // Alert.value?.restart()
 
-  for (let i = 0; i < items.length; i++) {
-    let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name) // Note the requirement to use this ?p
+    booksRewritten.value = []
 
-    if (item !== null) {
-      handledBook.value = item
-      booksRewritten.value.push(item)
+    dsToUpdate = await getSolidDataset(store.readingListURL, { fetch: fetch })
+
+    let items = getThingAll(dsToUpdate)
+    console.log(`Downloading instances in RDF resource ${store.readingListURL}. Items: `, items)
+
+    for (let i = 0; i < items.length; i++) {
+      let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name) // Note the requirement to use this ?p
+
+      if (item !== null) {
+        handledBook.value = item
+        booksRewritten.value.push(item)
+      }
     }
-  }
 
-  // Update the view
-  allBooks.value = booksRewritten.value
+    // Update the view
+    allBooks.value = booksRewritten.value
+  } catch (error) {
+    statusLabelAlert.value = error
+    statusLabelAlertVariant.value = 'danger'
+  } finally {
+    Alert.value?.restart()
+  }
 }
 
 /**

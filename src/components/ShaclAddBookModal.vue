@@ -16,12 +16,13 @@
         :data-shapes-url="store.allShapeBlobUrls.at(-1)"
         @change="changeListener"
         @submit="submitListener"
+        data-show-node-ids
+        data-collapse
         data-shape-subject="http://example.org/Dataset"
         data-values-namespace="#title-"
         data-submit-button="Save"
-        data-show-node-ids
+        :data-loading="`Retrieving shapes from ${DATA_URL}...`"
         data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
-        data-collapse
       />
     </span>
     <BAlert v-else variant="warning" :model-value="true">
@@ -61,7 +62,6 @@ const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > numberOf
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
   const form = document.querySelector('shacl-form')
-  console.log('Change triggered. Event:', event)
   // check if form data validates according to the SHACL shapes
   if (event.detail?.valid) {
     // get data graph as RDF triples and
@@ -75,7 +75,6 @@ const changeListener = (event) => {
 }
 
 const submitListener = async (event) => {
-  console.log('Submit detected. Event:', event)
   event.preventDefault()
   await addBookAsRDF()
 }
@@ -100,20 +99,21 @@ const loadShapesFromNonRDFFile = async () => {
 const addBookAsRDF = async () => {
   let myReadingList
 
-  console.log(`Storing book in container ${store.readingListURL}.`)
+  console.log(`Storing book in RDFResource ${store.readingListURL}.`)
   try {
     // Get data out of the shacl-form
     const form = document.querySelector('shacl-form')
-    //   const tstore = new Store(), uses N3.Store(), not needed as shacl-form does this
-    const tstore = await form.toRDF()
+    //   const shaclFormGraph = new Store(), uses N3.Store(), not needed as shacl-form does this
+    const shaclFormGraph = await form.toRDF()
 
     // Convert RDF store into a Solid dataset
-    const shaclFormDataset = await fromRdfJsDataset(tstore)
+    const shaclFormDataset = await fromRdfJsDataset(shaclFormGraph)
 
     // The following works but does not append data when used a second time in the same resource myShaclList
     // as this seemingly is totally not the function
     // const containerURL = `https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/getting-started/readingList/`
     // await saveSolidDatasetInContainer(containerURL, shaclFormDataset, { fetch: fetch, slugSuggestion: 'myShaclList' })
+    // without slugSuggestion, a UUID is generated as the data RDFsource
 
     // THUS, we need to store the new Things from the SHACL dataset in the EXISTING dataset container
     // First get the current dataset
@@ -134,8 +134,8 @@ const addBookAsRDF = async () => {
     // Also emit the savedReadingList itself, to reuse the cycle of the basic app
     numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
-    emit('DataSetUpdated', savedReadingList) // pushes the saved DS to the root App
-    store.canShowModal = false
+    emit('DataSetUpdated', savedReadingList) // pushes the saved DS to the parent ReadingList compoment
+    store.canShowModal = false // hides the modal
   } catch (err) {
     console.error(`Storing book failed with error ${err}!`)
   }
