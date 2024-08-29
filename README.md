@@ -2,6 +2,15 @@
 
 This web application reproduces the [SOLID POD Tutorial App](https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/getting-started/#) using the vite & vue3 starter template. The intention is to demo how Solid pods can easily be integrated into Vue3 apps.
 
+## Main objectives
+
+- [X] Reproduce the POD tutorial app using a front-end framework, 100%.
+- [X] Use reactive components in order to collect and visualize the reading List (items)
+- [X] Additionally, allow for downloading the existing reading List FROM the POD and update the UI
+- [X] Also, allow for SHACL-FORM based input of a new book, and append the data into the data resource for the reading List.
+- [ ] For books added via the SHACL-FORM, allow for a Solid Pod based delete.
+- [ ] For existing books, allow for a pre-filled form in order to complement them.
+
 ## Recommended IDE Setup
 
 [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
