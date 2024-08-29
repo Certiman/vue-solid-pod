@@ -6,22 +6,24 @@
     @shown="loadShapesFromNonRDFFile"
     scrollable
   >
-    <shacl-form
-      v-if="dataShapesLoaded"
-      v-for="[ind, DATA_SHAPE_BLOB] of store.allShapeBlobUrls.entries()"
-      :key="ind"
-      :data-shapes-url="DATA_SHAPE_BLOB"
-      @change="changeListener"
-      @submit="submitListener"
-      data-shape-subject="http://example.org/Dataset"
-      data-values-namespace="#title-"
-      data-submit-button="Save"
-      data-show-node-ids
-      data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
-      data-collapse
-    />
-    <BAlert variant="warning" :model-value="true" v-else>
-      This form is based on a 'Book'- SHACL shape at: <code>{{ DATA_URL }}</code> which could not be retrieved.
+    <span v-if="dataShapesLoaded">
+      <shacl-form
+        v-for="[ind, DATA_SHAPE_BLOB] of store.allShapeBlobUrls.entries()"
+        :key="ind"
+        :data-shapes-url="DATA_SHAPE_BLOB"
+        @change="changeListener"
+        @submit="submitListener"
+        data-shape-subject="http://example.org/Dataset"
+        data-values-namespace="#title-"
+        data-submit-button="Save"
+        data-show-node-ids
+        data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
+        data-collapse
+      />
+    </span>
+    <BAlert v-else variant="warning" :model-value="true">
+      This form is based on a 'Book'- SHACL shape at: <code>{{ DATA_URL }}</code> which could not be
+      retrieved. Please copy the TTL file from the repo (/src/shapes/) to your Solid Pod.
     </BAlert>
   </BModal>
 </template>
@@ -33,6 +35,7 @@ import { BModal, BAlert } from 'bootstrap-vue-next'
 import { ShaclForm } from '@ulb-darmstadt/shacl-form'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { getFile } from '@inrupt/solid-client'
+import { Store } from 'n3'
 // import { RDF } from '@inrupt/vocab-common-rdf'
 
 import { store } from '../stores/store'
@@ -40,11 +43,10 @@ import { store } from '../stores/store'
 // Option to read shape from a Pod (as a file)
 const DATA_URL = `${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
 const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > 0)
+const form = document.querySelector('shacl-form')
 
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
-  const form = document.querySelector('shacl-form')
-
   console.log('Change triggered. Event:', event)
   // check if form data validates according to the SHACL shapes
   if (event.detail?.valid) {
@@ -59,8 +61,6 @@ const changeListener = (event) => {
 }
 
 const submitListener = async (event) => {
-  //   const form = document.querySelector('id-sform')
-
   console.log('Submit detected. Event:', event)
   event.preventDefault()
   await addBookAsRDF()
@@ -83,7 +83,9 @@ const loadShapesFromNonRDFFile = async () => {
 }
 
 const addBookAsRDF = async () => {
-  console.log('adding Book, based on data in form - NOP')
+  console.log('adding Book, based on data in form...')
+  const tstore = new Store()
+
 }
 
 onMounted(async () => await loadShapesFromNonRDFFile())

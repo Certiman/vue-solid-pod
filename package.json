@@ -19,6 +19,7 @@
     "@ulb-darmstadt/shacl-form": "^1.5.3",
     "bootstrap": "^5.3.3",
     "bootstrap-vue-next": "^0.24.7",
+    "n3": "^1.21.0",
     "pinia": "^2.1.7",
     "vue": "^3.4.29",
     "vue-router": "^4.3.3"
