@@ -2,15 +2,25 @@
   <BFormGroup description="b. Enter items to read" class="my-3">
     <BCard class="mt-2" no-body>
       <BListGroup flush>
-        <BListGroupItem
-          v-for="book of allBooks"
-          :key="allBooks.indexOf(book)"
+        <!-- <BListGroupItem
+          v-for="book of allBookTitles"
+          :key="allBookTitles.indexOf(book)"
           button
           :active="bookBeingHandled(book)"
           :active-class="itemGroupClass"
           @click="removeBook(book)"
           ><IMdiDeleteForeverOutline class="me-2 mb-1" />{{ book }}</BListGroupItem
-        >
+        > -->
+        <!-- FIXED: book is Array of full books, allBookTitles just their Titles (computed) -->
+        <ReadingItem
+          v-for="book of allNonDeletedBooks"
+          :active="bookBeingHandled(book.title)"
+          :active-class="itemGroupClass"
+          :key="allBookTitles.indexOf(book.title)"
+          :book="book"
+          @deleteBook="removeBook"
+          @editBook="editBook"
+        />
       </BListGroup>
       <BCardBody>
         <BInputGroup prepend="Book title">
@@ -21,9 +31,9 @@
             @keyup.enter="addBook"
           ></BFormInput>
           <BButton @click="store.canShowModal = !store.canShowModal" variant="primary"
-            >Add complete book</BButton
+            ><IMdiAddBox class="me-2 mb-1"></IMdiAddBox> Add Book</BButton
           >
-          <BButton @click="addBook"><IMdiNoteAdd class="mb-1 me-2" />Add Title</BButton>
+          <BButton @click="addBook"><IMdiNoteAdd class="mb-1 me-2" />Add Title Only</BButton>
         </BInputGroup>
       </BCardBody>
       <BCardFooter>
@@ -72,6 +82,8 @@
     />
   </BAlert>
   <ShaclAddBookModal @DataSetUpdated="rebuildBookList(newReadingList)" />
+  ShaclEditBookModal HERE: it will require the BookItem to return its ?s URI for the SHACLForm data
+  to be grabbed as a instance and then data-viewed...
 </template>
 
 <script setup>
@@ -85,11 +97,12 @@ import {
   getThingAll,
   removeThing,
   saveSolidDatasetAt,
-  setThing
+  setThing,
+  getUrl
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { WebsocketNotification } from '@inrupt/solid-client-notifications'
-import { SCHEMA_INRUPT, RDF, AS } from '@inrupt/vocab-common-rdf'
+import { SCHEMA_INRUPT, RDF, AS, DCTERMS } from '@inrupt/vocab-common-rdf'
 
 import {
   BAlert,
@@ -99,31 +112,35 @@ import {
   BCardFooter,
   BFormGroup,
   BFormInput,
-  BInputGroup,
-  BListGroupItem
+  BInputGroup
+  // BListGroupItem
 } from 'bootstrap-vue-next'
-import { ref, onBeforeMount, watch } from 'vue'
+import { ref, onBeforeMount, watch, computed } from 'vue'
 
 import ShaclAddBookModal from '@/components/ShaclAddBookModal.vue'
+import ReadingItem from './ReadingItem.vue'
 
 import { store } from '../stores/store'
-const allBooks = ref(['Leaves of Grass', 'RDF 1.1 Primer']) // TODO: This should come from the POd and not hard-coded. But it is hard-code in the demo app.
-const booksRewritten = ref([]) // contains the rewrittenbooks and is not really used. Idea was to mark these books in the list differently.
-const newBook = ref('') // v-models the book title to add
+
+// The books themselves, and some helpers used in the template
+//
+const newBook = ref('') // v-model for the book title to add
+const allBooks = ref([]) // v-model for all the books as they exist in the client
+const allBookTitles = computed(() =>
+  // the titles of all those not marked for deletion
+  allNonDeletedBooks.value.map((book) => book.title)
+)
+const allNonDeletedBooks = computed(() => allBooks.value.filter((book) => !book.isToBeDeleted))
+// const allBookTitles = ref(['Leaves of Grass', 'RDF 1.1 Primer'])
+// TODO: This should come from the POd and not hard-coded. But it is hard-code in the demo app.
 
 // Creates and Updates the DATA RESOURCE to add Things to (via global store).
 const newList = ref('myList')
 watch(newList, (list) => {
-  const SELECTED_POD = store.selectedPodUrl
-
-  // For simplicity and brevity, this tutorial hardcodes the SolidDataset URL.
-  // In practice, you should add in your profile a link to this resource
-  // such that applications can follow to find your list.
-  // https://storage.inrupt.com/DATASET_ID/getting-started/readingList/myList
-  store.readingListURL = `${SELECTED_POD}getting-started/readingList/${list}` // used in the Modal
+  store.setReadingListResource(list)
 })
 
-// Visualize the node bing handled, as this happens too fast it i barely visible.
+// FIXME: Visualize the node bing handled, as this happens too fast it is barely visible.
 const handledBook = ref('')
 const itemGroupClass = ref('list-group-item-primary')
 
@@ -141,12 +158,14 @@ const statusLabelAlert = ref('Add books to a named list in your POD.')
 const statusLabelAlertVariant = ref('primary')
 const statusLabelsDuration = ref(10000)
 const countdown = ref(1000)
+
+// Before mounting, create the readingLIst
 onBeforeMount(() => {
   // seems required for the alerts to appaer
   Alert.value?.pause()
 
   // initial value of the readingListURL
-  store.readingListURL = `${store.selectedPodUrl}getting-started/readingList/${newList.value}`
+  store.setReadingListResource(newList.value)
 })
 
 // Functions
@@ -165,14 +184,50 @@ const downloadList = async () => {
   await rebuildBookList(myReadingList)
 }
 
-/** Adds book from input field 'newBookToAdd'to the list */
+/** Adds SIMPLE book from input field 'newBookToAdd'to the list */
 function addBook() {
-  allBooks.value.push(newBook.value)
+  allBooks.value.push({ title: newBook.value, isComplex: false, isToBeDeleted: false })
   newBook.value = ''
 }
 
-function removeBook(book) {
-  allBooks.value.splice(allBooks.value.indexOf(book), 1)
+/** finds a SIMPLE OR COMPLEX book given a title */
+function findBookByTitle(bookTitle) {
+  console.log(`Finding book with title ${bookTitle}...`)
+
+  const foundBook = allBooks.value.find((book) => book.title == bookTitle)
+  if (foundBook) return foundBook
+  else {
+    console.error(`Book "${bookTitle}" was not found. AllBooks:`, allBooks.value)
+    return null
+  }
+}
+
+/**
+ * Removes a book from the UI stack, by setting it to be deleted.
+ * It is physically deleted, when the Write is executed.
+ * @param book
+ */
+function removeBook(bookTitle) {
+  // Find book not yet marked for deletion and mark it toBe Deleted
+  const book = findBookByTitle(bookTitle)
+  if (!book || book.isToBeDeleted) return
+  try {
+    // mark it as to be deleted
+    book.isToBeDeleted = true
+  } catch (erreur) {
+    console.error(`Failed to remove book with title ${book.title}`)
+  }
+}
+
+/** */
+function editBook(book, newTitle) {
+  if (!book.isComplex) {
+    // allow for the title to be edited
+    book.title = newTitle
+  } else {
+    // show the Edit Book Modal
+  }
+  console.log(allBooks.value)
 }
 
 /**
@@ -197,14 +252,14 @@ async function subscribeToList() {
 }
 
 /**
- * Refetch the Reading List, refactored because of the Modal, and update the view allBooks list
+ * Refetch the Reading List, refactored because of the Modal, and update the view allBookTitles list
  * @param dsToUpdate dataset to get all Things from and from which to pull out schema:name ?o for the list
  */
 async function rebuildBookList(dsToUpdate) {
   try {
     // Alert.value?.restart()
 
-    booksRewritten.value = []
+    allBooks.value = []
 
     dsToUpdate = await getSolidDataset(store.readingListURL, { fetch: fetch })
 
@@ -213,28 +268,39 @@ async function rebuildBookList(dsToUpdate) {
 
     for (let i = 0; i < items.length; i++) {
       let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name) // Note the requirement to use this ?p
+      let isComplexBook = getUrl(items[i], DCTERMS.conformsTo) == 'http://example.org/Dataset' // arbitrary selection
 
       if (item !== null) {
         handledBook.value = item
-        booksRewritten.value.push(item)
+
+        // Update the view is done with computed value
+        // allBookTitles.value.push(item)
+
+        // Update the books
+        allBooks.value.push({
+          title: item,
+          isComplex: isComplexBook,
+          isToBeDeleted: false,
+          resourceUri: items[i].url
+        })
       }
     }
-
-    // Update the view
-    allBooks.value = booksRewritten.value
   } catch (error) {
     statusLabelAlert.value = error
     statusLabelAlertVariant.value = 'danger'
   } finally {
+    console.log(`Book List rebuilt from Solid POD:`, allBooks.value)
+
     Alert.value?.restart()
   }
 }
 
 /**
+ * WRITES the allBooks list to the POD. It must distinguish between complex and simple books.
  * 1. Gets the readingList dataset
  * 2. If the Datset exists: Gets all Things in that dataset and removes them
  * 3. If the dataset does not exist, creates the dataset
- * 4. Based on only the titles from the titles in the allBooks array, creates a basic Thing (a as:Article)
+ * 4. Based on only the titles from the titles in the allBookTitles array, creates a basic Thing (a as:Article)
  * 5. Using the confusingly named setThing, adds the Thing to the reading list dataset
  * 6. Saves the whole dataset
  * 7. rebuilds the bookList from the saved ds
@@ -242,7 +308,8 @@ async function rebuildBookList(dsToUpdate) {
 async function createList() {
   Alert.value?.restart()
 
-  let titles = allBooks.value
+  // let titles = allBookTitles.value
+  let books = allBooks.value
 
   // Fetch or create a new reading list.
   let myReadingList
@@ -253,11 +320,21 @@ async function createList() {
     itemGroupClass.value = 'list-group-item-danger' // mark items being deleted in red
 
     myReadingList = await getSolidDataset(store.readingListURL, { fetch: fetch })
+
     // Clear the list to override the whole list
-    let items = getThingAll(myReadingList)
-    items.forEach((item) => {
-      handledBook.value = getStringNoLocale(item, SCHEMA_INRUPT.name)
-      myReadingList = removeThing(myReadingList, item)
+    // The original code would cause complex books to be thrown out as well, so we avoid that for demo's sake.
+    let existingBooks = getThingAll(myReadingList)
+    existingBooks.forEach((item) => {
+      const bookTitle = getStringNoLocale(item, SCHEMA_INRUPT.name)
+      // handledBook.value = bookTitle
+      if (bookTitle) {
+        // SIMPLE books WILL ALL be deleted and the ones to be deleted will not restored below.
+        const bookToRemove = findBookByTitle(bookTitle)
+        if (bookToRemove && !bookToRemove.isComplex) {
+          console.warn(`Deleting simple book with title "${bookTitle}"...`)
+          myReadingList = removeThing(myReadingList, item)
+        }
+      }
     })
   } catch (error) {
     console.error('Getting data from dataset failed:', error.message)
@@ -270,15 +347,19 @@ async function createList() {
   }
 
   // Add titles to the Dataset
-  statusLabelAlert.value = 'Creating book Things...'
+  statusLabelAlert.value = 'Creating SIMPLE book Things...'
 
-  titles.forEach((title, i) => {
-    if (title.trim() !== '') {
-      handledBook.value = title
-      let item = createThing({ name: 'title' + i })
-      item = addUrl(item, RDF.type, AS.Article)
-      item = addStringNoLocale(item, SCHEMA_INRUPT.name, title)
-      myReadingList = setThing(myReadingList, item)
+  books.forEach((book, i) => {
+    // The complex books are already stored in the SHACL FORM code
+    if (book.title.trim() !== '') {
+      // handledBook.value = book.title
+      if (!book.isComplex && !book.isToBeDeleted) {
+        // Rebuild the simple book from the title, skip those deleted above
+        let item = createThing({ name: 'title' + i })
+        item = addUrl(item, RDF.type, AS.Article)
+        item = addStringNoLocale(item, SCHEMA_INRUPT.name, book.title)
+        myReadingList = setThing(myReadingList, item)
+      }
     }
   })
 
@@ -293,7 +374,7 @@ async function createList() {
 
     await rebuildBookList(savedReadingList) // 7.
 
-    handledBook.value = ''
+    // handledBook.value = ''
   } catch (error) {
     statusLabelAlert.value = error
     statusLabelAlertVariant.value = 'danger'

@@ -78,7 +78,7 @@ function setSession() {
   } else {
     console.warn(`No active session found`)
     // SOLVED: the above never resolves in an error so catch is useless
-    lockRetry.value = true
+    lockRetry.value = false
   }
 }
 
@@ -87,7 +87,6 @@ function setSession() {
 async function reloginToSelectedIdP() {
   // try to reconnect with the ongoing session
   try {
-    console.log(`Retrying to use session...`)
     await handleIncomingRedirect({ restorePreviousSession: true })
     setSession()
   } catch (err) {
@@ -97,9 +96,22 @@ async function reloginToSelectedIdP() {
 
 // 1b. Login Redirect. Call handleIncomingRedirect() function.
 // When redirected after login, finish the process by retrieving session information.
+// TODO: session recovery only works when run in private browsers...
 async function handleRedirectAfterLogin() {
-  await handleIncomingRedirect() // no-op if not part of login redirect
-  setSession()
+  try {
+    const currentSession = getDefaultSession()
+    console.log(`Retrying to use a previous session...`, currentSession.info)
+    if (!currentSession.info.sessionId) {
+      console.log(`failed. Please log in yourself.`)
+      await handleIncomingRedirect({ restorePreviousSession: true })
+    } else {
+      console.log(`worked. Reusing it.`);
+      await handleIncomingRedirect() // no-op if not part of login redirect
+    }
+    setSession()
+  } catch (err) {
+    console.error(`Relogin failed with error ${err}`)
+  }
 }
 
 onMounted(() => handleRedirectAfterLogin())

@@ -16,8 +16,6 @@
 <script setup>
 import { BFormGroup, BInputGroup } from 'bootstrap-vue-next'
 import { store } from '@/stores/store';
-
-
 </script>
 
 <style lang="scss" scoped></style>
