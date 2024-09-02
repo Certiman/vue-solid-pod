@@ -62,8 +62,7 @@
       ></a> but was eventually just based on Solid's <code>fromRdfJsDataset</code> which operated on the <code>shacl-form's .toRDF()</code> result.
     </li>
     <li>
-      Function
-      https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/rdfjs.html#fromrdfjsdataset
+      Function <code>fromRdfJsDataset</code> is documented (here)[https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/rdfjs.html#fromrdfjsdataset].
     </li>
   </ol>
 

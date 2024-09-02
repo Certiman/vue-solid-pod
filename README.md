@@ -4,12 +4,15 @@ This web application reproduces the [SOLID POD Tutorial App](https://docs.inrupt
 
 ## Main objectives
 
-- [X] Reproduce the POD tutorial app using a front-end framework, 100%.
-- [X] Use reactive components in order to collect and visualize the reading List (items)
-- [X] Additionally, allow for downloading the existing reading List FROM the POD and update the UI
+- [X] Reproduce the POD tutorial app (all functions) using a front-end framework.
+- [X] Use reactive components in order to collect and visualize the reading List (items). 
+- [X] Allow for the removal of the book items and update the Pod.
+- [X] Additionally, allow for downloading the existing reading List FROM the POD and update the UI.
 - [X] Also, allow for SHACL-FORM based input of a new book, and append the data into the data resource for the reading List.
 - [ ] For books added via the SHACL-FORM, allow for a Solid Pod based delete.
 - [ ] For existing books, allow for a pre-filled form in order to complement them.
+
+Some technical details are discussed [here](./src/shapes/addition.md).
 
 ## Recommended IDE Setup
 

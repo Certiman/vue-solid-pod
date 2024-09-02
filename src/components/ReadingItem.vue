@@ -15,15 +15,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 /** Component represents an individual book in the ReadingList */
+// const props =
 defineProps({ book: Object })
+
+/** Component emits edit and delete events */
+const emit = defineEmits(['deleteBook', 'editBook'])
+
+// onMounted(() => {
+//   console.log(`Mounting ReadingItem`, props.book)
+//   bookTitle.value = props.book.title
+// })
 
 // Allow for editing the book title
 const editable = ref(false)
 const bookTitle = ref('')
-const emit = defineEmits(['deleteBook', 'editBook'])
 
 function onEdit(book) {
   if (!book.isComplex) {
@@ -31,6 +39,8 @@ function onEdit(book) {
     if (editable.value) {
       // Change to the book is done in ReadingList
       emit('editBook', book, bookTitle)
+    } else {
+      // bookTitle.value = props.book.title
     }
     editable.value = !editable.value
   }

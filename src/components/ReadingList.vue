@@ -16,7 +16,7 @@
           v-for="book of allNonDeletedBooks"
           :active="bookBeingHandled(book.title)"
           :active-class="itemGroupClass"
-          :key="allBookTitles.indexOf(book.title)"
+          :key="allNonDeletedBooks.indexOf(book)"
           :book="book"
           @deleteBook="removeBook"
           @editBook="editBook"
@@ -123,16 +123,21 @@ import ReadingItem from './ReadingItem.vue'
 import { store } from '../stores/store'
 
 // The books themselves, and some helpers used in the template
-//
+// To remain faithful to the original app, two books are always present from start.
 const newBook = ref('') // v-model for the book title to add
-const allBooks = ref([]) // v-model for all the books as they exist in the client
-const allBookTitles = computed(() =>
-  // the titles of all those not marked for deletion
-  allNonDeletedBooks.value.map((book) => book.title)
-)
+const allBooks = ref([
+  { title: 'Leaves of Grass', isComplex: false, isToBeDeleted: false },
+  { title: 'RDF 1.1 Primer', isComplex: false, isToBeDeleted: false }
+])
+
+/**
+ *
+ * v-model for all the books as they exist in the
+ * This now can come from the Pod using download. But it is hard-code in the demo app, so we pre-fill them anyway.
+ * */
 const allNonDeletedBooks = computed(() => allBooks.value.filter((book) => !book.isToBeDeleted))
+const allBookTitles = computed(() => allNonDeletedBooks.value.map((book) => book.title))
 // const allBookTitles = ref(['Leaves of Grass', 'RDF 1.1 Primer'])
-// TODO: This should come from the POd and not hard-coded. But it is hard-code in the demo app.
 
 // Creates and Updates the DATA RESOURCE to add Things to (via global store).
 const newList = ref('myList')
@@ -192,9 +197,11 @@ function addBook() {
 
 /** finds a SIMPLE OR COMPLEX book given a title */
 function findBookByTitle(bookTitle) {
-  console.log(`Finding book with title ${bookTitle}...`)
+  console.log(`Finding book with title "${bookTitle}"...`)
 
   const foundBook = allBooks.value.find((book) => book.title == bookTitle)
+  console.log(foundBook)
+
   if (foundBook) return foundBook
   else {
     console.error(`Book "${bookTitle}" was not found. AllBooks:`, allBooks.value)
@@ -210,12 +217,16 @@ function findBookByTitle(bookTitle) {
 function removeBook(bookTitle) {
   // Find book not yet marked for deletion and mark it toBe Deleted
   const book = findBookByTitle(bookTitle)
+
+  // non-existing books or books already marked, should be ignored.
   if (!book || book.isToBeDeleted) return
   try {
     // mark it as to be deleted
     book.isToBeDeleted = true
   } catch (erreur) {
     console.error(`Failed to remove book with title ${book.title}`)
+  } finally {
+    console.log(allBooks.value)
   }
 }
 
