@@ -191,7 +191,14 @@ const downloadList = async () => {
 
 /** Adds SIMPLE book from input field 'newBookToAdd'to the list */
 function addBook() {
-  allBooks.value.push({ title: newBook.value, isComplex: false, isToBeDeleted: false })
+  if (!allBookTitles.value.includes(newBook.value)) {
+    allBooks.value.push({ title: newBook.value, isComplex: false, isToBeDeleted: false })
+  } else {
+    statusLabelAlertVariant.value = 'danger'
+    statusLabelAlert.value =
+      'Book already exists. Can not add identical book name (due to design of this demo)'
+    Alert.value?.restart()
+  }
   newBook.value = ''
 }
 
@@ -297,8 +304,8 @@ async function rebuildBookList(dsToUpdate) {
       }
     }
   } catch (error) {
-    statusLabelAlert.value = error
     statusLabelAlertVariant.value = 'danger'
+    statusLabelAlert.value = error
   } finally {
     console.log(`Book List rebuilt from Solid POD:`, allBooks.value)
 
@@ -327,6 +334,7 @@ async function createList() {
 
   try {
     // Attempt to retrieve the reading list in case it already exists.
+    statusLabelAlertVariant.value = 'success'
     statusLabelAlert.value = 'Retrieving existing Dataset or creating new Dataset...'
     itemGroupClass.value = 'list-group-item-danger' // mark items being deleted in red
 
@@ -358,6 +366,7 @@ async function createList() {
   }
 
   // Add titles to the Dataset
+  statusLabelAlertVariant.value = 'warning'
   statusLabelAlert.value = 'Creating SIMPLE book Things...'
 
   books.forEach((book, i) => {
@@ -380,6 +389,7 @@ async function createList() {
       fetch: fetch
     })
 
+    statusLabelAlertVariant.value = 'success'
     statusLabelAlert.value = 'Saved'
     itemGroupClass.value = 'list-group-item-success' // mark items being re-added in green
 
@@ -387,8 +397,8 @@ async function createList() {
 
     // handledBook.value = ''
   } catch (error) {
-    statusLabelAlert.value = error
     statusLabelAlertVariant.value = 'danger'
+    statusLabelAlert.value = error
   } finally {
     Alert.value?.pause()
   }
