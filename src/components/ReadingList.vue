@@ -12,11 +12,11 @@
           ><IMdiDeleteForeverOutline class="me-2 mb-1" />{{ book }}</BListGroupItem
         > -->
         <!-- FIXED: book is Array of full books, allBookTitles just their Titles (computed) -->
+        <!-- :active="bookBeingHandled(book.title)"
+        :active-class="itemGroupClass" -->
         <ReadingItem
           v-for="book of allNonDeletedBooks"
-          :active="bookBeingHandled(book.title)"
-          :active-class="itemGroupClass"
-          :key="allNonDeletedBooks.indexOf(book)"
+          :key="allBookTitles.indexOf(book.title)"
           :book="book"
           @deleteBook="removeBook"
           @editBook="editBook"
