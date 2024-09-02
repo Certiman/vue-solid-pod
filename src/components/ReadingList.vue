@@ -147,7 +147,7 @@ watch(newList, (list) => {
 
 // FIXME: Visualize the node bing handled, as this happens too fast it is barely visible.
 const handledBook = ref('')
-const itemGroupClass = ref('list-group-item-primary')
+// const itemGroupClass = ref('list-group-item-primary')
 
 // Alert and Subscription messages
 // Subscription reacts to the WS
@@ -177,8 +177,9 @@ onBeforeMount(() => {
 /**
  * Returns @return true when the book with given title is being written into the Dataset
  * @param bookTitle the string containing the book, which is potentially being written, deleted etc
+ * Function not used because the changes are faster than DOM updates.
  */
-const bookBeingHandled = (bookTitle) => bookTitle == handledBook.value
+// const bookBeingHandled = (bookTitle) => bookTitle == handledBook.value
 
 /**
  * Function triggers the reload of the resource book list and update of the view.
@@ -336,7 +337,7 @@ async function createList() {
     // Attempt to retrieve the reading list in case it already exists.
     statusLabelAlertVariant.value = 'success'
     statusLabelAlert.value = 'Retrieving existing Dataset or creating new Dataset...'
-    itemGroupClass.value = 'list-group-item-danger' // mark items being deleted in red
+    // itemGroupClass.value = 'list-group-item-danger' // mark items being deleted in red
 
     myReadingList = await getSolidDataset(store.readingListURL, { fetch: fetch })
 
@@ -391,7 +392,7 @@ async function createList() {
 
     statusLabelAlertVariant.value = 'success'
     statusLabelAlert.value = 'Saved'
-    itemGroupClass.value = 'list-group-item-success' // mark items being re-added in green
+    // itemGroupClass.value = 'list-group-item-success' // mark items being re-added in green
 
     await rebuildBookList(savedReadingList) // 7.
 
