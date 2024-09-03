@@ -12,7 +12,7 @@
       >
       <BButton @click="onEdit(book)" variant="warning"
         ><IMaterialSymbolsLightEditDocumentSharp class="me-2 mb-1" />{{
-          editable ? 'Save' : 'Edit'
+          editable ? 'Save' : book.isComplex ? 'View' : 'Edit'
         }}</BButton
       >
     </BInputGroup>
@@ -43,6 +43,9 @@ function onEdit(book) {
       bookTitle.value = book.title
     }
     editable.value = !editable.value
+  } else {
+    // Triggers a modal view
+    emit('editBook', book, null)
   }
 }
 </script>

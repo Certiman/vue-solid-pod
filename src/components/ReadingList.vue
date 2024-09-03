@@ -23,18 +23,26 @@
         />
       </BListGroup>
       <BCardBody>
-        <BInputGroup prepend="Book title">
-          <BFormInput
-            id="newBookToAdd"
-            v-model="newBook"
-            type="text"
-            @keyup.enter="addBook"
-          ></BFormInput>
-          <BButton @click="store.canShowModal = !store.canShowModal" variant="primary"
-            ><IMdiAddBox class="me-2 mb-1"></IMdiAddBox> Add Book</BButton
-          >
-          <BButton @click="addBook"><IMdiNoteAdd class="mb-1 me-2" />Add Title Only</BButton>
-        </BInputGroup>
+        <BContainer class="fluid">
+          <BRow>
+            <BCol lg="9" order="1">
+              <BInputGroup prepend="Book title" class="me-2">
+                <BFormInput
+                  id="newBookToAdd"
+                  v-model="newBook"
+                  type="text"
+                  @keyup.enter="addBook"
+                ></BFormInput>
+                <BButton @click="addBook"><IMdiNoteAdd class="me-2 mb-1" />Add Title Only</BButton>
+              </BInputGroup>
+            </BCol>
+            <BCol order="2">
+              <BButton @click="store.canShowEditModal = !store.canShowEditModal" variant="primary"
+                ><IMdiAddBox class="me-2 mb-1"></IMdiAddBox> Add Detailed Book</BButton
+              >
+            </BCol>
+          </BRow>
+        </BContainer>
       </BCardBody>
       <BCardFooter>
         <BInputGroup prepend="Book List Container: /getting-started/readingList/">
@@ -82,8 +90,7 @@
     />
   </BAlert>
   <ShaclAddBookModal @DataSetUpdated="rebuildBookList(newReadingList)" />
-  ShaclEditBookModal HERE: it will require the BookItem to return its ?s URI for the SHACLForm data
-  to be grabbed as a instance and then data-viewed...
+  <ShaclViewBookModal :BookUrl="bookToShowUrl" />
 </template>
 
 <script setup>
@@ -117,7 +124,8 @@ import {
 } from 'bootstrap-vue-next'
 import { ref, onBeforeMount, watch, computed } from 'vue'
 
-import ShaclAddBookModal from '@/components/ShaclAddBookModal.vue'
+import ShaclAddBookModal from '@/components/modals/ShaclAddBookModal.vue'
+import ShaclViewBookModal from '@/components/modals/ShaclViewBookModal.vue'
 import ReadingItem from './ReadingItem.vue'
 
 import { store } from '../stores/store'
@@ -125,6 +133,7 @@ import { store } from '../stores/store'
 // The books themselves, and some helpers used in the template
 // To remain faithful to the original app, two books are always present from start.
 const newBook = ref('') // v-model for the book title to add
+const bookToShowUrl = ref('')
 const allBooks = ref([
   { title: 'Leaves of Grass', isComplex: false, isToBeDeleted: false },
   { title: 'RDF 1.1 Primer', isComplex: false, isToBeDeleted: false }
@@ -245,6 +254,8 @@ function editBook(book, newTitle) {
     book.title = newTitle
   } else {
     // show the Edit Book Modal
+    bookToShowUrl.value = book.resourceUri
+    store.canShowViewModal = true
   }
   console.log(allBooks.value)
 }

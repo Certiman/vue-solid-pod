@@ -1,7 +1,7 @@
 <template>
   <BModal
     id="form-for-data"
-    v-model="store.canShowModal"
+    v-model="store.canShowEditModal"
     :title="`Input the new book's data (Shape ${dataShapesLoaded ? ' ' : 'not '}loaded)`"
     @shown="loadShapesFromNonRDFFile"
     size="lg"
@@ -52,7 +52,7 @@ import {
 
 const emit = defineEmits(['DataSetUpdated'])
 
-import { store } from '../stores/store'
+import { store } from '@/stores/store'
 
 // Option to read shape from a Pod (as a file)
 const DATA_URL = `${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
@@ -84,7 +84,7 @@ const submitListener = async (event) => {
 const loadShapesFromNonRDFFile = async () => {
   try {
     if (!dataShapesLoaded.value) {
-      console.log(`Trying to (re)load the shapes from POD!`)
+      console.log(`Trying to (re)load the shapes from POD! (editing purposes)`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
       store.allShapeBlobUrls.push(data_blob_url)
@@ -135,7 +135,7 @@ const addBookAsRDF = async () => {
     numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
     emit('DataSetUpdated', savedReadingList) // pushes the saved DS to the parent ReadingList compoment
-    store.canShowModal = false // hides the modal
+    store.canShowEditModal = false // hides the modal
   } catch (err) {
     console.error(`Storing book failed with error ${err}!`)
   }
