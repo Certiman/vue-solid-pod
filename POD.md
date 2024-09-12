@@ -24,13 +24,15 @@ As linked data, the [user's root storage container](https://solidproject.org/TR/
 
 ### Other Basic Containers
 
+#### Concept
+
 Other basic containers are 'findable' because they are already defined at root container level using `ldp:contains`:
 
 ```
 <https://storage.provider.com/{Storage-Identifier}/>
         rdf:type      ldp:BasicContainer;
         ldp:contains  </{Storage-Identifier}/profile> , # data resource, see below
-                      </{Storage-Identifier}/{Name Of Basic Container 1}/> ,  # container resource
+                      </{Storage-Identifier}/{Name Of Basic Container 1}/> ,  # container resource: 
                       </{Storage-Identifier}/{Name Of Basic Container 2}/> ,
         # etc ...
                       </{Storage-Identifier}/{Name Of Basic Container N}/> .
@@ -45,9 +47,26 @@ The basic containers are also defined in the RDF present at root level:
 
 The /profile resource is not a Basic Container but a data resource.
 
+#### Code
+
+Containers are created:
+
+- at a container `Url`, using [`createContainerAt(Url, ...)`](https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/resource_solidDataset.html#createcontainerat)
+- within another container, using [`createContainerInContainer(containerUrl, ...)`](https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/resource_solidDataset.html#createcontainerincontainer).
+
 ### Data resources linked at root level
 
 Any data resource (RDF or other) will always be represented as a unique subject node and their membership within a Container is formalized using the `ldp:contains`-ObjectProperty.
+
+Generally, a Resource, being a Solid Dataset within a Container, is 
+
+- retrieved using `getSolidDataset(resourceUrl, { fetch: fetch })`, while properties are added using a `Thing`. An error is raised when the resource does not exist.
+- created using `createSolidDataset()`.
+
+Things within the resource (individual triples, belonging to the instance) are then created:
+
+- with a `?s`-IRI (using [`createThing({name: subjectRef})`](https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/thing_thing.html#creatething), to which additional properties can be added using `add`-functions for `Thing`s, and then all stored using `setThing()` (iterative approach).
+- with the [`buildThing`](https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/thing_build.html#)-creator class (serving a more serial approach).
 
 Two particular data resources are DESCRIBED at root level:
 - for the user/organisation `Profile`
@@ -55,7 +74,7 @@ Two particular data resources are DESCRIBED at root level:
 
 #### Profile
 
-Every Solid Pod MUST contain a (WebId Profile resource)[https://solid.github.io/webid-profile/] like so:
+Every Solid Pod MUST contain a (WebId Profile resource)[https://solid.github.io/webid-profile] like so:
 
 ```
 </{Storage-Identifier}/profile> # note the subject node of this structured data resource
