@@ -4,6 +4,7 @@
     v-model="store.canShowViewModal"
     title="Book Information"
     @shown="loadDataAndShapesFromNonRDFFile"
+    @hidden="BookUrlValues = null"
     size="lg"
     scrollable
   >

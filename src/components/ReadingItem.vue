@@ -38,7 +38,7 @@ function onEdit(book) {
     // Simple books can just have their titles updated
     if (editable.value) {
       // Change to the book is done in ReadingList
-      emit('editBook', book, bookTitle)
+      emit('editBook', book, bookTitle.value)
     } else {
       bookTitle.value = book.title
     }
