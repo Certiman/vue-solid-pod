@@ -41,7 +41,7 @@ import {
   getDefaultSession
 } from '@inrupt/solid-client-authn-browser'
 import { BFormGroup, BFormSelect } from 'bootstrap-vue-next'
-import { store } from '../stores/store'
+import { store } from '../../stores/store'
 
 // Data
 const idpProviders = [
@@ -105,7 +105,7 @@ async function handleRedirectAfterLogin() {
       console.log(`failed. Please log in yourself.`)
       await handleIncomingRedirect({ restorePreviousSession: true })
     } else {
-      console.log(`worked. Reusing it.`);
+      console.log(`worked. Reusing it.`)
       await handleIncomingRedirect() // no-op if not part of login redirect
     }
     setSession()

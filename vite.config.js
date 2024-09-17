@@ -24,7 +24,7 @@ export default defineConfig({
     vueDevTools(),
     Components({
       resolvers: [BootstrapVueNextResolver(), IconsResolve()],
-      dts: false
+      dts: true
     }),
     Icons({
       compiler: 'vue3',

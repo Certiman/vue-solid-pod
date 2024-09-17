@@ -3,6 +3,7 @@
     id="form-for-view"
     v-model="store.canShowViewModal"
     title="Book Information"
+    ok-only=""
     @shown="loadDataAndShapesFromNonRDFFile"
     @hidden="BookUrlValues = null"
     size="lg"

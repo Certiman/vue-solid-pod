@@ -1,28 +1,32 @@
 <template>
   <BFormGroup description="b. Enter items to read" class="my-3">
     <BCard class="mt-2" no-body>
-      <BListGroup flush>
-        <!-- <BListGroupItem
-          v-for="book of allBookTitles"
-          :key="allBookTitles.indexOf(book)"
-          button
-          :active="bookBeingHandled(book)"
-          :active-class="itemGroupClass"
-          @click="removeBook(book)"
-          ><IMdiDeleteForeverOutline class="me-2 mb-1" />{{ book }}</BListGroupItem
-        > -->
-        <!-- FIXED: book is Array of full books, allBookTitles just their Titles (computed) -->
-        <!-- :active="bookBeingHandled(book.title)"
-        :active-class="itemGroupClass" -->
-        <ReadingItem
-          v-for="book of allNonDeletedBooks"
-          :key="allBookTitles.indexOf(book.title)"
-          :book="book"
-          @deleteBook="removeBook"
-          @editBook="editBook"
-        />
-      </BListGroup>
+      <BCardHeader>
+        <BInputGroup prepend="Book List Container: /getting-started/readingList/">
+          <BFormInput v-model="newList" type="text"></BFormInput>
+          <BButton @click="downloadList" variant="warning"
+            ><IMaterialSymbolsCloudDownloadOutline class="me-2 mb-1" />Download</BButton
+          >
+          <BButton @click="createList" variant="danger"
+            ><IJamWriteF class="me-2 mb-1" />Overwrite</BButton
+          >
+          <BButton @click="subscribeToList" variant="success"
+            ><IMdiBellRing class="me-2 mb-1" />Subscribe</BButton
+          >
+        </BInputGroup>
+      </BCardHeader>
       <BCardBody>
+        <BListGroup flush>
+          <ReadingItem
+            v-for="book of allNonDeletedBooks"
+            :key="allBookTitles.indexOf(book.title)"
+            :book="book"
+            @deleteBook="removeBook"
+            @editBook="editBook"
+          />
+        </BListGroup>
+      </BCardBody>
+      <BCardFooter>
         <BContainer class="fluid">
           <BRow>
             <BCol lg="9" order="1">
@@ -43,20 +47,6 @@
             </BCol>
           </BRow>
         </BContainer>
-      </BCardBody>
-      <BCardFooter>
-        <BInputGroup prepend="Book List Container: /getting-started/readingList/">
-          <BFormInput v-model="newList" type="text"></BFormInput>
-          <BButton @click="downloadList" variant="warning"
-            ><IMaterialSymbolsCloudDownloadOutline class="me-2 mb-1" />Download</BButton
-          >
-          <BButton @click="createList" variant="danger"
-            ><IJamWriteF class="me-2 mb-1" />Overwrite</BButton
-          >
-          <BButton @click="subscribeToList" variant="success"
-            ><IMdiBellRing class="me-2 mb-1" />Subscribe</BButton
-          >
-        </BInputGroup>
       </BCardFooter>
     </BCard>
   </BFormGroup>
@@ -144,7 +134,11 @@ const allBooks = ref([
  * v-model for all the books as they exist in the
  * This now can come from the Pod using download. But it is hard-code in the demo app, so we pre-fill them anyway.
  * */
-const allNonDeletedBooks = computed(() => allBooks.value.filter((book) => !book.isToBeDeleted))
+const allNonDeletedBooks = computed(() =>
+  allBooks.value
+    .filter((book) => !book.isToBeDeleted)
+    .sort((a, b) => a.title.localeCompare(b.title))
+)
 const allBookTitles = computed(() => allNonDeletedBooks.value.map((book) => book.title))
 // const allBookTitles = ref(['Leaves of Grass', 'RDF 1.1 Primer'])
 
@@ -270,9 +264,29 @@ async function subscribeToList() {
   // Create the websocket on that data resource
   const websocket = new WebsocketNotification(containerUrl, { fetch: fetch })
 
+  const makeMessageReadable = (wsNMessage) => {
+    // const wsNMessageExample = {
+    //   '@context': [
+    //     'https://www.w3.org/ns/activitystreams',
+    //     { state: { '@id': 'http://www.w3.org/2011/http-headers#etag' } }
+    //   ],
+    //   id: 'urn:uuid:72ca7fb2-e2c2-4de9-97e9-b4d4f8bd9821',
+    //   type: ['http://www.w3.org/ns/prov#Activity', 'Update'],
+    //   actor: [''],
+    //   object: {
+    //     id: 'https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/getting-started/readingList/myList',
+    //     type: ['http://www.w3.org/ns/ldp#RDFSource', 'http://www.w3.org/ns/ldp#Resource'],
+    //     state: 'c7e4a411-a041-4104-b762-b6bf60b14ddc'
+    //   },
+    //   published: '2024-09-16T19:44:53.914134538Z'
+    // }
+    console.log(wsNMessage)
+    return `${wsNMessage.object?.id}\n (type: ${wsNMessage.object?.type.join(', ')}) was changed:\n [${wsNMessage.type?.join(': ')}] on ${wsNMessage.published}.`
+  }
+
   websocket.on('message', (message) => {
     Subscription.value?.restart()
-    statusLabelSubscriptionHTML.value = `<pre><code>${JSON.stringify(message)}</code></pre>`
+    statusLabelSubscriptionHTML.value = `<pre><code>${makeMessageReadable(message)}</code></pre>`
   })
 
   websocket.connect()

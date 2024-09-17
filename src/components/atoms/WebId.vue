@@ -14,7 +14,7 @@
 import { BButton, BFormInput, BInputGroup } from 'bootstrap-vue-next'
 import { getPodUrlAll } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
-import { store } from '../stores/store'
+import { store } from '../../stores/store'
 
 // Emitters & Props
 defineProps({ disabled: Boolean })

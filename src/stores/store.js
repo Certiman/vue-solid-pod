@@ -3,13 +3,14 @@ import { reactive } from 'vue'
 
 export const store = reactive({
   allPodUrls: [],
+  selectedPodUrl: '',
   allShapeBlobUrls: [],
   canGetPodURLs: false,
   canShowEditModal: false,
-  canShowViewModal:false,
+  canShowViewModal: false,
+  canShowAddStorage: true,
   loggedInWebId: '',
   mode: 'light',
-  selectedPodUrl: '',
   readingListURL: '',
   canDisplayData() {
     return this.selectedPodUrl.length > 0
