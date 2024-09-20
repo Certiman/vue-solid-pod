@@ -1,21 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { createContainerAt, getPodUrlAll, isContainer } from '@inrupt/solid-client'
-import {
-  addUrl,
-  addStringNoLocale,
-  createSolidDataset,
-  createThing,
-  getSolidDataset,
-  getContainedResourceUrlAll,
-  getStringNoLocale,
-  getThingAll,
-  removeThing,
-  saveSolidDatasetAt,
-  setThing,
-  getUrl
-} from '@inrupt/solid-client'
+import { getSolidDataset, getContainedResourceUrlAll } from '@inrupt/solid-client'
 
 // stores
 import { processStore } from '@/stores/process'
@@ -36,7 +23,15 @@ const showToastWithMessage = ref(3000)
 const ToastMessage = ref('')
 
 const addProvider = async (WebId) => {
+  /**
+   * For a given WebId:
+   * - retrieve all its container URLs
+   * - check if /process exist in that container
+   * - in the OWN container URLs, create the /process container.
+   */
   finishedAddingPP.value = false
+  const providerExists = processStore.processProviders.find((o) => o.ProviderWebId == WebId.trim())
+  if (providerExists) return null
 
   try {
     // Get Pod(s) associated with the WebID
@@ -49,21 +44,12 @@ const addProvider = async (WebId) => {
     ppPodUrls.forEach(async (ppPodUrl, i) => {
       const ppPodProcessUrl = ppPodUrl + 'process/'
 
-      let ppPodProcessContainer, isUsefulContainer
+      let isUsefulContainer, foundDS
       try {
         // Check for the container /process/, and try to find (:pro/:task#step)!
-        ppPodProcessContainer = await getSolidDataset(ppPodProcessUrl, { fetch: fetch })
-
-        // Grab all processes from it
-        let existingProcesses = getThingAll(ppPodProcessContainer) // will be a group of containers?
-        let existingProcessesUrls = getContainedResourceUrlAll(ppPodProcessContainer)
-
-        // Grab all tasks from it
-        console.log(existingProcesses, existingProcessesUrls)
-
-        isUsefulContainer = true // if it canbe used and read
-
-        // TODO:Prepare all steps in these tasks (/routes)
+        const { pc, ds } = checkProcessRootContainerAt(ppPodProcessUrl) // if it can be used and read
+        isUsefulContainer.value = pc
+        foundDS = ds
       } catch (error) {
         // THis container cannot be used for starting processes in
         // Note that CREATING processes is handled elsewhere
@@ -77,8 +63,9 @@ const addProvider = async (WebId) => {
           console.warn(`Creating the /process store in the own Pod at ${ppPodProcessUrl}...`)
 
           // if not found, create a new SolidDataset (i.e., the reading list)
+          // FIXME: One can not just create this container if user disagrees!
           await createContainerAt(ppPodProcessUrl, { fetch: fetch })
-          isUsefulContainer = true // if it canbe used and read
+          isUsefulContainer = true // if it can be used and read
         } else if (typeof error.statusCode === 'number' && error.statusCode === 403) {
           console.error(`No accecss top the process container at ${ppPodProcessUrl}`)
         } else if (typeof error.statusCode === 'number' && error.statusCode === 404) {
@@ -93,7 +80,8 @@ const addProvider = async (WebId) => {
           ContainerURI: ppPodProcessUrl,
           Label: `ProcessProvider#${i + 1}`,
           ProviderWebId: WebId,
-          Active: isUsefulContainer
+          Active: isUsefulContainer,
+          ProcessDataSet: foundDS
         })
         finishedAddingPP.value = true
       }
@@ -104,20 +92,41 @@ const addProvider = async (WebId) => {
   }
 }
 
-const selfProcessContainerExists = async () => {
-  // Checks in the WebId's root if /process exist.
-  if (store.selectedPodUrl.length === 0) return null
-  const ownPPUrl = store.selectedPodUrl + 'process/'
-  console.log(`Checking if ${ownPPUrl} exists...`)
+const getProcessesFromPContainer = async (ppPodProcessUrl) => {
+  // With all providers determined, write their processes at ppPodProcessUrl in the state.
+  try {
+    const ppPodProcessContainer = await getSolidDataset(ppPodProcessUrl, { fetch: fetch })
+
+    // Grab all processes from it, they MUST be CONTAINERS
+    // let existingProcesses = getThingAll(ppPodProcessContainer) // will be a group of containers?
+    let existingProcessesUrls = getContainedResourceUrlAll(ppPodProcessContainer)
+
+    // Grab all tasks from it
+    console.log(existingProcessesUrls)
+  } catch (e) {
+    // Function is used to check existence of /process as well and must throw error if not.
+    console.error(e)
+    throw new Error('The /process container was not found.')
+  }
+}
+
+const checkProcessRootContainerAt = async (pURL) => {
+  /**
+   * Returns {pc, ds }
+   * For a given /process-container URL, store the dataset if it exists in ds:
+   * Return the existence as a boolean under pc:
+   */
+  console.log(`Checking if container ${pURL} exists...`)
+  if (!isContainer(pURL)) return { pc: false, ds: null }
   try {
     // Check the container
-    const processesDataSet = await getSolidDataset(ownPPUrl, {
+    const processesDataSet = await getSolidDataset(pURL, {
       fetch: fetch
     })
-    return processesDataSet
+    return { pc: true, ds: processesDataSet }
   } catch (erreur) {
-    console.error(`Own process pod does not exist or error: ${erreur}`)
-    return null
+    console.error(`On /process container at ${pURL}: does not exist or error: ${erreur}`)
+    return { pc: false, ds: null }
   }
 }
 
@@ -137,7 +146,30 @@ const addNewProvider = async () => {
 }
 
 const checkSelfProcessContainer = async () => {
-  ownProcessContainerExists.value = await selfProcessContainerExists()
+  if (store.selectedPodUrl.length === 0) return null
+  const ownPPUrl = store.selectedPodUrl + 'process/'
+  try {
+    // Checks in the WebId's root if /process exist.
+    // ds is thrown away here.
+    const { pc, ds } = await checkProcessRootContainerAt(ownPPUrl)
+    const providerExists = processStore.processProviders.find(
+      (o) => o.ProviderWebId == store.loggedInWebId.trim()
+    )
+
+    if (pc && !providerExists) {
+      // Store the found pp in the state
+      processStore.processProviders.push({
+        ContainerURI: ownPPUrl,
+        Label: `Self#`,
+        ProviderWebId: store.loggedInWebId,
+        Active: true,
+        ProcessDataSet: ds
+      })
+    }
+    ownProcessContainerExists.value = pc
+  } catch (e) {
+    ownProcessContainerExists.value = false
+  }
 }
 </script>
 
