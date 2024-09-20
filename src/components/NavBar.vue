@@ -2,6 +2,7 @@
 import { BButton, BNavbarNav, BNavItem, vBColorMode } from 'bootstrap-vue-next'
 // store holds mode
 import { store } from '@/stores/store'
+import { processStore } from '@/stores/process'
 </script>
 
 <template>
@@ -16,8 +17,21 @@ import { store } from '@/stores/store'
       </BNavbarNav>
       <BNavbarNav class="ms-auto mb-2 mb-lg-0">
         <BNavItem
-          ><BButton @click="store.canShowAddStorage = true" variant="success"
-            ><IMdiStorage class="me-2 mb-1" />{{ store.canDisplayData() ? store.loggedInWebId : 'No storage' }}</BButton
+          ><BButton
+            @click="store.canShowAddStorage = true"
+            :variant="store.canDisplayData() ? 'success' : 'danger'"
+            ><IMdiStorage class="mb-1" />{{
+              store.canDisplayData() ? store.loggedInWebId : ''
+            }}</BButton
+          ></BNavItem
+        >
+        <BNavItem
+          ><BButton
+            @click="processStore.canShowAddProcessProviderModal = true"
+            :variant="processStore.canProcessData() ? 'success' : 'danger'"
+            ><ICarbonProcess class="mb-1" />{{
+              processStore.canProcessData() ? 'Process providers' : ''
+            }}</BButton
           ></BNavItem
         >
         <BNavItem

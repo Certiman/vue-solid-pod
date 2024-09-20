@@ -60,7 +60,7 @@
     <p v-else v-html="statusLabelSubscriptionHTML"></p>
     <BProgress
       variant="warning"
-      :max="statusLabelsDuration"
+      :max="statusLabelsSubscriptionDuration"
       :value="countdownSubscription"
       height="4px"
     />
@@ -80,7 +80,13 @@
     />
   </BAlert>
   <ShaclAddBookModal @DataSetUpdated="rebuildBookList(newReadingList)" />
-  <ShaclViewBookModal :BookUrl="bookToShowUrl" />
+  <!-- <ShaclViewBookModal :BookUrl="bookToShowUrl" /> -->
+  <ViewResourceModal
+    :shapeFileUrl="`${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`"
+    :resource-uri="bookToShowUrl"
+    :modal-data="{ title: 'Book Information', noCancel: true }"
+    @viewer-hidden="testLogRDF"
+  />
 </template>
 
 <script setup>
@@ -115,10 +121,11 @@ import {
 import { ref, onBeforeMount, watch, computed } from 'vue'
 
 import ShaclAddBookModal from '@/components/modals/ShaclAddBookModal.vue'
-import ShaclViewBookModal from '@/components/modals/ShaclViewBookModal.vue'
+// import ShaclViewBookModal from '@/components/modals/ShaclViewBookModal.vue'
+import ViewResourceModal from '@/components/modals/ViewResourceModal.vue'
 import ReadingItem from './ReadingItem.vue'
 
-import { store } from '../stores/store'
+import { store } from '@/stores/store'
 
 // The books themselves, and some helpers used in the template
 // To remain faithful to the original app, two books are always present from start.
@@ -169,7 +176,7 @@ const countdown = ref(1000)
 
 // Before mounting, create the readingLIst
 onBeforeMount(() => {
-  // seems required for the alerts to appaer
+  // seems required for the alerts to appear
   Alert.value?.pause()
 
   // initial value of the readingListURL
@@ -177,6 +184,13 @@ onBeforeMount(() => {
 })
 
 // Functions
+/**
+ * Function to check what ViewResourceModal is up to
+ */
+const testLogRDF = (data) => {
+  console.log('Full N3 Store object from SHACL Form:', data)
+}
+
 /**
  * Returns @return true when the book with given title is being written into the Dataset
  * @param bookTitle the string containing the book, which is potentially being written, deleted etc
@@ -247,7 +261,7 @@ function editBook(book, newTitle) {
     // allow for the title to be edited
     book.title = newTitle
   } else {
-    // show the Edit Book Modal
+    // show the View Book Modal
     bookToShowUrl.value = book.resourceUri
     store.canShowViewModal = true
   }

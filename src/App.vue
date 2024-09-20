@@ -5,6 +5,7 @@ import { RouterView } from 'vue-router'
 import { store } from './stores/store'
 import NavBar from './components/NavBar.vue'
 import AddStorageProvider from '@/components/modals/AddStorageProvider.vue';
+import AddProcessProvider from './components/modals/AddProcessProvider.vue';
 
 </script>
 
@@ -18,6 +19,7 @@ import AddStorageProvider from '@/components/modals/AddStorageProvider.vue';
     </BContainer>
   </body>
   <AddStorageProvider />
+  <AddProcessProvider />
 
 </template>
 
