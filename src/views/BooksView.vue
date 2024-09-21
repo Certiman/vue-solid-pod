@@ -1,10 +1,9 @@
 <script setup>
-import { store } from '../stores/store'
+import { sessionStore } from '@/stores/sessions'
 
 import ReadingList from '@/components/ReadingList.vue'
-
 </script>
 
 <template>
-  <ReadingList v-if="store.canDisplayData()" />
+  <ReadingList v-if="sessionStore.canDisplayData()" />
 </template>

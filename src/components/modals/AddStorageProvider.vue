@@ -5,23 +5,23 @@ import LoginPod from '@/components/atoms/LoginPod.vue'
 import WebId from '@/components/atoms/WebId.vue'
 import PodUrls from '@/components/atoms/PodUrls.vue'
 
-import { store } from '@/stores/store'
+import { sessionStore } from '@/stores/sessions'
+import { modalStore } from '@/stores/ui'
 
-const allPodUrlsKnown = computed(() => store.allPodUrls.length > 0)
-
+const allPodUrlsKnown = computed(() => sessionStore.allPodUrls.length > 0)
 </script>
 
 <template>
   <BModal
     id="add-storage-provide"
-    v-model="store.canShowAddStorage"
+    v-model="modalStore.canShowAddStorage"
     title="Add your storage provider"
     size="lg"
     ok-only
     scrollable
   >
     <LoginPod />
-    <WebId :disabled="allPodUrlsKnown" v-if="store.canGetPodURLs" />
+    <WebId :disabled="allPodUrlsKnown" v-if="sessionStore.canGetPodURLs" />
     <PodUrls v-if="allPodUrlsKnown" class="mt-2"
   /></BModal>
 </template>

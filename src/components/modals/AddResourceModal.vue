@@ -15,18 +15,19 @@ import { ref, onMounted, computed } from 'vue'
 import { BModal, BAlert } from 'bootstrap-vue-next'
 import { ShaclForm } from '@ulb-darmstadt/shacl-form'
 import {
-    getFile,
-    fromRdfJsDataset,
-    //   saveSolidDatasetInContainer,
-    saveSolidDatasetAt,
-    getSolidDataset,
-    getThingAll,
-    setThing
+  getFile,
+  fromRdfJsDataset,
+  //   saveSolidDatasetInContainer,
+  saveSolidDatasetAt,
+  getSolidDataset,
+  getThingAll,
+  setThing
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 // Store
-import { store } from '@/stores/store'
+import { cacheStore } from '@/stores/cache'
+import { modalStore } from '@/stores/ui'
 
 // Props and Emits
 const emit = defineEmits(['DataSetUpdated'])
@@ -42,7 +43,9 @@ const props = defineProps({
 // Option to read shape from a Pod (as a file)
 const DATA_URL = props.shapeFileUrl
 const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > numberOfShapesLoaded.value)
+const dataShapesLoaded = computed(
+  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
+)
 
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
@@ -72,9 +75,9 @@ const loadShapesFromNonRDFFile = async () => {
       console.log(`(editing) Trying to (re)load the shapes from POD at ${DATA_URL}!`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
-      store.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.allShapeBlobUrls.push(data_blob_url)
     } else {
-      console.warn(`Blob URL from cache, length ${store.allShapeBlobUrls.length}`)
+      console.warn(`Blob URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
     }
   } catch (err) {
     console.error(`Failed loading file, check access: ${err}`)
@@ -88,7 +91,6 @@ const addResourceAsRDF = async () => {
   try {
     // Get data out of the shacl-form
     const form = document.querySelector('shacl-form')
-    //   const shaclFormGraph = new Store(), uses N3.Store(), not needed as shacl-form does this
     const shaclFormGraph = await form.toRDF()
 
     // Convert RDF store into a Solid dataset
@@ -120,7 +122,7 @@ const addResourceAsRDF = async () => {
     numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
     emit('DataSetUpdated', updatedDataset) // pushes the saved DS to the parent ReadingList compoment
-    store.canShowEditModal = false // hides the modal
+    modalStore.canShowEditModal = false // hides the modal
   } catch (err) {
     console.error(`Storing book failed with error ${err}!`)
   }
@@ -132,7 +134,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
 <template>
   <BModal
     id="add-resource-form-modal"
-    v-model="store.canShowEditModal"
+    v-model="modalStore.canShowEditModal"
     :title="`Input the new resource data (Shape ${dataShapesLoaded ? ' ' : 'not '}loaded)`"
     @shown="loadShapesFromNonRDFFile"
     size="lg"
@@ -141,11 +143,11 @@ onMounted(async () => await loadShapesFromNonRDFFile())
   >
     {{ DATA_URL }}
     <span v-if="dataShapesLoaded">
-      <!-- v-for="[ind, DATA_SHAPE_BLOB] of store.allShapeBlobUrls.entries()"
+      <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
           :key="ind" -->
       <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
       <shacl-form
-        :data-shapes-url="store.allShapeBlobUrls.at(-1)"
+        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
         @change="changeListener"
         @submit="submitListener"
         data-show-node-ids

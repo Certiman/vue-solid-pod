@@ -1,7 +1,7 @@
 <template>
   <BFormGroup label="2. Logged in with your WebID:" id="readlabel" class="mt-2">
     <BInputGroup prepend="Your WebId">
-      <BFormInput disabled :placeholder="store.loggedInWebId"></BFormInput>
+      <BFormInput disabled :placeholder="sessionStore.loggedInWebId"></BFormInput>
       <BButton name="btnRead" id="btnRead" :disabled="disabled" @click="getMyPods"
         >Get Pod URL(s)</BButton
       >
@@ -14,14 +14,14 @@
 import { BButton, BFormInput, BInputGroup } from 'bootstrap-vue-next'
 import { getPodUrlAll } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
-import { store } from '../../stores/store'
+import { sessionStore } from '@/stores/sessions'
 
 // Emitters & Props
 defineProps({ disabled: Boolean })
 
 // 2. Get Pod(s) associated with the WebID
 async function getMyPods() {
-  const mypods = await getPodUrlAll(store.loggedInWebId, { fetch: fetch })
+  const mypods = await getPodUrlAll(sessionStore.loggedInWebId, { fetch: fetch })
 
   // Update the page with the retrieved values.
   let selectorPod = []
@@ -32,7 +32,7 @@ async function getMyPods() {
     selectorPod.push(podOption)
   })
 
-  store.allPodUrls = selectorPod
+  sessionStore.allPodUrls = selectorPod
 }
 </script>
 

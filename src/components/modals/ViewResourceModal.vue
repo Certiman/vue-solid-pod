@@ -11,7 +11,8 @@ import { getFile, getSolidDataset, toRdfJsDataset } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 // store
-import { store } from '@/stores/store'
+import { cacheStore } from '@/stores/cache'
+import { modalStore } from '@/stores/ui'
 
 // util to load shape and determine where to write the data
 // CANNOT WORK as event handler : import { loadDataAndShapesFromNonRDFFile } from '@/utils/pod-helpers'
@@ -33,7 +34,9 @@ const emit = defineEmits(['viewerHidden'])
 const SHAPE_DATA_URL = props.shapeFileUrl
 const SOURCE_DATA_URL = props.resourceUri
 const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > numberOfShapesLoaded.value)
+const dataShapesLoaded = computed(
+  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
+)
 
 // event handler (Modal is shown) : get the data and update the view
 const loadDataAndShapesFromNonRDFFile = async () => {
@@ -43,9 +46,9 @@ const loadDataAndShapesFromNonRDFFile = async () => {
       const data_blob = await getFile(SHAPE_DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
       console.warn(data_blob_url)
-      store.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.allShapeBlobUrls.push(data_blob_url)
     } else {
-      console.log(`CACHED SHAPE URL, length ${store.allShapeBlobUrls.length}`)
+      console.log(`CACHED SHAPE URL, length ${cacheStore.allShapeBlobUrls.length}`)
     }
   } catch (err) {
     console.error(`Failed loading file, check access: ${err}`)
@@ -68,7 +71,7 @@ const handleHidingModal = () => {
 <template>
   <BModal
     id="general-shacl-form"
-    v-model="store.canShowViewModal"
+    v-model="modalStore.canShowViewModal"
     :title="props.modalData.title"
     :ok-only="props.modalData.noCancel"
     @shown="loadDataAndShapesFromNonRDFFile"
@@ -79,7 +82,7 @@ const handleHidingModal = () => {
     <span v-if="dataShapesLoaded">
       <shacl-form
         v-if="foundRDFData"
-        :data-shapes-url="store.allShapeBlobUrls.at(-1)"
+        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
         :data-values="foundRDFData"
         :data-values-subject="resourceUri"
         :data-loading="`Retrieving shapes from ${getDSUriEnding(SHAPE_DATA_URL)}, data from ${getDSUriEnding(SOURCE_DATA_URL)}...`"
@@ -90,8 +93,8 @@ const handleHidingModal = () => {
       This viewing form is based on a Resource SHACL shape at:
       <code>{{ SHAPE_DATA_URL }}</code> which could not be retrieved from the process provider!
     </BAlert>
-    <div> Source data: {{ resourceUri }} </div>
-    <div> Shacl data: {{ SHAPE_DATA_URL }} </div>
+    <div>Source data: {{ resourceUri }}</div>
+    <div>Shacl data: {{ SHAPE_DATA_URL }}</div>
   </BModal>
 </template>
 

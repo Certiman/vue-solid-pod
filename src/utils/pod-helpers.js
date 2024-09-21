@@ -28,9 +28,9 @@ export const loadDataAndShapesFromNonRDFFile = async (
       console.log(`Trying to (re)load the shapes from POD (viewing purpose)!`)
       const data_blob = await getFile(shapeDataUri, { fetch: fetch })
       data_blob_url = URL.createObjectURL(data_blob)
-      store.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.allShapeBlobUrls.push(data_blob_url)
     } else {
-      console.warn(`Blob SHAPE URL from cache, length ${store.allShapeBlobUrls.length}`)
+      console.warn(`Blob SHAPE URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
     }
   } catch (err) {
     console.error(`Failed loading file, check access: ${err}`)
@@ -40,5 +40,5 @@ export const loadDataAndShapesFromNonRDFFile = async (
     const foundDataSet = await getSolidDataset(datasetUri, { fetch: fetch })
     foundData = toRdfJsDataset(foundDataSet)
   }
-  return foundData 
+  return foundData
 }

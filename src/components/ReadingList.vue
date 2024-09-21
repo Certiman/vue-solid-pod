@@ -41,7 +41,9 @@
               </BInputGroup>
             </BCol>
             <BCol order="2">
-              <BButton @click="store.canShowEditModal = !store.canShowEditModal" variant="primary"
+              <BButton
+                @click="modalStore.canShowEditModal = !modalStore.canShowEditModal"
+                variant="primary"
                 ><IMdiAddBox class="me-2 mb-1"></IMdiAddBox> Add Detailed Book</BButton
               >
             </BCol>
@@ -82,7 +84,7 @@
   <ShaclAddBookModal @DataSetUpdated="rebuildBookList(newReadingList)" />
   <!-- <ShaclViewBookModal :BookUrl="bookToShowUrl" /> -->
   <ViewResourceModal
-    :shapeFileUrl="`${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`"
+    :shapeFileUrl="`${sessionStore.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`"
     :resource-uri="bookToShowUrl"
     :modal-data="{ title: 'Book Information', noCancel: true }"
     @viewer-hidden="testLogRDF"
@@ -125,7 +127,9 @@ import ShaclAddBookModal from '@/components/modals/ShaclAddBookModal.vue'
 import ViewResourceModal from '@/components/modals/ViewResourceModal.vue'
 import ReadingItem from './ReadingItem.vue'
 
-import { store } from '@/stores/store'
+import { sessionStore } from '@/stores/sessions'
+import { booksStore } from '@/stores/store'
+import { modalStore } from '@/stores/ui'
 
 // The books themselves, and some helpers used in the template
 // To remain faithful to the original app, two books are always present from start.
@@ -152,7 +156,7 @@ const allBookTitles = computed(() => allNonDeletedBooks.value.map((book) => book
 // Creates and Updates the DATA RESOURCE to add Things to (via global store).
 const newList = ref('myList')
 watch(newList, (list) => {
-  store.setReadingListResource(list)
+  booksStore.setReadingListResource(list)
 })
 
 // FIXME: Visualize the node bing handled, as this happens too fast it is barely visible.
@@ -180,7 +184,7 @@ onBeforeMount(() => {
   Alert.value?.pause()
 
   // initial value of the readingListURL
-  store.setReadingListResource(newList.value)
+  booksStore.setReadingListResource(newList.value)
 })
 
 // Functions
@@ -263,7 +267,7 @@ function editBook(book, newTitle) {
   } else {
     // show the View Book Modal
     bookToShowUrl.value = book.resourceUri
-    store.canShowViewModal = true
+    modalStore.canShowViewModal = true
   }
   console.log(allBooks.value)
 }
@@ -273,7 +277,7 @@ function editBook(book, newTitle) {
  */
 async function subscribeToList() {
   // URI of the ReadingList DATA RESOURCE
-  const containerUrl = store.readingListURL
+  const containerUrl = booksStore.readingListURL
 
   // Create the websocket on that data resource
   const websocket = new WebsocketNotification(containerUrl, { fetch: fetch })
@@ -319,10 +323,13 @@ async function rebuildBookList(dsToUpdate) {
 
     allBooks.value = []
 
-    dsToUpdate = await getSolidDataset(store.readingListURL, { fetch: fetch })
+    dsToUpdate = await getSolidDataset(booksStore.readingListURL, { fetch: fetch })
 
     let items = getThingAll(dsToUpdate)
-    console.log(`Downloading instances in RDF resource ${store.readingListURL}. Items: `, items)
+    console.log(
+      `Downloading instances in RDF resource ${booksStore.readingListURL}. Items: `,
+      items
+    )
 
     for (let i = 0; i < items.length; i++) {
       let item = getStringNoLocale(items[i], SCHEMA_INRUPT.name) // Note the requirement to use this ?p
@@ -378,7 +385,7 @@ async function createList() {
     statusLabelAlert.value = 'Retrieving existing Dataset or creating new Dataset...'
     // itemGroupClass.value = 'list-group-item-danger' // mark items being deleted in red
 
-    myReadingList = await getSolidDataset(store.readingListURL, { fetch: fetch })
+    myReadingList = await getSolidDataset(booksStore.readingListURL, { fetch: fetch })
 
     // Clear the list to override the whole list
     // The original code would cause complex books to be thrown out as well, so we avoid that for demo's sake.
@@ -425,7 +432,7 @@ async function createList() {
 
   try {
     // Save the SolidDataset
-    let savedReadingList = await saveSolidDatasetAt(store.readingListURL, myReadingList, {
+    let savedReadingList = await saveSolidDatasetAt(booksStore.readingListURL, myReadingList, {
       fetch: fetch
     })
 

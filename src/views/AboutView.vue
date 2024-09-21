@@ -1,8 +1,7 @@
-<script setup>
-</script>
+<script setup></script>
 
 <template>
-  <!-- <span v-b-color-mode="store.mode"> -->
+  <!-- <span v-b-color-mode="modalStore.mode"> -->
   <h1>About this application</h1>
   <p>
     This web app converted the
@@ -46,23 +45,29 @@
     </li>
   </ul>
 
-  <p>Additions with <a href="https://github.com/ULB-Darmstadt/shacl-form/tree/main">SHACL-FORM</a></p>
+  <p>
+    Additions with <a href="https://github.com/ULB-Darmstadt/shacl-form/tree/main">SHACL-FORM</a>
+  </p>
   <ol>
     <li>
       Defining the shape of a book in SHACL, integrate the entering of a new Book using
       <code>shacl-form</code>.
     </li>
     <li>
-      This means that the TTL as provided by that library is converted into a Solid DS and inserted in the data resource.
+      This means that the TTL as provided by that library is converted into a Solid DS and inserted
+      in the data resource.
     </li>
     <li>
       This update would be based on
       <a
         href="https://docs.inrupt.com/developer-tools/javascript/client-libraries/tutorial/read-write-data/#write-data"
-      ></a> but was eventually just based on Solid's <code>fromRdfJsDataset</code> which operated on the <code>shacl-form's .toRDF()</code> result.
+      ></a>
+      but was eventually just based on Solid's <code>fromRdfJsDataset</code> which operated on the
+      <code>shacl-form's .toRDF()</code> result.
     </li>
     <li>
-      Function <code>fromRdfJsDataset</code> is documented (here)[https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/rdfjs.html#fromrdfjsdataset].
+      Function <code>fromRdfJsDataset</code> is documented
+      (here)[https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/rdfjs.html#fromrdfjsdataset].
     </li>
   </ol>
 

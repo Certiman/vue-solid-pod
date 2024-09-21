@@ -5,9 +5,12 @@
     class="mt-2"
   >
     <BInputGroup prepend="Pod Container">
-      <BFormSelect v-model="store.selectedPodUrl" :options="store.allPodUrls"></BFormSelect>
+      <BFormSelect
+        v-model="sessionStore.selectedPodUrl"
+        :options="sessionStore.allPodUrls"
+      ></BFormSelect>
       <BLink
-        :href="'https://penny.vincenttunru.com/explore/?url=' + store.selectedPodUrl"
+        :href="'https://penny.vincenttunru.com/explore/?url=' + sessionStore.selectedPodUrl"
         target="_new"
       >
         <BButton
@@ -25,7 +28,7 @@
 
 <script setup>
 import { BFormGroup, BInputGroup } from 'bootstrap-vue-next'
-import { store } from '@/stores/store'
+import { sessionStore } from '@/stores/sessions'
 </script>
 
 <style lang="scss" scoped></style>

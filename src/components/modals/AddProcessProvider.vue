@@ -6,21 +6,17 @@ import { getSolidDataset, getContainedResourceUrlAll } from '@inrupt/solid-clien
 
 // stores
 import { processStore } from '@/stores/process'
-import { store } from '@/stores/store'
+import { sessionStore } from '@/stores/sessions'
+import { modalStore } from '@/stores/ui'
 
 import AsyncButton from '../atoms/AsyncButton.vue'
-import { BCardBody, BToast } from 'bootstrap-vue-next'
-
-// import { store } from '@/stores/store'
-// const allPodUrlsKnown = computed(() => store.allPodUrls.length > 0)
+import { BCardBody } from 'bootstrap-vue-next'
 
 const newProviderWebId = ref('https://id.inrupt.com/euarpod')
 const showPPHelp = ref(false)
 const finishedAddingPP = ref(false)
 const finishedAddingSelfPP = ref(true)
 const ownProcessContainerExists = ref(false)
-const showToastWithMessage = ref(3000)
-const ToastMessage = ref('')
 
 const addProvider = async (WebId) => {
   /**
@@ -31,11 +27,14 @@ const addProvider = async (WebId) => {
    */
   finishedAddingPP.value = false
   const providerExists = processStore.processProviders.find((o) => o.ProviderWebId == WebId.trim())
-  if (providerExists) return null
-
+  if (providerExists) {
+    // modalStore.showToastWithMessage = true
+    // modalStore.ToastMessage = 'Provider already added: please enter another WebId.'
+    return null
+  }
   try {
     // Get Pod(s) associated with the WebID
-    console.log(`Getting provider data at ${WebId}`)
+    console.log(`Getting provider data for WebId ${WebId}`)
 
     const ppPodUrls = await getPodUrlAll(WebId, { fetch: fetch })
 
@@ -48,7 +47,7 @@ const addProvider = async (WebId) => {
       try {
         // Check for the container /process/, and try to find (:pro/:task#step)!
         const { pc, ds } = checkProcessRootContainerAt(ppPodProcessUrl) // if it can be used and read
-        isUsefulContainer.value = pc
+        isUsefulContainer = pc
         foundDS = ds
       } catch (error) {
         // THis container cannot be used for starting processes in
@@ -57,7 +56,7 @@ const addProvider = async (WebId) => {
         if (
           typeof error.statusCode === 'number' &&
           error.statusCode === 404 &&
-          WebId === store.loggedInWebId &&
+          WebId === sessionStore.loggedInWebId &&
           !ownProcessContainerExists.value
         ) {
           console.warn(`Creating the /process store in the own Pod at ${ppPodProcessUrl}...`)
@@ -72,7 +71,7 @@ const addProvider = async (WebId) => {
           console.error(`No process container is available at ${ppPodProcessUrl}`)
         } else {
           // other errors
-          console.error(`Cannot add process container at ${ppPodProcessUrl}`)
+          console.error(`Cannot add process container at ${ppPodProcessUrl}`, error)
         }
       } finally {
         // Store the found pp in the state
@@ -92,29 +91,17 @@ const addProvider = async (WebId) => {
   }
 }
 
-const getProcessesFromPContainer = async (ppPodProcessUrl) => {
-  // With all providers determined, write their processes at ppPodProcessUrl in the state.
-  try {
-    const ppPodProcessContainer = await getSolidDataset(ppPodProcessUrl, { fetch: fetch })
-
-    // Grab all processes from it, they MUST be CONTAINERS
-    // let existingProcesses = getThingAll(ppPodProcessContainer) // will be a group of containers?
-    let existingProcessesUrls = getContainedResourceUrlAll(ppPodProcessContainer)
-
-    // Grab all tasks from it
-    console.log(existingProcessesUrls)
-  } catch (e) {
-    // Function is used to check existence of /process as well and must throw error if not.
-    console.error(e)
-    throw new Error('The /process container was not found.')
-  }
-}
+// const getProcessesFromPContainer = async () => {
+//   // On leaving the Modal: prepare main page LIST of available processes IN these /process containers.
+//   // With all providers determined, write their processes at ppPodProcessUrl in the state.
+//   // Noo action so far.
+// }
 
 const checkProcessRootContainerAt = async (pURL) => {
   /**
-   * Returns {pc, ds }
-   * For a given /process-container URL, store the dataset if it exists in ds:
-   * Return the existence as a boolean under pc:
+   * Returns { pc, ds }
+   * @ds For a given /process-container URL, store the dataset if it exists in ds:
+   * @pc Return the existence as a boolean under pc:
    */
   console.log(`Checking if container ${pURL} exists...`)
   if (!isContainer(pURL)) return { pc: false, ds: null }
@@ -130,30 +117,42 @@ const checkProcessRootContainerAt = async (pURL) => {
   }
 }
 
-const AddProcessProvider = async (WebId) => {
+const AddProcessProvider = async (WebId, forceReload = false) => {
   // DONE: A request is sent to this provider on having readable /process !
   const providerExists = processStore.processProviders.find((o) => o.ProviderWebId == WebId.trim())
-  if (!providerExists) await addProvider(WebId)
+  if (forceReload) {
+    // FIXME: should be done with SLICE, not filter
+    // Remove all the process URLs and datasets belonging to this WebId
+    const p = processStore.processProviders
+    const providersToRemove = p.map((o) => o.ProviderWebId === WebId)
+    const updatedProcessStore = processStore.processProviders.filter(
+      (o, i) => !providersToRemove[i]
+    )
+    processStore.processProviders = updatedProcessStore
+    console.warn(processStore.processProviders)
+  }
+  if (!providerExists || forceReload) await addProvider(WebId)
   else {
-    showToastWithMessage.value = true
-    ToastMessage.value = 'Provider already added: please enter another WebId.'
+    // FIXME: better way of showing these
+    // modalStore.showToastWithMessage = true
+    // modalStore.ToastMessage = 'Provider already added: please enter another WebId.'
   }
 }
 
 const addNewProvider = async () => {
-  // write this provider into the SolidPod of the user
+  // add the provider as entered in the UI into the SolidPod of the user
   await AddProcessProvider(newProviderWebId.value)
 }
 
 const checkSelfProcessContainer = async () => {
-  if (store.selectedPodUrl.length === 0) return null
-  const ownPPUrl = store.selectedPodUrl + 'process/'
+  if (sessionStore.selectedPodUrl.length === 0) return null
+  const ownPPUrl = sessionStore.selectedPodUrl + 'process/'
   try {
     // Checks in the WebId's root if /process exist.
     // ds is thrown away here.
     const { pc, ds } = await checkProcessRootContainerAt(ownPPUrl)
     const providerExists = processStore.processProviders.find(
-      (o) => o.ProviderWebId == store.loggedInWebId.trim()
+      (o) => o.ProviderWebId == sessionStore.loggedInWebId.trim()
     )
 
     if (pc && !providerExists) {
@@ -161,7 +160,7 @@ const checkSelfProcessContainer = async () => {
       processStore.processProviders.push({
         ContainerURI: ownPPUrl,
         Label: `Self#`,
-        ProviderWebId: store.loggedInWebId,
+        ProviderWebId: sessionStore.loggedInWebId,
         Active: true,
         ProcessDataSet: ds
       })
@@ -185,15 +184,9 @@ const checkSelfProcessContainer = async () => {
   >
     <p>
       Process providers allow you to add data to your data pod following a fixed process and shared
-      data model. Detected own container /process: {{ ownProcessContainerExists }} in pod
-      {{ store.selectedPodUrl }}. {{ processStore.processProviders }}
+      data model.
     </p>
     <BButton class="mb-3" @click="showPPHelp = !showPPHelp">Details</BButton>
-    <Teleport to="body">
-      <div class="'bottom-0 end-0">
-        <BToast v-model="showToastWithMessage" variant="warning">{{ ToastMessage }}</BToast>
-      </div>
-    </Teleport>
     <BInputGroup prepend="Provider WebId">
       <!-- list="providerList" -->
       <BFormInput
@@ -204,7 +197,7 @@ const checkSelfProcessContainer = async () => {
         @keyup.enter="addNewProvider"
       ></BFormInput>
       <!-- <datalist id="providerList">
-        <option>{{ store.loggedInWebId }}</option>
+        <option>{{ sessionStore.loggedInWebId }}</option>
       </datalist> -->
       <AsyncButton
         :async-done="true"
@@ -222,6 +215,12 @@ const checkSelfProcessContainer = async () => {
             :placeholder="provider.ProviderWebId"
             type="text"
           ></BFormInput>
+          <BButton
+            variant="warning"
+            @click="AddProcessProvider(provider.ProviderWebId, true)"
+            disabled
+            ><IMdiReloadAlert
+          /></BButton>
           <BInputGroupText
             ><IMdiCloudCancel v-if="!provider.Active" variant="danger"></IMdiCloudCancel
             ><IMdiCloudCheck v-else></IMdiCloudCheck
@@ -233,17 +232,17 @@ const checkSelfProcessContainer = async () => {
       You can add processes in your own pod as well, they MUST be stored in the
       <code>/process</code> container.
     </p>
-    <BInputGroup prepend="Your WebId" class="mt-3" v-if="store.loggedInWebId">
+    <BInputGroup prepend="Your WebId" class="mt-3" v-if="sessionStore.loggedInWebId">
       <!-- list="providerList" -->
       <BFormInput
         id="selfProvider"
-        :placeholder="store.loggedInWebId"
+        :placeholder="sessionStore.loggedInWebId"
         type="text"
         :disabled="true"
         @keyup.enter="addNewProvider"
       ></BFormInput>
       <!-- <datalist id="providerList">
-        <option>{{ store.loggedInWebId }}</option>
+        <option>{{ sessionStore.loggedInWebId }}</option>
       </datalist> -->
       <AsyncButton
         v-if="!ownProcessContainerExists"
@@ -251,7 +250,7 @@ const checkSelfProcessContainer = async () => {
         variant="secondary"
         label="Activate"
         icon-class="IMdiNoteAdd"
-        @aclick="addProvider(store.loggedInWebId)"
+        @aclick="addProvider(sessionStore.loggedInWebId)"
       /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
     </BInputGroup>
     <BAlert variant="warning" :model-value="true" class="mt-3" v-else

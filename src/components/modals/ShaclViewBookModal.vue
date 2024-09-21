@@ -1,7 +1,7 @@
 <template>
   <BModal
     id="form-for-view"
-    v-model="store.canShowViewModal"
+    v-model="modalStore.canShowViewModal"
     title="Book Information"
     ok-only=""
     @shown="loadDataAndShapesFromNonRDFFile"
@@ -12,7 +12,7 @@
     <span v-if="dataShapesLoaded">
       <shacl-form
         v-if="BooksAsRDF"
-        :data-shapes-url="store.allShapeBlobUrls.at(-1)"
+        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
         :data-values="BooksAsRDF"
         :data-values-subject="BookUrl"
         :data-loading="`Retrieving shapes from ${getDSUriEnding(SHAPE_DATA_URL)}, data from ${getDSUriEnding(BookUrl)}...`"
@@ -38,7 +38,9 @@ import { ref, computed } from 'vue'
 import { getFile, getSolidDataset, toRdfJsDataset } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
-import { store } from '@/stores/store'
+import { sessionStore } from '@/stores/sessions'
+import { cacheStore } from '@/stores/cache'
+import { modalStore } from '@/stores/ui'
 
 // util to load shape and determine where to write the data
 import { getDSUriEnding } from '@/utils/pod-helpers.js'
@@ -49,9 +51,11 @@ const BooksAsRDF = ref('')
 
 // refs
 // Option to read shape from a Pod (as a file)
-const SHAPE_DATA_URL = `${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
+const SHAPE_DATA_URL = `${sessionStore.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
 const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > numberOfShapesLoaded.value)
+const dataShapesLoaded = computed(
+  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
+)
 
 // Shape files are alas non-RDF resources
 // reset forces a new Blob
@@ -62,9 +66,9 @@ const loadDataAndShapesFromNonRDFFile = async () => {
       console.log(`Trying to (re)load the shapes from POD (viewing purpose)!`)
       const data_blob = await getFile(SHAPE_DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
-      store.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.allShapeBlobUrls.push(data_blob_url)
     } else {
-      console.warn(`Blob SHAPE URL from cache, length ${store.allShapeBlobUrls.length}`)
+      console.warn(`Blob SHAPE URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
     }
   } catch (err) {
     console.error(`Failed loading file, check access: ${err}`)

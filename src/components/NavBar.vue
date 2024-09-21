@@ -1,13 +1,14 @@
 <script setup>
 import { BButton, BNavbarNav, BNavItem, vBColorMode } from 'bootstrap-vue-next'
 // store holds mode
-import { store } from '@/stores/store'
+import { modalStore } from '@/stores/ui'
 import { processStore } from '@/stores/process'
+import { sessionStore } from '@/stores/sessions'
 </script>
 
 <template>
-  <BNavbar :variant="store.mode" v-b-color-mode="store.mode">
-    <BNavbarBrand to="/" tag="h1" class="mb-0">Pod Starter</BNavbarBrand>
+  <BNavbar :variant="modalStore.mode" v-b-color-mode="modalStore.mode">
+    <BNavbarBrand to="/" tag="h1" class="mb-0">solid-process-pods</BNavbarBrand>
     <BNavbarToggle target="nav-collapse" />
     <BCollapse id="nav-collapse" is-nav>
       <BNavbarNav>
@@ -18,10 +19,10 @@ import { processStore } from '@/stores/process'
       <BNavbarNav class="ms-auto mb-2 mb-lg-0">
         <BNavItem
           ><BButton
-            @click="store.canShowAddStorage = true"
-            :variant="store.canDisplayData() ? 'success' : 'danger'"
+            @click="modalStore.canShowAddStorage = true"
+            :variant="sessionStore.canDisplayData() ? 'success' : 'danger'"
             ><IMdiStorage class="mb-1" />{{
-              store.canDisplayData() ? store.loggedInWebId : ''
+              sessionStore.canDisplayData() ? ` ${sessionStore.loggedInWebId}` : ''
             }}</BButton
           ></BNavItem
         >
@@ -30,13 +31,13 @@ import { processStore } from '@/stores/process'
             @click="processStore.canShowAddProcessProviderModal = true"
             :variant="processStore.canProcessData() ? 'success' : 'danger'"
             ><ICarbonProcess class="mb-1" />{{
-              processStore.canProcessData() ? 'Process providers' : ''
+              processStore.canProcessData() ? ' Process providers' : ''
             }}</BButton
           ></BNavItem
         >
         <BNavItem
-          ><BButton @click="store.switch()"
-            ><IMaterialSymbolsLightLightMode class="mb-1" v-if="store.mode == 'dark'" />
+          ><BButton @click="modalStore.switch()"
+            ><IMaterialSymbolsLightLightMode class="mb-1" v-if="modalStore.mode == 'dark'" />
             <IMaterialSymbolsLightDarkModeRounded class="mb-1" v-else /></BButton
         ></BNavItem>
       </BNavbarNav>

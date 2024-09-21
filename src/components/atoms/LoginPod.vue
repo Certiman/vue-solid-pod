@@ -41,7 +41,7 @@ import {
   getDefaultSession
 } from '@inrupt/solid-client-authn-browser'
 import { BFormGroup, BFormSelect } from 'bootstrap-vue-next'
-import { store } from '../../stores/store'
+import { sessionStore } from '@/stores/sessions'
 
 // Data
 const idpProviders = [
@@ -73,8 +73,8 @@ function setSession() {
   const session = getDefaultSession()
   if (session.info.isLoggedIn) {
     loggedIn.value = true
-    store.canGetPodURLs = true
-    store.loggedInWebId = session.info.webId
+    sessionStore.canGetPodURLs = true
+    sessionStore.loggedInWebId = session.info.webId
   } else {
     console.warn(`No active session found`)
     // SOLVED: the above never resolves in an error so catch is useless

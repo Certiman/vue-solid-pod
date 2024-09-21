@@ -1,7 +1,7 @@
 <template>
   <BModal
     id="form-for-data"
-    v-model="store.canShowEditModal"
+    v-model="modalStore.canShowEditModal"
     :title="`Input the new book's data (Shape ${dataShapesLoaded ? ' ' : 'not '}loaded)`"
     @shown="loadShapesFromNonRDFFile"
     size="lg"
@@ -9,11 +9,11 @@
     scrollable
   >
     <span v-if="dataShapesLoaded">
-      <!-- v-for="[ind, DATA_SHAPE_BLOB] of store.allShapeBlobUrls.entries()"
+      <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
         :key="ind" -->
       <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
       <shacl-form
-        :data-shapes-url="store.allShapeBlobUrls.at(-1)"
+        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
         @change="changeListener"
         @submit="submitListener"
         data-show-node-ids
@@ -47,17 +47,21 @@ import {
   getThingAll,
   setThing
 } from '@inrupt/solid-client'
-// import { Store } from 'n3'
 // import { RDF } from '@inrupt/vocab-common-rdf'
 
 const emit = defineEmits(['DataSetUpdated'])
 
-import { store } from '@/stores/store'
+import { sessionStore } from '@/stores/sessions'
+import { booksStore } from '@/stores/store'
+import { cacheStore } from '@/stores/cache'
+import { modalStore } from '@/stores/ui'
 
 // Option to read shape from a Pod (as a file)
-const DATA_URL = `${store.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
+const DATA_URL = `${sessionStore.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
 const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(() => store.allShapeBlobUrls.length > numberOfShapesLoaded.value)
+const dataShapesLoaded = computed(
+  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
+)
 
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
@@ -87,9 +91,9 @@ const loadShapesFromNonRDFFile = async () => {
       console.log(`Trying to (re)load the shapes from POD! (editing purposes)`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
-      store.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.allShapeBlobUrls.push(data_blob_url)
     } else {
-      console.warn(`Blob URL from cache, length ${store.allShapeBlobUrls.length}`)
+      console.warn(`Blob URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
     }
   } catch (err) {
     console.error(`Failed loading file, check access: ${err}`)
@@ -99,7 +103,7 @@ const loadShapesFromNonRDFFile = async () => {
 const addBookAsRDF = async () => {
   let myReadingList
 
-  console.log(`Storing book in RDFResource ${store.readingListURL}.`)
+  console.log(`Storing book in RDFResource ${booksStore.readingListURL}.`)
   try {
     // Get data out of the shacl-form
     const form = document.querySelector('shacl-form')
@@ -117,7 +121,7 @@ const addBookAsRDF = async () => {
 
     // THUS, we need to store the new Things from the SHACL dataset in the EXISTING dataset container
     // First get the current dataset
-    myReadingList = await getSolidDataset(store.readingListURL, { fetch: fetch })
+    myReadingList = await getSolidDataset(booksStore.readingListURL, { fetch: fetch })
 
     // get all Things from the shaclFormDataset
     const shaclFormThings = getThingAll(shaclFormDataset)
@@ -126,7 +130,7 @@ const addBookAsRDF = async () => {
     shaclFormThings.forEach((thing) => (myReadingList = setThing(myReadingList, thing)))
 
     // save the new dataset
-    let savedReadingList = await saveSolidDatasetAt(store.readingListURL, myReadingList, {
+    let savedReadingList = await saveSolidDatasetAt(booksStore.readingListURL, myReadingList, {
       fetch: fetch
     })
 
@@ -135,7 +139,7 @@ const addBookAsRDF = async () => {
     numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
     emit('DataSetUpdated', savedReadingList) // pushes the saved DS to the parent ReadingList compoment
-    store.canShowEditModal = false // hides the modal
+    modalStore.canShowEditModal = false // hides the modal
   } catch (err) {
     console.error(`Storing book failed with error ${err}!`)
   }
