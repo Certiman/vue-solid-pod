@@ -8,6 +8,8 @@ import { processStore } from '@/stores/process'
 
 const route = useRoute()
 
+// TODO: if this page is loaded WITH a value run/:p/:t#0, the task must be loaded from the process provider and parsed.
+
 /**
    General PATH manager
 
@@ -42,7 +44,7 @@ const taskRunning = computed(() =>
   <div>This route: {{ $route.fullPath }}</div>
   <div>Pod Process Path: {{ fullPodProcessURI }}</div>
   <TaskList v-if="!taskRunning" :processURI="fullPodProcessURI" />
-  <div v-else>Task {{ taskRunning }} is running!</div>
+  <TaskRunner :taskURI="fullPodProcessURI" :action="$route.params.action" v-else></TaskRunner>
 </template>
 
 <style lang="scss" scoped></style>

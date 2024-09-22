@@ -75,6 +75,7 @@ declare module 'vue' {
     ShaclViewBookModal: typeof import('./src/components/modals/ShaclViewBookModal.vue')['default']
     TaskItem: typeof import('./src/components/TaskItem.vue')['default']
     TaskList: typeof import('./src/components/TaskList.vue')['default']
+    TaskRunner: typeof import('./src/components/TaskRunner.vue')['default']
     ViewResourceModal: typeof import('./src/components/modals/ViewResourceModal.vue')['default']
     WebId: typeof import('./src/components/atoms/WebId.vue')['default']
   }

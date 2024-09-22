@@ -24,7 +24,7 @@ export const processStore = reactive({
   },
   extractTaskResource(taskURI) {
     // https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/SecondTask
-    // returns SecondTask
+    // returns SecondTask or SecondTask#0 if a step is present.
     let p = taskURI
     return p.substring(p.lastIndexOf('/') + 1)
   },
