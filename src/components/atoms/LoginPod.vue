@@ -64,8 +64,8 @@ const lockPodLogin = computed(() => !SELECTED_IDP.value || loggedIn.value)
 function loginToSelectedIdP() {
   return login({
     oidcIssuer: SELECTED_IDP.value,
-    redirectUrl: new URL('/', window.location.href).toString(),
-    clientName: 'Getting started app'
+    redirectUrl: new URL('/auth', window.location.href).toString(),
+    clientName: 'Solid-Process-Pods'
   })
 }
 

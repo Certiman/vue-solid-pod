@@ -230,7 +230,7 @@ const checkSelfProcessContainer = async () => {
     </BCard>
     <p class="mt-3">
       You can add processes in your own pod as well, they MUST be stored in the
-      <code>/process</code> container.
+      <code>/process/</code> <b>container</b>.
     </p>
     <BInputGroup prepend="Your WebId" class="mt-3" v-if="sessionStore.loggedInWebId">
       <!-- list="providerList" -->

@@ -3,6 +3,7 @@ import { ref, computed, onBeforeMount } from 'vue'
 
 import { processStore } from '@/stores/process'
 import { sessionStore } from '@/stores/sessions'
+import { BCardFooter, BImg } from 'bootstrap-vue-next'
 
 // Warn user to add storage Pod
 const noStorageProviderWarning = computed(() => sessionStore.selectedPodUrl === '')
@@ -71,16 +72,35 @@ onBeforeMount(() => {
       height="4px"
     />
   </BAlert>
-  <p>The ProcessList component is here:</p>
-  <p>
-    {{ processStore.processProviders }}
-  </p>
-  <ul>
-    <li>v-for over /:process, with option to make it public or not (if owned)</li>
-    <li>should list all the TASKS, and provide a play button to launch the first #step.</li>
-    <li>
-      should allow to add a task (myReadingList), and task steps (books). The app route for this
-      action is hard-coded on /:process/addTask
-    </li>
-  </ul>
+  <BContainer>
+    <BRow>
+      <BCol>
+        <BCard no-body>
+          <BCardHeader style="h3">Processes as Linked data</BCardHeader>
+          <BCardBody
+            >This application supports data entry and search using linked web storage systems. This
+            means we allow owners of such storages to keep control over their own structured and
+            unstructured data, while PROVIDING the underlying data structure conventions through
+            process providers.</BCardBody
+          >
+          <BCardFooter>
+            <ProcessList />
+          </BCardFooter>
+        </BCard>
+      </BCol>
+      <BCol>
+        <BCard no-body>
+          <BCardHeader style="h3">Your profile data</BCardHeader>
+          <BCardBody
+            >Since correct data about your organization matters in many processes, this application
+            specifically helps structuring this data as Sites and Organisations/Units, all as
+            defined in W3C/Org ontology.</BCardBody
+          >
+          <BCardFooter>
+            <BButton to="/profile/edit/organization">Refine your organization data</BButton>
+          </BCardFooter>
+        </BCard></BCol
+      >
+    </BRow>
+  </BContainer>
 </template>

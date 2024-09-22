@@ -1,0 +1,42 @@
+<script setup>
+import { sessionStore } from '@/stores/sessions'
+import { computed } from 'vue'
+
+// Task is a RDFresource containing the Things for steps.
+// TaskStep == Book, of which the properties can lead to:
+// - a form
+// - a HTML explanation
+// - a List with data
+// - a complex component for which the app must take care of.
+const props = defineProps({ task: Object })
+
+// TODO: not sure whether .url a Thing is the idea?
+const playTaskURL = computed(() =>
+  sessionStore.fullAppTaskURL(props.task.taskThings.url, 'list', 0)
+)
+const addStepURL = computed(() =>
+  sessionStore.fullAppTaskURL(props.task.taskThings.url, 'add', 0)
+)
+</script>
+
+<template>
+  <BListGroupItem>
+    <BInputGroup>
+      <BFormInput :placeholder="task.taskName" />
+      <BButton
+        :to="addStepURL ? addStepURL : '/'"
+        :disabled="addStepURL === null"
+        v-b-tooltip="{ title: 'Add a step to this Task' }"
+        ><IMdiNotePlus class="mb-1"
+      /></BButton>
+      <BButton
+        :to="playTaskURL ? playTaskURL : '/'"
+        :disabled="playTaskURL === null"
+        v-b-tooltip="{ title: 'Start this Task' }"
+        ><IMdiPlayBoxLockOpenOutline class="mb-1"
+      /></BButton>
+    </BInputGroup>
+  </BListGroupItem>
+</template>
+
+<style lang="scss" scoped></style>

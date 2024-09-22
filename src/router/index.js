@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 // import BooksView from '../views/BooksView.vue'
 import HomeView from '@/views/HomeView.vue'
 import ProcessView from '../views/ProcessView.vue'
+import AuthView from '@/views/AuthView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,7 +15,7 @@ const router = createRouter({
     {
       path: '/auth',
       name: 'auth',
-      component: ProcessView  // As a test what we get
+      component: AuthView // As a test what we get
     },
     {
       path: '/books',
@@ -33,9 +34,14 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue')
     },
     {
-      path: '/:process/:task/:step',
+      path: '/process/:action/:process/:task?/:step?',
       name: 'process',
       component: ProcessView
+    },
+    {
+      path: '/profile/:action/:orgsite',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue')
     }
   ]
 })
