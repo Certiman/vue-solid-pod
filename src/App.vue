@@ -2,7 +2,7 @@
 import { RouterView } from 'vue-router'
 
 // UI store holds mode and toasts
-import { modalStore } from './stores/ui';
+import { modalStore } from '@/stores/ui';
 
 // components
 import NavBar from './components/NavBar.vue'
@@ -20,9 +20,9 @@ import AddProcessProvider from './components/modals/AddProcessProvider.vue';
       <RouterView />
     </BContainer>
     <!-- <Teleport to="body"> Already here, mate -->
-      <div class="'bottom-0 end-0">
-        <BToast v-model="modalStore.showToastWithMessage" variant="warning">{{ modalStore.ToastMessage }}</BToast>
-      </div>
+      <!-- <div class="bottom-10 end-10">
+        <BToast value="5000" v-model="modalStore.showToastWithMessage" variant="warning">{{ modalStore.ToastMessage }}</BToast>
+      </div> -->
     <!-- </Teleport> -->
   </body>
   <AddStorageProvider />

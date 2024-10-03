@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 const asyncButton = ref(null)
-// const processAwaiting = ref(false)
+const processAwaiting = ref(false)
 
 const emit = defineEmits(['aclick'])
 
@@ -19,12 +19,12 @@ const props = defineProps({
 // })
 
 const onHideOverlay = () => {
-  // processAwaiting.value = false
+  processAwaiting.value = false
   asyncButton.value?.focus()
 }
 
 const onStartAsync = () => {
-  // processAwaiting.value = true
+  processAwaiting.value = true
   emit('aclick')
 }
 </script>

@@ -34,7 +34,7 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue')
     },
     {
-      path: '/process/:action/:process/:task?/:step?',
+      path: '/process/:process?/:task?/:step?',
       name: 'process',
       component: ProcessView
     },

@@ -13,6 +13,7 @@ import { reactive } from 'vue'
 export const processStore = reactive({
   processProviders: [], // Comunica can query several process sources
   canShowAddProcessProviderModal: false,
+  processTaskInEdit: '',
   canProcessData() {
     return this.processProviders.length > 0
   },
@@ -20,16 +21,20 @@ export const processStore = reactive({
     // https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/
     // Returns TheThirdProcess/
     let p = processURI
-    return p.substring(p.substring(0, p.length - 1).lastIndexOf('/') + 1)
+    const extractProcessResource = p.substring(p.substring(0, p.length - 1).lastIndexOf('/') + 1)
+    // console.log(`extractProcessResource() generated: ${extractProcessResource}.`)
+    return extractProcessResource
   },
   extractTaskResource(taskURI) {
-    // https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/SecondTask
+    // Given: https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/SecondTask
     // returns SecondTask or SecondTask#0 if a step is present.
     let p = taskURI
-    return p.substring(p.lastIndexOf('/') + 1)
+    const extractTaskResource = p.substring(p.lastIndexOf('/') + 1)
+    // console.log(`extractTaskResource() generated: ${extractTaskResource}.`);
+    return extractTaskResource
   },
   extractProcTaskResource(taskURI, step) {
-    // https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/SecondTask
+    // Given: https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/SecondTask
     // returns TheThirdProcess/SecondTask#
     let p = taskURI
     const identifier = '/process/'

@@ -3,7 +3,6 @@ import { ref, computed, onBeforeMount } from 'vue'
 
 import { processStore } from '@/stores/process'
 import { sessionStore } from '@/stores/sessions'
-import { BCardFooter, BImg } from 'bootstrap-vue-next'
 
 // Warn user to add storage Pod
 const noStorageProviderWarning = computed(() => sessionStore.selectedPodUrl === '')
@@ -31,7 +30,17 @@ onBeforeMount(() => {
 </script>
 
 <template>
-  <h1>Welcome</h1>
+  <BAccordion class="mt-2">
+    <BAccordionItem title="Debug Information">
+      <h5>Home View State</h5>
+      <div>Process providers: {{ processStore.processProviders.map((o) => o.ContainerURI) }}</div>
+      <div>
+        Process provider datasets: {{ processStore.processProviders.map((o) => o.ProcessDataSet) }}
+      </div>
+      <div>Query full: {{ $route.query }}</div>
+      <div>This route: {{ $route.fullPath }}</div>
+    </BAccordionItem>
+  </BAccordion>
   <BAlert
     v-if="noStorageProviderWarning"
     v-model="noStorageAlertDuration"
@@ -40,6 +49,7 @@ onBeforeMount(() => {
     dismissible
     fade
     @close-countdown="noStorageCountdown = $event"
+    class="mt-2"
   >
     <p>
       <IMdiStorage class="me-2 mb-1" />{{ statusLabelStorageWarning }}
@@ -60,6 +70,7 @@ onBeforeMount(() => {
     dismissible
     fade
     @close-countdown="noProcessCountdown = $event"
+    class="mt-2"
   >
     <p>
       <ICarbonProcess class="me-2 mb-1" />{{ statusLabelProcessWarning }}
@@ -72,35 +83,47 @@ onBeforeMount(() => {
       height="4px"
     />
   </BAlert>
-  <BContainer>
-    <BRow>
-      <BCol>
-        <BCard no-body>
-          <BCardHeader style="h3">Processes as Linked data</BCardHeader>
-          <BCardBody
-            >This application supports data entry and search using linked web storage systems. This
-            means we allow owners of such storages to keep control over their own structured and
-            unstructured data, while PROVIDING the underlying data structure conventions through
-            process providers.</BCardBody
-          >
-          <BCardFooter>
-            <ProcessList />
-          </BCardFooter>
-        </BCard>
-      </BCol>
-      <BCol>
-        <BCard no-body>
-          <BCardHeader style="h3">Your profile data</BCardHeader>
-          <BCardBody
-            >Since correct data about your organization matters in many processes, this application
-            specifically helps structuring this data as Sites and Organisations/Units, all as
-            defined in W3C/Org ontology.</BCardBody
-          >
-          <BCardFooter>
-            <BButton to="/profile/edit/organization">Refine your organization data</BButton>
-          </BCardFooter>
-        </BCard></BCol
-      >
-    </BRow>
-  </BContainer>
+  <div class="position-relative overflow-hidden p-3 p-md-5 m-md-3 text-center bg-light">
+    <div class="col-md-10 p-lg-5 mx-auto my-2">
+      <h1 class="display-4 font-weight-normal">Linked data processes</h1>
+      <p class="lead font-weight-normal">
+        Connect your storage pod and control the data your organization owns and publishes. Share
+        your data with your relevant stakeholders, based on their Web Identity. Data is collected by
+        running processes, shared by process providers.
+      </p>
+      <ProcessList />
+      <a class="btn btn-outline-secondary mt-4" to="/about">Learn more</a>
+    </div>
+  </div>
+  <div class="d-md-flex flex-md-equal w-100 my-md-3 pl-md-3">
+    <div class="bg-dark mr-md-3 pt-3 px-3 pt-md-5 px-md-5 text-center text-white overflow-hidden">
+      <div class="my-3 py-3">
+        <h2 class="display-5">Process Providers</h2>
+        <p class="lead">
+          Processes determine content schemas. Connect to a process provider and run their
+          processes, but store the result in your data pod. The process provider will link to your
+          data in order to allow for centralised search. But only your organisation controls what
+          Web identifiers can see the full data.
+        </p>
+      </div>
+      <div
+        class="bg-light shadow-sm mx-auto"
+        style="width: 80%; height: 300px; border-radius: 21px 21px 0 0"
+      ></div>
+    </div>
+    <div class="bg-light mr-md-3 pt-3 px-3 pt-md-5 px-md-5 text-center overflow-hidden">
+      <div class="my-3 p-3">
+        <h2 class="display-5">Your profile data</h2>
+        <p class="lead">
+          Since correct data about your organization matters in many processes, this application
+          specifically helps structuring this data as Sites and Organisations/Units, all as defined
+          in W3C/Org ontology.
+        </p>
+      </div>
+      <div
+        class="bg-dark shadow-sm mx-auto"
+        style="width: 80%; height: 300px; border-radius: 21px 21px 0 0"
+      ></div>
+    </div>
+  </div>
 </template>

@@ -27,8 +27,16 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { BFormGroup, BInputGroup } from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
+
+onMounted(() => {
+  if (sessionStore.allPodUrls.length > 0) {
+    // set the first one in the drop down
+    sessionStore.selectedPodUrl = sessionStore.allPodUrls[0].value
+  }
+})
 </script>
 
 <style lang="scss" scoped></style>

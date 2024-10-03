@@ -3,6 +3,7 @@ import { reactive } from 'vue'
 export const modalStore = reactive({
   canShowViewModal: false,
   canShowAddStorage: true,
+  canShowAddTaskStep: false,
   mode: 'light',
   switch() {
     this.mode = this.mode == 'dark' ? 'light' : 'dark'

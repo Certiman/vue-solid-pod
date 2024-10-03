@@ -11,6 +11,8 @@ declare module 'vue' {
     AddResourceModal: typeof import('./src/components/modals/AddResourceModal.vue')['default']
     AddStorageProvider: typeof import('./src/components/modals/AddStorageProvider.vue')['default']
     AsyncButton: typeof import('./src/components/atoms/AsyncButton.vue')['default']
+    BAccordion: typeof import('bootstrap-vue-next')['BAccordion']
+    BAccordionItem: typeof import('bootstrap-vue-next')['BAccordionItem']
     BAlert: typeof import('bootstrap-vue-next')['BAlert']
     BButton: typeof import('bootstrap-vue-next')['BButton']
     BCard: typeof import('bootstrap-vue-next')['BCard']
