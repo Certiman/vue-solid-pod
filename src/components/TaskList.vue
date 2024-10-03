@@ -34,7 +34,7 @@ const addTaskToProcess = async () => {
   // Reminder: task is a Solid Dataset like myReadingList
 
   const taskResourceURI = props.processURI.replace('#', '').replace(sessionStore.storagePodRoot, '')
-  const newTaskURI = taskResourceURI + newTask.value.replace(' ', '')
+  const newTaskURI = taskResourceURI + newTask.value.replaceAll(' ', '')
   try {
     let newTaskDS = createSolidDataset()
     /**

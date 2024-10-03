@@ -129,7 +129,7 @@ const AddProcessProvider = async (WebId, forceReload = false) => {
       (o) => o.ProviderWebId == WebId.trim()
     )
     if (forceReload) {
-      // FIXME: should be done with SLICE, not filter
+      // FIXME: should be done with SPLICE, not filter
       // Remove all the process URLs and datasets belonging to this WebId
       const p = processStore.processProviders
       const providersToRemove = p.map((o) => o.ProviderWebId === WebId)
@@ -159,7 +159,7 @@ const addNewProcess = async () => {
   // add a process container to the own Pod.
   try {
     const newProcessContainerURI =
-      sessionStore.selectedPodUrl + 'process/' + newProcessName.value.replace(' ', '').trim()
+      sessionStore.selectedPodUrl + 'process/' + newProcessName.value.replaceAll(' ', '').trim()
     await createContainerAt(newProcessContainerURI, { fetch: fetch })
     processWasNotAdded.value = true
     newProcessName.value = ''
@@ -243,7 +243,6 @@ const checkSelfProcessContainer = async () => {
           <BButton
             variant="warning"
             @click="AddProcessProvider(provider.ProviderWebId, true)"
-            disabled
             ><IMdiReloadAlert
           /></BButton>
           <BInputGroupText
@@ -289,7 +288,7 @@ const checkSelfProcessContainer = async () => {
         ></BFormInput>
         <AsyncButton
           v-if="processWasNotAdded"
-          :async-done="newProcessName.replace(' ', '').length > 6"
+          :async-done="newProcessName.replaceAll(' ', '').length > 6"
           variant="secondary"
           label="+"
           icon-class="IMdiNoteAdd"
