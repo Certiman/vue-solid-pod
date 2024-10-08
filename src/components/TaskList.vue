@@ -1,6 +1,6 @@
 <script setup>
 //  IN: URI of a Process, lists all TASKS (non-container RDFResource)
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, computed } from 'vue'
 import {
   getSolidDataset,
   getThingAll,
@@ -10,7 +10,6 @@ import {
   addStringNoLocale,
   setThing,
   saveSolidDatasetAt,
-  isContainer,
   getUrl,
   addUrl
 } from '@inrupt/solid-client'
@@ -18,9 +17,8 @@ import { fetch } from '@inrupt/solid-client-authn-browser'
 
 import TaskItem from './TaskItem.vue'
 
-import { processStore } from '@/stores/process'
+// import { processStore } from '@/stores/process'
 import { LDP, RDF, RDFS } from '@inrupt/vocab-common-rdf'
-import { modalStore } from '@/stores/ui'
 import { BCardFooter } from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
 
@@ -29,11 +27,28 @@ const taskList = ref([])
 const newTask = ref('')
 const newTaskLabel = ref('')
 
+const tasksOfYourOwnPod = computed( ()=> props.processURI.includes(sessionStore.selectedPodUrl))
+
+/**
+ * TODO:
+ * Ideally, the list allows for a selection of Public & WebId list, in order
+ * to list the CURRENT rights to that selection.
+ */
+// const aclRightsTarget = ref('')
+// const aclRightsWebId = ref('')
+// const aclRightsValues = [
+//   { text: 'Public Access', value: '' },
+//   { text: 'WebId', value: aclRightsWebId.value }
+// ]
+
 const addTaskToProcess = async () => {
   // adds a task to the process
   // Reminder: task is a Solid Dataset like myReadingList
+  // Reminder 2: one can ONLY ADD TASKS in the OWN storage pod!!
 
-  const taskResourceURI = props.processURI.replace('#', '').replace(sessionStore.storagePodRoot, '')
+  const taskResourceURI = props.processURI
+    .replace('#', '')
+    .replace(sessionStore.ownStoragePodRoot, '')
   const newTaskURI = taskResourceURI + newTask.value.replaceAll(' ', '')
   try {
     let newTaskDS = createSolidDataset()
@@ -44,7 +59,7 @@ const addTaskToProcess = async () => {
      *  rdfs:comment "name of the task" ; <<<< ADDED
         rdf:type  ldp:RDFSource .
      */
-    let taskComment = createThing({ url: newTaskURI }) 
+    let taskComment = createThing({ url: newTaskURI })
     taskComment = addStringNoLocale(taskComment, RDFS.comment, newTaskLabel.value)
     taskComment = addUrl(taskComment, RDF.type, LDP.RDFSource)
     // console.log(taskComment)
@@ -76,7 +91,7 @@ const loadAllTasks = async () => {
       if (isRDFSource) taskList.value.push(newTask)
     })
   } catch (mistake) {
-    console.error(`Mounting TaskList error: ${mistake}`)
+    console.error(`Mounting TaskList error: ${mistake}. Caused by ${props.processURI}.`)
   }
 }
 
@@ -90,10 +105,19 @@ onBeforeMount(async () => await loadAllTasks())
     class="mt-2"
   >
     <BCardBody v-if="taskList.length > 0">
+      <!-- 
+      For future extension: task acl rights are defined PER WebId, or for the PublicAgent.
+      The list should visualise these rights depending on the selected Agent (WebId or Public)
       <BFormGroup
-        description="Run a task by clicking the play button."
+        description="To change access rights, select Public Access or a WebId"
         class="mb-3"
       >
+        <BFormRadioGroup v-model="aclRightsTarget" :options="aclRightsValues" />
+        <BFormGroup>
+          <BFormInput v-model="aclRightsWebId" />
+        </BFormGroup>
+      </BFormGroup> -->
+      <BFormGroup description="Run a task by clicking the play button." class="mb-3">
         <BListGroup flush>
           <TaskItem v-for="task of taskList" :key="task.taskName" :task="task" />
         </BListGroup>
@@ -105,8 +129,8 @@ onBeforeMount(async () => await loadAllTasks())
     </BCardBody>
     <BCardFooter>
       <h5>Add task to process</h5>
-      <p>Process: {{ props.processURI }}</p>
-      <BInputGroup prepend="Task name" class="me-2">
+      <!-- <p>Process: {{ props.processURI }}</p> -->
+      <BInputGroup prepend="Task name" class="me-2" v-if="tasksOfYourOwnPod">
         <BFormInput
           id="newTaskToAdd"
           v-model="newTask"
@@ -122,6 +146,7 @@ onBeforeMount(async () => await loadAllTasks())
         ></BFormInput>
         <BButton @click="addTaskToProcess"><IMdiNoteAdd class="me-2 mb-1" />Add task</BButton>
       </BInputGroup>
+      <p v-else>You cannot add tasks in other process providers' storage.</p>
     </BCardFooter>
   </BCard>
 </template>

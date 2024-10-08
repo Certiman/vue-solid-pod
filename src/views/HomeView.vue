@@ -53,7 +53,6 @@ onBeforeMount(() => {
   >
     <p>
       <IMdiStorage class="me-2 mb-1" />{{ statusLabelStorageWarning }}
-      {{ noStorageProviderWarning }}
     </p>
     <BProgress
       variant="danger"
@@ -89,10 +88,21 @@ onBeforeMount(() => {
       <p class="lead font-weight-normal">
         Connect your storage pod and control the data your organization owns and publishes. Share
         your data with your relevant stakeholders, based on their Web Identity. Data is collected by
-        running processes, shared by process providers.
+        executing linked data processes, created and shared by process providers. This assures the
+        underlying ontrologies to be completely common.
       </p>
-      <ProcessList />
-      <a class="btn btn-outline-secondary mt-4" to="/about">Learn more</a>
+      <BButton
+        v-if="processStore.processProviders.length > 0"
+        to="/process/"
+        class="mx-2"
+        variant="primary"
+        >Check out the processes...</BButton
+      >
+      <p v-else class="lead font-weight-normal">
+        You can connect to a process provider of your choice by using the button
+        <ICarbonProcess /> above.
+      </p>
+      <BButton to="/about/" class="mx-2" variant="secondary">Learn more...</BButton>
     </div>
   </div>
   <div class="d-md-flex flex-md-equal w-100 my-md-3 pl-md-3">

@@ -25,6 +25,8 @@ const processWasNotAdded = ref(true)
 
 const addProvider = async (WebId) => {
   /**
+   * RUN within addProcessProvider
+   *
    * For a given WebId:
    * - retrieve all its container URLs
    * - check if /process exist in that container
@@ -39,7 +41,7 @@ const addProvider = async (WebId) => {
   }
   try {
     // Get Pod(s) associated with the WebID
-    console.log(`Getting provider data for WebId ${WebId}`)
+    console.log(`(addProvider) Getting provider data for WebId ${WebId}`)
 
     const ppPodUrls = await getPodUrlAll(WebId, { fetch: fetch })
 
@@ -51,9 +53,13 @@ const addProvider = async (WebId) => {
       let isUsefulContainer, foundDS
       try {
         // Check for the container /process/, and try to find (:pro/:task#step)!
-        const { pc, ds } = checkProcessRootContainerAt(ppPodProcessUrl) // if it can be used and read
+        const { pc, ds } = await checkProcessRootContainerAt(ppPodProcessUrl) // if it can be used and read
         isUsefulContainer = pc
         foundDS = ds
+        console.log(
+          `(addProvider(${WebId}): addProvider() on ${ppPodProcessUrl}: useful [${pc}]`,
+          ds
+        )
       } catch (error) {
         // THis container cannot be used for starting processes in
         // Note that CREATING processes is handled elsewhere
@@ -64,25 +70,34 @@ const addProvider = async (WebId) => {
           WebId === sessionStore.loggedInWebId &&
           !ownProcessContainerExists.value
         ) {
-          console.warn(`Creating the /process store in the own Pod at ${ppPodProcessUrl}...`)
+          console.warn(
+            `(addProvider(${WebId}): Creating the /process store in the own Pod at ${ppPodProcessUrl}...`
+          )
 
           // if not found, create a new SolidDataset (i.e., the reading list)
           // FIXME: One can not just create this container if user disagrees!
           await createContainerAt(ppPodProcessUrl, { fetch: fetch })
           isUsefulContainer = true // if it can be used and read
         } else if (typeof error.statusCode === 'number' && error.statusCode === 403) {
-          console.error(`No access top the process container at ${ppPodProcessUrl}`)
+          console.error(
+            `(addProvider(${WebId}): No access top the process container at ${ppPodProcessUrl}`
+          )
         } else if (typeof error.statusCode === 'number' && error.statusCode === 404) {
-          console.error(`No process container is available at ${ppPodProcessUrl}`)
+          console.error(
+            `(addProvider(${WebId}): No process container is available at ${ppPodProcessUrl}`
+          )
         } else {
           // other errors
-          console.error(`Cannot add process container at ${ppPodProcessUrl}`, error)
+          console.error(
+            `(addProvider(${WebId}): Cannot add process container at ${ppPodProcessUrl}`,
+            error
+          )
         }
       } finally {
         // Store the found pp in the state
         processStore.processProviders.push({
           ContainerURI: ppPodProcessUrl,
-          Label: `ProcessProvider#${i + 1}`,
+          Label: `P-${WebId}#${i + 1}`,
           ProviderWebId: WebId,
           Active: isUsefulContainer,
           ProcessDataSet: foundDS
@@ -92,7 +107,7 @@ const addProvider = async (WebId) => {
     })
   } catch (error) {
     //
-    console.error(error)
+    console.error(`(addProvider(${WebId}):`, error)
   }
 }
 
@@ -108,16 +123,22 @@ const checkProcessRootContainerAt = async (pURL) => {
    * @ds For a given /process-container URL, store the dataset if it exists in ds:
    * @pc Return the existence as a boolean under pc:
    */
-  console.log(`Checking if container ${pURL} exists...`)
   if (!isContainer(pURL)) return { pc: false, ds: null }
   try {
     // Check the container
     const processesDataSet = await getSolidDataset(pURL, {
       fetch: fetch
     })
+    console.log(
+      `(checkProcessRootContainerAt) Checked if container ${pURL} exists and trying to read its dataset...`,
+      processesDataSet
+    )
+
     return { pc: true, ds: processesDataSet }
   } catch (erreur) {
-    console.error(`On /process container at ${pURL}: does not exist or error: ${erreur}`)
+    console.error(
+      `(checkProcessRootContainerAt) On /process container at ${pURL}: does not exist or error: ${erreur}`
+    )
     return { pc: false, ds: null }
   }
 }
@@ -144,14 +165,19 @@ const AddProcessProvider = async (WebId, forceReload = false) => {
       // FIXME: better way of showing these
       // modalStore.showToastWithMessage = true
       // modalStore.ToastMessage = 'Provider already added: please enter another WebId.'
+      console.warn(`(addProcessProvider(${WebId}): skipping addProvider()!`)
     }
   } catch (err) {
-    console.error(`Adding Process provider failed with error: ${err}`)
+    console.error(
+      `(addProcessProvider(${WebId}): Adding Process provider failed with error: ${err}`
+    )
   }
 }
 
 const addNewProvider = async () => {
   // add the provider as entered in the UI into the SolidPod of the user
+  console.log(`Adding Provider from input, WebId ${newProviderWebId.value}...`)
+
   await AddProcessProvider(newProviderWebId.value)
 }
 
@@ -170,21 +196,32 @@ const addNewProcess = async () => {
 }
 
 const checkSelfProcessContainer = async () => {
+  /**
+   * Run on Modal being SHOWN.
+   *
+   * @function checkSelfProcessContainer ONLY checks the own /process resource and
+   * adds 'itself to processStore.'
+   */
   if (sessionStore.selectedPodUrl.length === 0) return null
   const ownPPUrl = sessionStore.selectedPodUrl + 'process/'
   try {
     // Checks in the WebId's root if /process exist.
     // ds is thrown away here.
-    const { pc, ds } = await checkProcessRootContainerAt(ownPPUrl)
     const providerExists = processStore.processProviders.find(
       (o) => o.ProviderWebId == sessionStore.loggedInWebId.trim()
     )
 
+    // FIXME: if this has been executed once and providerExists, this line should not be executed.
+    // PROPOSAL, remove check for pc in next if, and move this line IN the if statemenmt.
+    const { pc, ds } = await checkProcessRootContainerAt(ownPPUrl)
+
     if (pc && !providerExists) {
       // Store the found pp in the state
+      console.warn(`checkSelfProcessContainer: adding own dataset`)
+
       processStore.processProviders.push({
         ContainerURI: ownPPUrl,
-        Label: `${sessionStore.loggedInWebId}`,
+        Label: `P-${sessionStore.loggedInWebId}`,
         ProviderWebId: sessionStore.loggedInWebId,
         Active: true,
         ProcessDataSet: ds
@@ -198,10 +235,10 @@ const checkSelfProcessContainer = async () => {
 </script>
 
 <template>
+  <!-- @show="checkSelfProcessContainer" runs two times ? -->
   <BModal
     id="add-process-provider"
     v-model="processStore.canShowAddProcessProviderModal"
-    @show="checkSelfProcessContainer"
     title="Add your process provider"
     size="lg"
     ok-only
@@ -240,9 +277,7 @@ const checkSelfProcessContainer = async () => {
             :placeholder="provider.ProviderWebId"
             type="text"
           ></BFormInput>
-          <BButton
-            variant="warning"
-            @click="AddProcessProvider(provider.ProviderWebId, true)"
+          <BButton variant="warning" @click="AddProcessProvider(provider.ProviderWebId, true)"
             ><IMdiReloadAlert
           /></BButton>
           <BInputGroupText

@@ -1,6 +1,5 @@
 <script setup>
-import { sessionStore } from '@/stores/sessions'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { BAccordion, BBreadcrumb } from 'bootstrap-vue-next'
 
@@ -10,6 +9,8 @@ import ProcessList from '@/components/ProcessList.vue'
 
 // store
 import { processStore } from '@/stores/process'
+import { modalStore } from '@/stores/ui'
+// import { sessionStore } from '@/stores/sessions'
 
 const route = useRoute()
 
@@ -33,7 +34,6 @@ const route = useRoute()
  *
  */
 
-const fullPodProcessURI = computed(() => sessionStore.fullPodProcessURI(route.params))
 const breadcrumbItems = computed(() => {
   // TODO: should be more general function
   // FIXME: component reroutes to app routes which insinuate tasks within tasks
@@ -55,7 +55,7 @@ const breadcrumbItems = computed(() => {
 // else show the steps in the Task
 const taskRunning = computed(() =>
   route.params.step != '' && route.params.task != '' && route.params.process != ''
-    ? processStore.extractTaskResource(fullPodProcessURI.value)
+    ? processStore.shorthandForTaskURI(processStore.currentTaskURI)
     : false
 )
 
@@ -70,12 +70,18 @@ const showProcesses = computed(() => route.params.process === '')
       <div>Query full: {{ $route.query }}</div>
       <div>This route: {{ $route.fullPath }}</div>
       <div>Running task: {{ taskRunning }}</div>
-      <div>Pod Process Path: {{ fullPodProcessURI }}</div>
+      <div>Running Pod Path: {{ processStore.currentTaskURI }}</div>
+      <!-- <div>Full ProcessProvider Object: {{ processStore.processProviders }}</div> -->
     </BAccordionItem>
   </BAccordion>
   <ProcessList v-if="showProcesses" />
-  <TaskList v-else-if="!taskRunning" :processURI="fullPodProcessURI" />
-  <TaskRunner :taskURI="fullPodProcessURI" :action="$route.params.action" v-else></TaskRunner>
+  <TaskList v-else-if="!taskRunning" :processURI="processStore.currentTaskURI" />
+  <TaskRunner :taskURI="processStore.currentTaskURI" :action="$route.params.action" v-else></TaskRunner>
+  <!-- Below Modal is triggered from both ProcessList as TaskList component -->
+  <ChangeAccessToResource
+    v-if="modalStore.canShowResourceACL"
+    :resource-u-r-i="modalStore.selectedResourceACL"
+  />
 </template>
 
 <style lang="scss" scoped></style>

@@ -4,6 +4,8 @@ export const modalStore = reactive({
   canShowViewModal: false,
   canShowAddStorage: true,
   canShowAddTaskStep: false,
+  canShowResourceACL: false,
+  selectedResourceACL: '',
   mode: 'light',
   switch() {
     this.mode = this.mode == 'dark' ? 'light' : 'dark'
