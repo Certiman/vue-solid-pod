@@ -2,7 +2,12 @@
   "name": "vue-solid-pod",
   "version": "0.3.0",
   "description": "EUAR devtool for testing Solid Pods (Q3-Q4/2025)",
-  "keywords": ["Solid Pod", "Linked data", "GDPR", "Verified Permissions"],
+  "keywords": [
+    "Solid Pod",
+    "Linked data",
+    "GDPR",
+    "Verified Permissions"
+  ],
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +18,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@comunica/query-sparql-solid": "^3.1.1",
     "@inrupt/solid-client": "^2.0.1",
     "@inrupt/solid-client-access-grants": "^3.0.5",
     "@inrupt/solid-client-authn-browser": "^2.2.4",

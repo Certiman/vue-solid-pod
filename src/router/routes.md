@@ -20,5 +20,4 @@ Some predefined :tasks are reserved however:
 
 - [ ] /process/:processname/addTask shows a modal to add a task, which is a SolidDataset, like mybookList
 - [ ] /process/:processname/search shows a form enabling to search instances created in the process
-
 - [ ] /process/:processname/:task/addStep shows a form to add a task step, which is a Resource

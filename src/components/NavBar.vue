@@ -12,8 +12,9 @@ import { sessionStore } from '@/stores/sessions'
     <BNavbarToggle target="nav-collapse" />
     <BCollapse id="nav-collapse" is-nav>
       <BNavbarNav>
-        <BNavItem><RouterLink to="/books">Books</RouterLink></BNavItem>
+        <!-- <BNavItem><RouterLink to="/books">Books</RouterLink></BNavItem> -->
         <BNavItem><RouterLink to="/about">About</RouterLink></BNavItem>
+        <BNavItem><RouterLink to="/query">Query</RouterLink></BNavItem>
         <!-- <BNavItem><RouterLink to="/form">Data Forms</RouterLink></BNavItem> -->
       </BNavbarNav>
       <BNavbarNav class="ms-auto mb-2 mb-lg-0">

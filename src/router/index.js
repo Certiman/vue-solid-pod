@@ -17,14 +17,14 @@ const router = createRouter({
       name: 'auth',
       component: AuthView // As a test what we get
     },
-    {
-      path: '/books',
-      name: 'books',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/BooksView.vue')
-    },
+    // {
+    //   path: '/books',
+    //   name: 'books',
+    //   // route level code-splitting
+    //   // this generates a separate chunk (About.[hash].js) for this route
+    //   // which is lazy-loaded when the route is visited.
+    //   component: () => import('../views/BooksView.vue')
+    // },
     {
       path: '/about',
       name: 'about',
@@ -32,6 +32,14 @@ const router = createRouter({
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import('../views/AboutView.vue')
+    },
+    {
+      path: '/query',
+      name: 'query',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/QueryView.vue')
     },
     {
       path: '/process/:process?/:task?/:step?',

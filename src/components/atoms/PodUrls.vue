@@ -19,7 +19,7 @@
           id="btnToPenny"
           v-b-tooltip="{ title: 'Open your container with Penny' }"
         >
-          <IMdiTriangleSmallUp class="mb-1"
+          <IMdiDetails class="mb-1"
         /></BButton>
       </BLink>
     </BInputGroup>
