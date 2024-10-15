@@ -1,0 +1,166 @@
+@prefix dash:    <http://datashapes.org/dash#> .
+@prefix dbpedia: <http://dbpedia.org/ontology/> .
+@prefix dcat:    <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix era:     <http://data.europa.eu/949/> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix geo:     <http://www.opengis.net/ont/geosparql#> .
+@prefix org:     <https://www.w3.org/ns/org#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema:  <http://schema.org/> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix ex:      <http://example.org/> .
+@prefix as:      <https://www.w3.org/ns/activitystreams#> .
+
+era:OrgOrFormalOrgShape a sh:NodeShape, rdfs:Class ;
+    # Start of entry must happen with FormalOrg OR Org. Some stakeholders have no holdings/groups/corporations.
+  sh:property [
+    sh:or (
+      [sh:node era:FormalOrganisationShape ; rdfs:label "Mother Holding or Group, active worldwide" ]
+      [sh:node era:OrganisationShape ; rdfs:label "An operational organization, active in one country" ]
+    );
+    sh:path owl:sameAs;
+    sh:name "Core level organisation";
+    sh:description "Data for the top level organisation, an international holding if needed";
+    sh:minCount 1;
+    sh:maxCount 1 # the form intends to not allow multi-corporate orgs
+  ].
+
+era:FormalOrganisationShape a sh:NodeShape, rdfs:Class ;
+  sh:targetClass org:FormalOrganisation ;
+  # Formal Organisations do not have orgCode, and they only have a org:hasRegisteredSite to locate them.
+  #           can have subOrganisations but no units
+  sh:property [
+    sh:path skos:prefLabel ;
+    sh:datatype xsd:string ;
+    sh:name "Name of the Holding or Group"@en ;
+    sh:description "The legally recognized name of the mother holding or group. Do NOT include locations in this name." ;
+    sh:maxCount 1
+  ] ;
+  sh:property [
+    sh:path org:hasSubOrganization;
+    sh:name "Subsidiary organisations";
+    sh:node era:OrganisationShape;
+    sh:description "An organization which is part of this mother holding or group" ;
+    sh:minCount 1 # we do not allow only holdings?
+  ].
+#   sh:property [
+#     sh:path org:hasRegisteredSite ;
+#     sh:name "Legal Address" ;
+#     sh:description "The Site where this Holding or Group has its legal address." ;
+#     sh:minCount 1 ; # a holding MUST have a legal address
+#     sh:maxCount 1 ; # a holding can only have one legal address.
+#     sh:node era:RegSiteShape ;
+#   ].
+  # sh:property [
+  #   sh:name "Formal Organisation - editorial data";
+  #   sh:path skos:changeNote ;
+  #   sh:node era:OrgRecordShape ;
+  #   sh:minCount 1 ; # mandatory date of record and change.
+  # ].
+
+era:OrganisationShape a sh:NodeShape, rdfs:Class ;
+  sh:targetClass org:Organisation ;
+  # Organisations MUST have orgCode, and they have org:hasRegisteredSite and hasPrimarySite.
+  # They can have other organisations as members.
+  # They must define their operational sites through the sites of their UNITS.
+  sh:property [
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path skos:prefLabel ;
+    sh:datatype xsd:string ;
+    sh:name "Name of the Organization"@en ;
+    sh:description "The legally recognized name of the organisation. Do NOT include locations in this name." ;
+  ] ;
+  sh:property [
+    sh:maxCount 1 ;
+    sh:minCount 1 ;
+    sh:path org:identifier ;
+    sh:name "Organisation Code" ;
+    sh:pattern "^[A-Z0-9]{4}";
+    sh:description "The organisation's orgCode as assigned by OCR";
+    sh:minLength 4;
+    sh:maxLength 4;
+    # sh:or (
+    #   [ sh:node era:CompanyCode ; rdfs:label "Company Code" ]    
+    #   [ sh:node era:OrganisationCode ; rdfs:label "Organisation Code" ]
+    # )
+  ];
+  sh:property [
+    sh:minCount 0 ; # Not mandatory
+    sh:path org:hasSubOrganization;
+    sh:node era:OrganisationShape;
+    sh:name "Subsidiary organisation";
+    sh:description "An organization, as a separate legal entity, which is >50% part of this organization" ;
+  ];
+#   sh:property [
+#     sh:maxCount 1 ;
+#     sh:minCount 1 ; # a org MUST have one and only one legal site address
+#     sh:path org:hasRegisteredSite ;
+#     sh:name "Legal Address" ;
+#     sh:description "The Site where this organization has its legal address." ;
+#     sh:node era:RegSiteShape ;
+#   ] ;
+#   sh:property [
+#     sh:path org:hasPrimarySite ;
+#     sh:node era:PrimSiteShape ;
+#     sh:name "Contact Address" ;
+#     sh:description "The Site where this organization can be contacted." ;
+#     sh:minCount 0 ; # a org CAN have a prim site address
+#     sh:maxCount 1 ;
+#   ];
+  # Organizations do not directly use hasSite, as this must happen through their Units.
+  sh:property [
+    sh:path org:hasUnit ;
+    sh:node era:UnitShape ;
+    sh:name "Units or Departments within this organisation" ;
+    sh:description "Units or departments which fall under the leadership of this organization." ;
+    sh:minCount 0 ; # a org CAN have no Units, in that case, it is assumed all activities run in one location.
+    # sh:maxCount 10 ; in fact no limits exist
+  ].
+  # sh:property [
+  #   sh:name "Organisation - editorial data";
+  #   sh:path skos:changeNote ;
+  #   sh:node era:OrgRecordShape ;
+  #   sh:minCount 1 ; # mandatory date of record and change.
+  # ].
+
+era:UnitShape a sh:NodeShape, rdfs:Class ;
+  sh:targetClass org:OrganizationalUnit ;
+  # An Organization such as a department or support unit which is part of some larger Organization and only has full recognition within the context of that Organization.
+  # In particular the unit would not be regarded as a legal entity in its own right.
+  # Do not have an orgCode, but are located on a site.
+  sh:property [
+    sh:path skos:prefLabel ;
+    xsd:datatype xsd:string ;
+    sh:name "Name of the Unit/Department"@en;
+    sh:description "The name as it is known in the organisation structure. Do NOT include locations in this name.";
+    sh:minCount 1;
+  ];
+  sh:property [
+    sh:path skos:altLabel ;
+    xsd:datatype xsd:string ;
+    sh:name "Abbreviation of the Unit/Department"@en;
+    sh:description "The abbreviation as it is known in the organisation structure.";
+    sh:minCount 1;
+    sh:maxLength 10;
+  ].
+#   sh:property [
+#     sh:path org:hasSite ;
+#     sh:node era:SiteShape ;
+#     sh:name "Legal Address of the Unit" ;
+#     sh:description "The Site where this Unit is located and its teams are working." ;
+#     sh:minCount 1 ; # a unit MUST have a site address
+#     sh:maxCount 3 ; # a unit can be housed in 3 different sites.
+#   ].
+  # sh:property [
+  #   sh:name "Unit - editorial data";
+  #   sh:path skos:changeNote ;
+  #   sh:node era:OrgRecordShape ;
+  #   sh:minCount 1 ; # mandatory date of record and change.
+  # ].

@@ -14,16 +14,26 @@ export const processStore = reactive({
   processProviders: [], // Comunica can query several process sources
   canShowAddProcessProviderModal: false,
   processTaskInEdit: '',
-  currentTaskURI: '', // pod URI of the process/task which is being selected for execution 
+  currentTaskURI: '', // pod URI of the process/task which is being selected for execution
   canProcessData() {
     return this.processProviders.length > 0
+  },
+  extractProcessName(processURI) {
+    // https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/Organisation/add
+    // returns '/Organisation'
+    if (!processURI) return null
+    let p = processURI
+    const identifier = '/process/'
+    const pName = p.substring(p.indexOf(identifier) + identifier.length).split('/')
+    console.log(`extractProcessName(${processURI}): ${pName[0]}`)
+    return `/${pName[0]}`
   },
   shorthandForProcessURI(processURI) {
     // https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/TheThirdProcess/
     // Returns TheThirdProcess/
     if (!processURI) return null
     let p = processURI
-    
+
     const shortHURI = p.substring(p.substring(0, p.length - 1).lastIndexOf('/') + 1)
     // console.log(`shortHURI() generated: ${shortHURI}.`)
     console.log(`shorthandForProcessURI(${processURI}): ${shortHURI}`)
@@ -45,7 +55,7 @@ export const processStore = reactive({
     if (!taskURI) return null
     let p = taskURI
     const identifier = '/process/'
-    const shURI= p.substring(p.indexOf(identifier) + identifier.length) + `/${step}`
+    const shURI = p.substring(p.indexOf(identifier) + identifier.length) + `/${step}`
     console.log(`extractProcTaskAppPath(${taskURI}): ${shURI}`)
     return shURI
   },
@@ -54,6 +64,9 @@ export const processStore = reactive({
     // returns TheThirdProcess/SecondTask#{step}
     let p = taskURI
     const identifier = '/process/'
-    return p.substring(p.indexOf(identifier) + identifier.length) + (step ? `#${step}` : '')
+    const shPTURI =
+      p.substring(p.indexOf(identifier) + identifier.length) + (step ? `#${step}` : '')
+    console.log(`extractProcTaskResource(${taskURI}): ${shPTURI}`)
+    return shPTURI
   }
 })

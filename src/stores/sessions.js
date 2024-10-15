@@ -7,6 +7,7 @@ export const sessionStore = reactive({
   loggedInWebId: '',
   selectedPodUrl: '',
   authProvidersSessionData: {},
+  locale: 'en-us', // TODO: link this with i18
   canDisplayData() {
     return this.selectedPodUrl.length > 0
   },

@@ -2,19 +2,18 @@
 /**
  * NOT YET TESTED --- 
  * 
- * (modalData) some title, text above and below the Form.
+ * https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/Organisation/formalorg_unit.ttl
+ * 
+ * (cardData) some title, text above and below the Form.
  * (shapeFileUrl) Imports the Central Pod's SHACL file for a org:Site
  * (shacl-form) Displays the shacl-form including the map
  * (targetResource).
  *      URI:  Writes the data into the Central Pod's /organizations/sites#UUID dataset.
- * 
- * Shape will use:
  *      :data-shape-subject="props.targetResource.subjectClass"
         :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
  */
 import { ref, onMounted, computed } from 'vue'
 
-import { BModal, BAlert } from 'bootstrap-vue-next'
 import { ShaclForm } from '@ulb-darmstadt/shacl-form'
 import {
   getFile,
@@ -39,7 +38,7 @@ const emit = defineEmits(['DataSetUpdated'])
 const props = defineProps({
   shapeFileUrl: String, // absolute URL to the container!
   targetResource: Object,
-  modalData: Object
+  cardData: Object // not needed in Step, as it is provided.
 })
 
 // Option to read shape from a Pod (as a file)
@@ -73,7 +72,7 @@ const submitListener = async (event) => {
 // reset forces a new Blob
 const loadShapesFromNonRDFFile = async () => {
   try {
-    if (!dataShapesLoaded.value) {
+    if (!dataShapesLoaded.value && DATA_URL) {
       console.log(`(editing) Trying to (re)load the shapes from POD at ${DATA_URL}!`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
@@ -126,7 +125,7 @@ const addResourceAsRDF = async () => {
     emit('DataSetUpdated', updatedDataset) // pushes the saved DS to the parent ReadingList compoment
     modalStore.canShowEditModal = false // hides the modal
   } catch (err) {
-    console.error(`Storing book failed with error ${err}!`)
+    console.error(`Storing RDFResource failed with error ${err}!`)
   }
 }
 
@@ -134,38 +133,35 @@ onMounted(async () => await loadShapesFromNonRDFFile())
 </script>
 
 <template>
-  <BModal
-    id="add-resource-form-modal"
-    v-model="modalStore.canShowEditModal"
-    :title="`Input the new resource data (Shape ${dataShapesLoaded ? ' ' : 'not '}loaded)`"
-    @shown="loadShapesFromNonRDFFile"
-    size="lg"
-    hide-footer
-    scrollable
-  >
-    {{ DATA_URL }}
-    <span v-if="dataShapesLoaded">
-      <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
+  <!-- v-model="modalStore.canShowEditModal" -->
+  <BCard id="add-resource-form-card" header="Input the new resource data" class="mt-2" no-body>
+    <BCardBody>
+      <span v-if="dataShapesLoaded">
+        <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
           :key="ind" -->
-      <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
-      <shacl-form
-        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
-        @change="changeListener"
-        @submit="submitListener"
-        data-show-node-ids
-        data-collapse
-        :data-shape-subject="props.targetResource.subjectClass"
-        :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
-        data-submit-button="Save"
-        :data-loading="`Retrieving shapes from ${DATA_URL}...`"
-        data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
-      />
-    </span>
-    <BAlert v-else variant="warning" :model-value="true">
-      This form is based on a Resource SHACL shape at: <code>{{ DATA_URL }}</code> which could not
-      be retrieved from the process provider. Please contact {{ props.processProvider.email }}.
-    </BAlert>
-  </BModal>
+        <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
+        <shacl-form
+          :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
+          @change="changeListener"
+          @submit="submitListener"
+          data-show-node-ids
+          data-collapse
+          :data-shape-subject="props.targetResource.subjectClass"
+          :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
+          data-submit-button="Save"
+          :data-loading="`Retrieving shapes from ${DATA_URL}...`"
+          data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
+        />
+      </span>
+      <BAlert v-else variant="warning" :model-value="true">
+        This form is based on a Resource SHACL shape at: <code>{{ DATA_URL }}</code> which could not
+        be retrieved from the process provider. Please contact the task contact above.
+      </BAlert>
+    </BCardBody>
+    <BCardFooter>
+      Shape was {{ dataShapesLoaded ? ' ' : 'not ' }}loaded from: {{ DATA_URL }}
+    </BCardFooter>
+  </BCard>
 </template>
 
 <style lang="scss" scoped></style>

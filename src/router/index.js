@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// import BooksView from '../views/BooksView.vue'
+import BooksView from '../views/BooksView.vue'
 import HomeView from '@/views/HomeView.vue'
 import ProcessView from '../views/ProcessView.vue'
 import AuthView from '@/views/AuthView.vue'
@@ -17,14 +17,14 @@ const router = createRouter({
       name: 'auth',
       component: AuthView // As a test what we get
     },
-    // {
-    //   path: '/books',
-    //   name: 'books',
-    //   // route level code-splitting
-    //   // this generates a separate chunk (About.[hash].js) for this route
-    //   // which is lazy-loaded when the route is visited.
-    //   component: () => import('../views/BooksView.vue')
-    // },
+    {
+      path: '/books',
+      name: 'books',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/BooksView.vue')
+    },
     {
       path: '/about',
       name: 'about',
