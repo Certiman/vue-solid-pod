@@ -9,7 +9,7 @@
     <BRow cols="12">
       <BCol class="col-9"> </BCol>
       <BCol class="col-3" align-self="auto"
-        ><BButton @click="triggerNextStep()">Next step...</BButton>
+        ><BButton @click="triggerNextStep()" class="mt-2">Next step...</BButton>
       </BCol>
     </BRow></BAccordionItem
   >
@@ -76,6 +76,8 @@ onBeforeMount(() => {
   // TODO: i19 internationalisation of the app should set this language
   // See https://vue-i18n.intlify.dev/guide/essentials/scope.html
   const locale = sessionStore.locale
+
+  //   console.log(props.step);
 
   stepTitle.value = getStringWithLocale(props.step, RDFS.label, locale)
   stepIntro.value =

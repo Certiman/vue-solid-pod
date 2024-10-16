@@ -1,11 +1,13 @@
 <script setup>
 import {
+  asUrl,
   createSolidDataset,
   getInteger,
   getSolidDataset,
   getStringNoLocale,
   getThingAll,
-  getUrl
+  getUrl,
+  getUrlAll
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { LDP, RDF, RDFS, VCARD } from '@inrupt/vocab-common-rdf'
@@ -19,12 +21,41 @@ import { modalStore } from '@/stores/ui'
 
 // Props, refs
 const props = defineProps({ taskURI: String, action: String })
+
+/**
+ * stepsList contains all steps of the task, no matter their version
+ *
+ * FIXME: steps have no order, which must be deduced from pointers
+ * SOLVED: can be filtered on version
+ * DONE: stepsList are Array
+ * [
+ * { step: st, sequence: sqn, version: 1 },
+ * { step: st, sequence: sqn, version: 2 },
+ * ...
+ * ]
+ * Preferably it is moved in the state
+ */
 const stepsList = ref([])
+const relevantSteps = computed(() =>
+  stepsList.value.filter((sli) => sli.version == selectedVersion.value).map((sli) => sli.step)
+)
+
+/**
+ * pointersList will contain the pairs [current, next, version], which allows resorting.
+ * The step indicated as first in the core task will be started with.
+ */
+const pointersList = ref([])
+
+// The taskName as collected from the dul:Task
 const taskName = ref('')
 const taskContact = ref('')
+
+// The versions as observed in the dul:Action s
 const taskVersions = ref([]) // is retrieved from schema:version in each step
 const selectedVersion = ref('') // the version to filter from.
-const openStep = ref('')
+
+// UI: identifier of the accordeon sheet which is open
+const openStep = ref('Taskstep-0')
 
 // Alllw to add steps.
 const canAddStep = computed(() => Boolean(props.taskURI))
@@ -39,8 +70,34 @@ const setProcessTaskToAddStep = () => {
   modalStore.canShowAddTaskStep = true
 }
 
+// const stepsFound = computed(() => {
+//   // Do we have steps and how many?
+//   const Versions = Object.keys(stepsList)
+//   let Nsteps = 0
+//   for (const key of Versions) {
+//     Nsteps = Nsteps + stepsList[key].length
+//   }
+//   console.log(`Found ${Versions.length} versions and in total ${Nsteps} steps.`)
+
+//   return { v: Versions.length, s: Nsteps }
+// })
+
+const canDisplaySteps = computed(() => stepsList.value.length > 0)
+
+const addStepsToStepsList = (st, ver) => {
+  // adds a step to the list, with no sequence yet.
+  if (!st) return null
+  stepsList.value.push({ step: st, sequence: null, version: ver })
+  console.warn(`New stepsList`, stepsList.value)
+}
+
+const recalculateOrder = (list) => {
+  // TODO: a sequence number for the elements in list are deduced from first, rest in pointers.
+  return list
+}
+
 onBeforeMount(async () => {
-  // Grab all task Things and prepare them as accordeon
+  // Grab all task Things and prepare them as accordeon, activate the first accordeaon
   let taskDataSet,
     versions = new Set([])
   try {
@@ -50,27 +107,44 @@ onBeforeMount(async () => {
     taskContents.forEach((step) => {
       try {
         // Collect the step contents in prder to run the correct visualizers
-        // console.log(step)
-        const taskType = getUrl(step, RDF.type)
-        const isTaskDescriptor = taskType == LDP.RDFSource
-        const isStep = taskType == DUL.Action
+        console.log(step)
+        const taskType = getUrlAll(step, RDF.type) // || getUrl(step, RDF.type)
+        const isTaskDescriptor = taskType.includes(LDP.RDFSource) // || taskType == LDP.RDFSource
+        const isStep = taskType.includes(DUL.Action) // taskType == DUL.Action
         if (isStep) {
-          // A pure step
+          // A pure step with a URI
+          const stepURI = asUrl(step)
 
           // Extract the step Version
-          const stepVersion = getInteger(step, 'http://schema.org/version') // SCHEMA_INRUPT has no prop version
-          if (stepVersion) versions.add(stepVersion)
-          else {
+          let stepVersion = getInteger(step, 'http://schema.org/version') // SCHEMA_INRUPT has no prop version
+          if (!stepVersion) {
+            stepVersion = 0
             console.warn(`Steps should always contain Integer for property 'schema:version'!`)
-            versions.add(0)
           }
+          versions.add(stepVersion)
+
+          // Extract the rest URI, it MUST be unique!
+          const nextStepURI = getUrl(step, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest')
+          pointersList.value.push([
+            stepURI,
+            nextStepURI == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#nil' ? null : nextStepURI,
+            stepVersion
+          ])
 
           // step is a non-extensible Thing, do not change it.
-          stepsList.value.push(step)
+          // stepsList.value.push(step)
+          addStepsToStepsList(step, stepVersion)
         } else if (isTaskDescriptor) {
           // A task placeholder RDFSource
-          taskName.value = getStringNoLocale(step, RDFS.comment)          
-          taskContact.value = getStringNoLocale(step, VCARD.hasEmail) || getUrl(step, VCARD.hasEmail)
+
+          // Place the first tasks in pointers as [ [null, URI1], [null, URI6] ], they will be complemented later.
+          const firstTasks = getUrlAll(step, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first') // RDFS.first not present?
+          pointersList.value.push(firstTasks.map((task_uri) => [null, task_uri]))
+
+          // Data about the task and contact
+          taskName.value = getStringNoLocale(step, RDFS.comment)
+          taskContact.value =
+            getStringNoLocale(step, VCARD.hasEmail) || getUrl(step, VCARD.hasEmail)
         } else {
           console.error(`Resource is not identified as a Step.`)
         }
@@ -88,7 +162,7 @@ onBeforeMount(async () => {
     console.warn(` No task data was found at this URI. Will push the /add route`)
     taskDataSet = createSolidDataset()
   } finally {
-    //
+    // Try to add the order of the steps, and cache them!
   }
 })
 </script>
@@ -96,17 +170,25 @@ onBeforeMount(async () => {
   <BCard no-body class="mt-2">
     <BCardHeader>
       <BRow cols="12">
-        <BCol class="col-9"> {{ action || taskName }} ({{ taskContact || 'No contact information provided' }})</BCol>
-        <BCol class="col-3" v-if="stepsList.length > 0"
-          ><BFormSelect :options="taskVersions" v-model="selectedVersion" :disabled="stepsList.length == 0" />
+        <BCol class="col-9">
+          {{ action || taskName }} ({{ taskContact || 'No contact information provided' }})</BCol
+        >
+        <BCol class="col-3" v-if="canDisplaySteps"
+          ><BFormSelect
+            :options="taskVersions"
+            v-model="selectedVersion"
+            :disabled="!canDisplaySteps"
+          />
         </BCol>
       </BRow>
     </BCardHeader>
     <BCardBody>
-      <p v-if="stepsList.length == 0">This process task contains no steps. Please contact the owner if needed.</p>
+      <p v-if="!canDisplaySteps">
+        This process task contains no steps. Please contact the owner if needed.
+      </p>
       <BAccordion v-model="openStep" v-else-if="selectedVersion">
         <StepItem
-          v-for="[i, step] of stepsList.entries()"
+          v-for="[i, step] of relevantSteps.entries()"
           :key="i"
           :sequence="i"
           :step="step"
