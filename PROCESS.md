@@ -1,10 +1,12 @@
 # Solid Pods as linked data based process providers and users
 
-We tackle the challenge of having several distinct stakeholders, all needing to store confidential or public data, in common data schemas. We thus provide, in this Proof Of Concept, a solution through Solid Pods, where the processes and schemas are centralised at the Agency's Pod, and the data is stored in the Pod of the stakeholder who completely controls access to other WebId's as they see fit.
+We tackle the challenge of having several distinct stakeholders, all needing to store confidential or public data, in common data schemas. We thus provide, in this Proof Of Concept, a solution through Solid Pods, where the processes and schemas are centralised at a Process Provider's Pod, and the data is stored in the Pod of the stakeholder who completely controls access to other WebId's as they see fit.
 
 ## Use case: Registers
 
-The Agency is required - via the legislation on several so-called Registers - to manage data as provided by several stakeholders and has decided to define a common `era:` ontology in order to allow interoperability between processes in which this data is used. The current proof of concept allows stakeholders to run the data gathering and maintaining processes as a set of forms which are defined by the Agency on its own Solid Pod. The users log into their own Pod and can access the processes as provided, be it because they are public, or because their WebId has been allowed access.
+The EU Agency for Railways is a process provider on data registers which exist under the Safety and Interoperability Directives.
+
+The Agency is hence required - via the legislation on several so-called Registers - to manage data as provided by several stakeholders and has defined a common `era:` ontology in order to allow interoperability between processes in which this data is used. The current proof of concept allows stakeholders, mainly NoBos and Manufacturers to run the data gathering and maintaining processes as a set of forms which are defined by the Agency on its own Solid Pod, hence being a Process provideer to those stakeholders. The stakeholders log into their own Pod and can access the processes as provided, be it because they are public, or because their WebId has been allowed access by the Process Provider.
 
 As a general example of a process which is always available, all stakeholders have public access to read the process `/Organisation` and the several tasks therein, like `/add`, `/addSite`, `/addUnit`, and `/addPost`. In the Agency's Solid Pod, each task is stored as a Solid Dataset within the `/process/Organisation`-container:
 
@@ -15,9 +17,9 @@ As a general example of a process which is always available, all stakeholders ha
   - [ ] `https://storage.inrupt.com/{STORAGE_ID}/process/Organisation/addPost` (not yet foreseen)
   - [ ] `https://storage.inrupt.com/{STORAGE_ID}/process/Organisation/addMember` (idem)
   - [ ] `https://storage.inrupt.com/{STORAGE_ID}/process/Organisation/edit` (foreseen)
-- [ ] The steps of the task are stored as Things in the dataset, and contain themselves the contents to visualise or manage of that step.
-- [ ] All steps have a version, such that the user can choose between task versions, and the process provider can add new versions of tasks on the fly.
-- [ ] All task steps with a SHACL-Form will store the outcome into an UPDATED Dataset in the Pod of the process user (with a small set of triples added also at the Provider for search obkectives using `owl:sameAs`)
+- [X] The steps of the task are stored as Things in the dataset, and contain themselves the contents to visualise or manage of that step.
+- [X] All steps have a `schema:version`, such that the user can choose between task versions, and the process provider can add new versions of tasks on the fly.
+- [ ] All task steps with a SHACL-Form will store the outcome into an UPDATED Dataset in the Pod of the process user (with a small set of triples added also at the Provider for search objectives using `owl:sameAs`). The action depends on the Task properties, but in general, Things should always be the first to appear or `dct:replaces` a previous Thing.
 
 ## Contents of a Task description Thing
 
@@ -44,19 +46,25 @@ For the example `/Organisation/add#uuid`, the step Things have the properties:
 - `rdf:rest` links the task step to the next one (unique in one version)
 - If a Shape File is used, it must indicate where to store the resulting triples. More info below.
 
-## Storage
+## Storage, append|write
 
-Processes have at leat the following 3 objectives:
+Processes have at least the following 3 objectives:
 
-1. to collect data in RDF
+1. to collect and manage data about registered resources as RDF expressed using the process provider's ontology.
 2. to convert data in RDF into lists, reports, documents (for analysis and presentation)
 3. to be findable by search action, as started from the Process Provider.
 
-The data collected by tasks in the process `https://storage.inrupt.com/{STORAGE_ID}/process/:Process/`, will always be `https://storage.inrupt.com/{STORAGE_ID}/data/:Process/{taskStorageContainer/}{subject}#uuid`, whereby the `#uuid` is generated by SHACL form and the `taskStorageContainer` is determined/calculated by the Task Step in which it is stored.
+The data collected by tasks in the process `https://storage.inrupt.com/{STORAGE_ID}/process/:Process/`, will always be `https://storage.inrupt.com/{STORAGE_ID}/data/:ProcessAbbreviated/{taskStorageContainer/}{subject}#uuid`, whereby the `#uuid` is generated by SHACL form and the `taskStorageContainer` is determined/calculated by the Task Step in which it is stored.
 
-Example:
+We propose: `ProcessAbbreviated = LOWERCASE(if no CamelCase is used ? full process name  : CamelCase capitals only)`
 
-- `/Organisations` store data in:
+### Example
+
+- `/Organisation` store data in:
   - `/data/organisation/org#uuid` for (Formal)Organisation(alUnit);
   - `/data/organisation/site#uuid` for Sites;
   - `/data/organisation/post#uuid` for Posts;
+- `/CertificationLevelDocuments` store data in:
+  - `/data/cld/{YEAR}/{MODULE}/{SUBSYSTEM}/cld#uuid`, whereby the Conditions & Limits of Use are stored under:
+  - `/data/cld/{YEAR}/{MODULE}/{SUBSYSTEM}/clou#uuid`, whereby the technical file COULD be stored under:
+  - `/data/cld/{YEAR}/{MODULE}/{SUBSYSTEM}/nobofile#uuid`.
