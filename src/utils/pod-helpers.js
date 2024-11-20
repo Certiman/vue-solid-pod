@@ -16,7 +16,16 @@ export const getDSUriEnding = (fullUri) => fullUri.substr(fullUri.lastIndexOf('/
 //   props.BookUrl,
 //   store
 // )
-export const loadDataAndShapesFromNonRDFFile = async (
+/**
+ * UNUSED function to convert the shape file into RDF as used in SHACL form
+ * 
+ * @param {Boolean} shapeAvailable Informed by the store, shape must not be reloaded from repo
+ * @param {Url} shapeDataUri The URIof the shape in the repo
+ * @param {Url} datasetUri the URI of the data in the repo
+ * @param {store} store containing the shapes
+ * @returns SolidDataset
+ */
+const loadDataAndShapesFromNonRDFFile = async (
   shapeAvailable,
   shapeDataUri,
   datasetUri,
@@ -28,12 +37,13 @@ export const loadDataAndShapesFromNonRDFFile = async (
       console.log(`Trying to (re)load the shapes from POD (viewing purpose)!`)
       const data_blob = await getFile(shapeDataUri, { fetch: fetch })
       data_blob_url = URL.createObjectURL(data_blob)
-      cacheStore.allShapeBlobUrls.push(data_blob_url)
+      store.allShapeBlobUrls.push(data_blob_url)
     } else {
-      console.warn(`Blob SHAPE URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
+      console.warn(`Blob SHAPE URL from cache, length ${store.allShapeBlobUrls.length}`)
     }
   } catch (err) {
     console.error(`Failed loading file, check access: ${err}`)
+    return null
   } finally {
     // Grab the dataset from the URL and convert to RDF
     console.log(`Dataset is being grabbed from ${getDSUriEnding(datasetUri)}.`)
