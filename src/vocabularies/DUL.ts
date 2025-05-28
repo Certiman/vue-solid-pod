@@ -17,10 +17,10 @@ export const DUL = {
   Description: _NS('Description'),
   Task: _NS('Task'),
   Role: _NS('Role'),
-  definesTask: _NS('definesTask'),  // Description definesTask Task
+  definesTask: _NS('definesTask'), // Description definesTask Task
   executesTask: _NS('executesTask'), // Action executesTask Task
   isExecutedIn: _NS('isExecutedIn'), // Task isExecutedIn Action
   hasTask: _NS('hasTask'), // Role hasTask Task
   isTaskOf: _NS('isTaskOf'), // Task isTaskOf Role
-
+  realizes: _NS('realizes') // Added for resource targeting
 }

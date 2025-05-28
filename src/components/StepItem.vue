@@ -27,13 +27,14 @@ import { DCTERMS, RDFS } from '@inrupt/vocab-common-rdf'
 import { sessionStore } from '@/stores/sessions'
 import { processStore } from '@/stores/process'
 import { ERA } from '@/vocabularies/ERA'
+import { DUL } from '@/vocabularies/DUL'
 
 const props = defineProps({ step: Object, sequence: Number })
 const emit = defineEmits(['nextStep'])
 const stepTitle = ref('') // http://www.w3.org/2000/01/rdf-schema#label (multi-lingual)
 const stepIntro = ref('') // http://purl.org/dc/elements/1.1/description (idem)
 const formShapeFile = ref('') // A TTL file under http://purl.org/dc/terms/source
-const schemaTarget = ref('') // Resource target as defined by schema:target property
+const dulRealizesTarget = ref('') // Resource target as defined by dul:realizes property
 
 /**
  * dataTarget
@@ -49,14 +50,13 @@ const schemaTarget = ref('') // Resource target as defined by schema:target prop
 const dataTarget = computed(() => {
   // Extract process name (e.g., "/Organisation" from process URI)
   const processName = processStore.extractProcessName(processStore.currentTaskURI)
-
   let resourceName
 
-  // Check if step has schema:target property (preferred approach)
-  if (schemaTarget.value) {
-    // Use the schema:target value directly as the resource name
-    resourceName = schemaTarget.value
-    console.warn(`Using schema:target property: ${resourceName}`)
+  // Check if step has dul:realizes property (preferred approach)
+  if (dulRealizesTarget.value) {
+    // Use the dul:realizes value directly as the resource name
+    resourceName = dulRealizesTarget.value
+    console.warn(`Using dul:realizes property: ${resourceName}`)
   } else {
     // Fallback to deriving resource name from task name (legacy approach)
     const taskName = processStore.shorthandForTaskURI(processStore.currentTaskURI)
@@ -77,12 +77,11 @@ const dataTarget = computed(() => {
    *
    * Target: a Process at
    * {PODURL}/process/:process/:task#step will store at:
-   * {UsersPodURL}/data/:process/{resourceName}#{uuid}
-   *
-   * With schema:target (new approach):
-   * Step defines schema:target "org" -> {UserPod}/data/organisation/org#
-   * Step defines schema:target "site" -> {UserPod}/data/organisation/site#
-   * Step defines schema:target "unit" -> {UserPod}/data/organisation/unit#
+   * {UsersPodURL}/data/:process/{resourceName}#{uuid}   *
+   * With dul:realizes (new approach):
+   * Step defines dul:realizes "org" -> {UserPod}/data/organisation/org#
+   * Step defines dul:realizes "site" -> {UserPod}/data/organisation/site#
+   * Step defines dul:realizes "unit" -> {UserPod}/data/organisation/unit#
    *
    * Examples (legacy fallback):
    * {EUARPod}/process/organisation/add -> {UserPod}/data/organisation/org#
@@ -177,29 +176,63 @@ const triggerNextStep = (seqN) => {
 }
 
 onBeforeMount(() => {
-  // Update the step UI based on step Thing
-  // Extract the step's contents happens in the StepItem component.
-  // TODO: i19 internationalisation of the app should set this language
-  // See https://vue-i18n.intlify.dev/guide/essentials/scope.html
-  const locale = sessionStore.locale
+  // Update the step UI based on step Thing  // Extract the step's contents happens in the StepItem component.
+  // Locale is hardcoded to 'en' for this application
+  console.log('StepItem onBeforeMount - props.step:', props.step)
+  console.log('StepItem onBeforeMount - typeof props.step:', typeof props.step)
+  console.log(
+    'StepItem onBeforeMount - props.step keys:',
+    props.step ? Object.keys(props.step) : 'null/undefined'
+  )
 
-  //   console.log(props.step);
-
-  stepTitle.value = getStringWithLocale(props.step, RDFS.label, locale)
-  stepIntro.value =
-    getStringWithLocale(props.step, 'http://purl.org/dc/elements/1.1/description', locale) ||
-    getStringWithLocale(props.step, DCTERMS.description, locale)
-  formShapeFile.value = getUrl(props.step, DCTERMS.source)
-  // Extract schema:target property if present (preferred approach for resource naming)
-  schemaTarget.value =
-    getUrl(props.step, 'http://schema.org/target') ||
-    getStringNoLocale(props.step, 'http://schema.org/target')
-
-  if (schemaTarget.value) {
-    console.log(`Step defines schema:target: ${schemaTarget.value}`)
-  } else {
-    console.log('Step does not define schema:target, will use task name derivation')
+  if (!props.step) {
+    console.error('StepItem: No step object provided!')
+    return
   }
+  // Try multiple English locale variants for stepTitle
+  stepTitle.value =
+    getStringWithLocale(props.step, RDFS.label, 'en-US') ||
+    getStringWithLocale(props.step, RDFS.label, 'en') ||
+    getStringNoLocale(props.step, RDFS.label) ||
+    'Untitled Step'
+
+  // Try multiple English locale variants for stepIntro
+  stepIntro.value =
+    getStringWithLocale(props.step, DCTERMS.description, 'en-US') ||
+    getStringWithLocale(props.step, DCTERMS.description, 'en') ||
+    getStringWithLocale(props.step, 'http://purl.org/dc/elements/1.1/description', 'en-US') ||
+    getStringWithLocale(props.step, 'http://purl.org/dc/elements/1.1/description', 'en') ||
+    getStringNoLocale(props.step, DCTERMS.description) ||
+    getStringNoLocale(props.step, 'http://purl.org/dc/elements/1.1/description') ||
+    ''
+
+  formShapeFile.value = getUrl(props.step, DCTERMS.source)
+
+  // Extract dul:realizes property if present (preferred approach for resource naming)
+  dulRealizesTarget.value =
+    getUrl(props.step, DUL.realizes) || getStringNoLocale(props.step, DUL.realizes)
+
+  if (dulRealizesTarget.value) {
+    console.log(`Step defines dul:realizes: ${dulRealizesTarget.value}`)
+  } else {
+    console.log('Step does not define dul:realizes, will use task name derivation')
+  }
+  // Debug output for all extracted values
+  console.log('StepItem extracted values:', {
+    stepTitle: stepTitle.value,
+    stepIntro: stepIntro.value,
+    formShapeFile: formShapeFile.value,
+    dulRealizesTarget: dulRealizesTarget.value
+  })
+
+  // Debug: show which locale variants were tried
+  console.log('Language extraction debug:', {
+    'rdfs:label with en-US': getStringWithLocale(props.step, RDFS.label, 'en-US'),
+    'rdfs:label with en': getStringWithLocale(props.step, RDFS.label, 'en'),
+    'rdfs:label no locale': getStringNoLocale(props.step, RDFS.label),
+    'dcterms:description with en-US': getStringWithLocale(props.step, DCTERMS.description, 'en-US'),
+    'dcterms:description with en': getStringWithLocale(props.step, DCTERMS.description, 'en')
+  })
 })
 </script>
 

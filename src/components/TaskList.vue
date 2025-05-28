@@ -3,15 +3,17 @@
 import { onBeforeMount, ref, computed, reactive } from 'vue'
 import {
   getSolidDataset,
-  getThingAll,
   getStringNoLocale,
+  getStringWithLocale,
   createSolidDataset,
   createThing,
   addStringNoLocale,
   setThing,
   saveSolidDatasetAt,
   getUrl,
-  addUrl
+  addUrl,
+  getContainedResourceUrlAll,
+  getThing
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
@@ -94,18 +96,59 @@ const loadAllTasks = async () => {
   taskList.value = []
   if (!props.processURI) return null
   try {
-    const taskDataSet = await getSolidDataset(props.processURI, { fetch: fetch })
+    // First, get the container to find all task URIs
+    const containerDataSet = await getSolidDataset(props.processURI, { fetch: fetch })
+    const taskURIs = getContainedResourceUrlAll(containerDataSet)
 
-    const taskThings = getThingAll(taskDataSet)
-    taskThings.forEach((tt) => {
-      // FIXME: Extract the task name, fails as it is inside the resource somehow
-      console.log(`Analysing Task @[${props.processURI}]:`, tt)
+    console.log(`Found ${taskURIs.length} task URIs in container:`, taskURIs)
 
-      const taskName = getStringNoLocale(tt, RDFS.comment) || 'Unknown task name'
-      const isRDFSource = getUrl(tt, RDF.type) == LDP.RDFSource
-      const newTask = { taskName: taskName, taskThings: tt, taskProcessURI: props.processURI }
-      if (isRDFSource) taskList.value.push(newTask)
-    })
+    // Filter out .ttl files and other non-RDF resources
+    const rdfTaskURIs = taskURIs.filter((uri) => !uri.endsWith('.ttl'))
+
+    console.log(`Filtered to ${rdfTaskURIs.length} potential task URIs:`, rdfTaskURIs)
+
+    // Now fetch each individual task to get its metadata
+    for (const taskURI of rdfTaskURIs) {
+      try {
+        const taskDataSet = await getSolidDataset(taskURI, { fetch: fetch })
+        const taskThing = getThing(taskDataSet, taskURI)
+
+        if (taskThing) {
+          console.log(`Analysing individual Task @[${taskURI}]:`, taskThing)
+
+          // Extract the task name from the individual task resource
+          const taskName =
+            getStringNoLocale(taskThing, RDFS.comment) ||
+            getStringWithLocale(taskThing, RDFS.comment, 'en-US') ||
+            getStringWithLocale(taskThing, RDFS.comment, 'en') ||
+            getStringNoLocale(taskThing, RDFS.label) ||
+            getStringWithLocale(taskThing, RDFS.label, 'en-US') ||
+            getStringWithLocale(taskThing, RDFS.label, 'en') ||
+            taskURI.split('/').pop() || // Use the last part of URI as fallback
+            'Unknown task name'
+
+          const newTask = {
+            taskName: taskName,
+            taskThings: taskThing,
+            taskProcessURI: props.processURI
+          }
+          taskList.value.push(newTask)
+
+          console.log(`Added task: ${taskName}`)
+        }
+      } catch (taskError) {
+        console.warn(`Failed to load individual task ${taskURI}:`, taskError)
+        // Add a placeholder entry for failed tasks
+        const fallbackName = taskURI.split('/').pop() || 'Unknown task'
+        taskList.value.push({
+          taskName: `${fallbackName} (load failed)`,
+          taskThings: { url: taskURI },
+          taskProcessURI: props.processURI
+        })
+      }
+    }
+
+    console.log(`Loaded ${taskList.value.length} tasks total`)
   } catch (mistake) {
     console.error(`Mounting TaskList error: ${mistake}. Caused by ${props.processURI}.`)
   }
