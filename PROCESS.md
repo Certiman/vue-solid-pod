@@ -43,8 +43,29 @@ For the example `/Organisation/add#uuid`, the step Things have the properties:
 - `rdfs:label`: the short title of each task
 - `http://schema.org/version`: the version of the task this step belongs to.
 - `http://purl.org/dc/terms/source` for the SHAPE of the form to show, which must be stored in a readable container of the process.
+- `http://schema.org/target`: **[NEW]** the resource name where the form data should be stored (e.g., "org", "site", "unit"). This is the preferred approach for defining storage targets.
 - `rdf:rest` links the task step to the next one (unique in one version)
 - If a Shape File is used, it must indicate where to store the resulting triples. More info below.
+
+### Resource Target Definition
+
+**Preferred Approach (schema:target)**: Each step should define a `schema:target` property that specifies the resource name for data storage:
+
+```turtle
+:step1 a dul:Action ;
+    rdfs:label "Add Organisation" ;
+    dct:source <./formalorg_unit.ttl> ;
+    schema:target "org" ;
+    schema:version 1 .
+
+:step2 a dul:Action ;
+    rdfs:label "Add Site" ;
+    dct:source <./site_form.ttl> ;
+    schema:target "site" ;
+    schema:version 1 .
+```
+
+**Legacy Fallback**: If `schema:target` is not defined, the system will derive the resource name from the task name using intelligent mapping (e.g., "addSite" → "site", "addUnit" → "unit").
 
 ## Storage, append|write
 

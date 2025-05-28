@@ -55,7 +55,7 @@ const taskVersions = ref([]) // is retrieved from schema:version in each step
 const selectedVersion = ref('') // the version to filter from.
 
 // UI: identifier of the accordeon sheet which is open
-const openStep = ref('Taskstep-0')
+const openStep = ref('TaskStep-0')
 
 // Alllw to add steps.
 const canAddStep = computed(
@@ -174,7 +174,7 @@ onBeforeMount(async () => {
     await loadTaskData()
   } catch (err) {
     console.error(`Failed to load task: ${err.message}`)
-    taskDataSet = createSolidDataset()
+    loadingError.value = err.message
   }
 })
 
@@ -274,6 +274,7 @@ import { BBadge, BTable, BAlert, BAccordion, BAccordionItem } from 'bootstrap-vu
 
 // Add these reactive data and computed properties after your existing ones
 const totalThingsFound = ref(0)
+const loadingError = ref(null)
 
 // Helper function to get steps for a specific version (sorted by sequence)
 const getStepsForVersion = (version) => {

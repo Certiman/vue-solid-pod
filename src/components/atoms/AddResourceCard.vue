@@ -22,9 +22,21 @@ import {
   saveSolidDatasetAt,
   getSolidDataset,
   getThingAll,
-  setThing
+  setThing,
+  createSolidDataset,
+  createContainerAt
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
+import {
+  BAlert,
+  BProgress,
+  BBadge,
+  BListGroup,
+  BListGroupItem,
+  BContainer,
+  BRow,
+  BCol
+} from 'bootstrap-vue-next'
 
 // Store
 import { cacheStore } from '@/stores/cache'
@@ -41,6 +53,25 @@ const props = defineProps({
   cardData: Object // not needed in Step, as it is provided.
 })
 
+// Alert system
+const alertMessage = ref('')
+const alertVariant = ref('info')
+const alertDuration = ref(0) // 0 = hidden, positive value = shown with countdown
+const alertCountdown = ref(0)
+
+// RDF data preview
+const currentRdfData = ref('')
+const isFormValid = ref(false)
+const showRdfPreview = ref(false)
+
+// Helper function to show alerts
+const showAlert = (message, variant = 'warning', duration = 5000) => {
+  alertMessage.value = message
+  alertVariant.value = variant
+  alertDuration.value = duration
+  alertCountdown.value = duration
+}
+
 // Option to read shape from a Pod (as a file)
 const DATA_URL = props.shapeFileUrl
 const numberOfShapesLoaded = ref(0)
@@ -53,18 +84,31 @@ const changeListener = (event) => {
   const form = document.querySelector('shacl-form')
   // check if form data validates according to the SHACL shapes
   if (event.detail?.valid) {
-    // get data graph as RDF triples and
-    // log them to the browser console
+    isFormValid.value = true
+    showAlert('Form data is valid and ready to submit', 'success', 3000)
+
+    // get data graph as RDF triples and display them
     const triples = form.serialize()
+    currentRdfData.value = triples
+    showRdfPreview.value = true
     console.log('entered form data', triples)
-    // store the data somewhere, e.g. in a triple store
   } else {
+    isFormValid.value = false
+    showRdfPreview.value = false
+    showAlert('Form validation failed - please check all required fields', 'warning')
     console.error('Check data completeness, missing mandatory fields!')
   }
 }
 
 const submitListener = async (event) => {
   event.preventDefault()
+
+  if (!isFormValid.value) {
+    showAlert('Cannot submit - form data is invalid', 'danger')
+    return
+  }
+
+  showAlert('Saving data to Solid Pod...', 'info', 2000)
   await addResourceAsRDF()
 }
 
@@ -73,14 +117,17 @@ const submitListener = async (event) => {
 const loadShapesFromNonRDFFile = async () => {
   try {
     if (!dataShapesLoaded.value && DATA_URL) {
+      showAlert('Loading SHACL shapes from Pod...', 'info', 2000)
       console.log(`(editing) Trying to (re)load the shapes from POD at ${DATA_URL}!`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
       cacheStore.allShapeBlobUrls.push(data_blob_url)
+      showAlert('SHACL shapes loaded successfully', 'success', 3000)
     } else {
       console.warn(`Blob URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
     }
   } catch (err) {
+    showAlert(`Failed to load shapes file: ${err.message}`, 'danger')
     console.error(`Failed loading file, check access: ${err}`)
   }
 }
@@ -90,6 +137,8 @@ const addResourceAsRDF = async () => {
 
   console.log(`Storing RDFResource at ${props.targetResource.URI}.`)
   try {
+    showAlert('Processing form data...', 'info', 2000)
+
     // Get data out of the shacl-form
     const form = document.querySelector('shacl-form')
     const shaclFormGraph = await form.toRDF()
@@ -97,16 +146,45 @@ const addResourceAsRDF = async () => {
     // Convert RDF store into a Solid dataset
     const shaclFormDataset = await fromRdfJsDataset(shaclFormGraph)
 
-    // The following works but does not append data when used a second time in the same resource myShaclList
-    // as this seemingly is totally not the function
-    // const containerURL = `https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/getting-started/readingList/`
-    // await saveSolidDatasetInContainer(containerURL, shaclFormDataset, { fetch: fetch, slugSuggestion: 'myShaclList' })
-    // without slugSuggestion, a UUID is generated as the data RDFsource
+    showAlert('Checking target location...', 'info', 2000)
+
+    // HANDLE CONTAINER AND DATASET CREATION
+    try {
+      // First try to get the existing dataset
+      targetDataset = await getSolidDataset(props.targetResource.URI, { fetch: fetch })
+      console.log('Target dataset already exists')
+    } catch (error) {
+      // Dataset doesn't exist, we need to create it
+      console.log('Target dataset does not exist, creating...')
+
+      if (error.status === 404 || error.statusCode === 404) {
+        // Check if we have a container URI to create first
+        if (props.targetResource.containerURI) {
+          try {
+            console.log(`Creating container at ${props.targetResource.containerURI}`)
+            await createContainerAt(props.targetResource.containerURI, { fetch: fetch })
+            showAlert('Created data container successfully', 'success', 2000)
+          } catch (containerError) {
+            // Container might already exist, which is fine
+            if (containerError.status !== 409 && containerError.statusCode !== 409) {
+              console.warn('Could not create container:', containerError)
+            }
+          }
+        }
+
+        // Create a new empty dataset
+        targetDataset = createSolidDataset()
+        console.log('Created new empty dataset')
+        showAlert('Created new dataset', 'success', 2000)
+      } else {
+        // Some other error occurred
+        throw error
+      }
+    }
+
+    showAlert('Saving to Solid Pod...', 'info', 2000)
 
     // THUS, we need to store the new Things from the SHACL dataset in the EXISTING dataset container
-    // First get the current dataset
-    targetDataset = await getSolidDataset(props.targetResource.URI, { fetch: fetch })
-
     // get all Things from the shaclFormDataset
     const shaclFormThings = getThingAll(shaclFormDataset)
 
@@ -118,13 +196,22 @@ const addResourceAsRDF = async () => {
       fetch: fetch
     })
 
+    // Success!
+    showAlert(`Successfully saved ${shaclFormThings.length} resource(s) to Pod`, 'success', 4000)
+
     // EMIT the signal to the main page in order to refesh the list
     // Also emit the updatedDataset itself, to reuse the cycle of the basic app
     numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
     emit('DataSetUpdated', updatedDataset) // pushes the saved DS to the parent ReadingList compoment
     modalStore.canShowEditModal = false // hides the modal
+
+    // Reset form state
+    showRdfPreview.value = false
+    currentRdfData.value = ''
+    isFormValid.value = false
   } catch (err) {
+    showAlert(`Failed to save resource: ${err.message}`, 'danger')
     console.error(`Storing RDFResource failed with error ${err}!`)
   }
 }
@@ -133,7 +220,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
 </script>
 
 <template>
-  <!-- v-model="modalStore.canShowEditModal" -->
+  <!-- Main form card -->
   <BCard id="add-resource-form-card" header="Input the new resource data" class="mt-2" no-body>
     <BCardBody>
       <span v-if="dataShapesLoaded">
@@ -161,6 +248,98 @@ onMounted(async () => await loadShapesFromNonRDFFile())
     <BCardFooter>
       Shape was {{ dataShapesLoaded ? ' ' : 'not ' }}loaded from: {{ DATA_URL }}
     </BCardFooter>
+  </BCard>
+
+  <!-- Alert system -->
+  <BAlert
+    v-model="alertDuration"
+    ref="statusAlert"
+    :variant="alertVariant"
+    @close-countdown="alertCountdown = $event"
+    class="mt-3"
+    v-if="alertDuration > 0"
+  >
+    <p>{{ alertMessage }}</p>
+    <BProgress :variant="alertVariant" :max="alertDuration" :value="alertCountdown" height="4px" />
+  </BAlert>
+
+  <!-- RDF Data Preview Card -->
+  <BCard class="mt-3" no-body v-if="showRdfPreview">
+    <BCardHeader>
+      <div class="d-flex justify-content-between align-items-center">
+        <span>
+          <IMdiCodeTags class="me-2" />
+          RDF Data Preview
+        </span>
+        <BBadge :variant="isFormValid ? 'success' : 'warning'">
+          {{ isFormValid ? 'Valid' : 'Invalid' }}
+        </BBadge>
+      </div>
+    </BCardHeader>
+    <BCardBody>
+      <BContainer fluid>
+        <BRow>
+          <BCol md="8">
+            <h6 class="text-primary">Generated RDF Triples</h6>
+            <small class="text-muted">Data that will be saved to your Pod</small>
+            <pre class="bg-light p-3 mt-2 border rounded"><code>{{ currentRdfData }}</code></pre>
+          </BCol>
+          <BCol md="4">
+            <h6 class="text-info">Target Information</h6>
+            <BListGroup>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>Resource URI:</span>
+                <code class="small">{{
+                  props.targetResource?.URI
+                    ? props.targetResource.URI.includes('#')
+                      ? props.targetResource.URI.split('/').slice(-2).join('/')
+                      : props.targetResource.URI.split('/').slice(-2).join('/')
+                    : 'Not set'
+                }}</code>
+              </BListGroupItem>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>Storage Type:</span>
+                <BBadge :variant="props.targetResource?.URI?.includes('#') ? 'success' : 'warning'">
+                  {{ props.targetResource?.URI?.includes('#') ? 'RDF Resource' : 'File/Dataset' }}
+                </BBadge>
+              </BListGroupItem>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>Subject Class:</span>
+                <code class="small">{{
+                  props.targetResource?.subjectClass?.split('/').pop() || 'Not set'
+                }}</code>
+              </BListGroupItem>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>Node ID:</span>
+                <code class="small">{{
+                  props.targetResource?.subjectNodeId || 'Generated automatically'
+                }}</code>
+              </BListGroupItem>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>Form Status:</span>
+                <BBadge :variant="isFormValid ? 'success' : 'danger'">
+                  {{ isFormValid ? 'Ready to save' : 'Validation errors' }}
+                </BBadge>
+              </BListGroupItem>
+            </BListGroup>
+
+            <h6 class="text-secondary mt-3">Data Summary</h6>
+            <BListGroup>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>RDF Lines:</span>
+                <BBadge variant="info">{{
+                  currentRdfData.split('\n').filter((line) => line.trim()).length
+                }}</BBadge>
+              </BListGroupItem>
+              <BListGroupItem class="py-1 d-flex justify-content-between">
+                <span>Characters:</span>
+                <BBadge variant="secondary">{{ currentRdfData.length }}</BBadge>
+              </BListGroupItem>
+            </BListGroup>
+          </BCol>
+        </BRow>
+      </BContainer>
+    </BCardBody>
   </BCard>
 </template>
 
