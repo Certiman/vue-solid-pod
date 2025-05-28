@@ -34,11 +34,12 @@ const addProvider = async (WebId) => {
    */
   finishedAddingPP.value = false
   const providerExists = processStore.processProviders.find((o) => o.ProviderWebId == WebId.trim())
+
   if (providerExists) {
-    // modalStore.showToastWithMessage = true
-    // modalStore.ToastMessage = 'Provider already added: please enter another WebId.'
+    showAlert('Provider already added: please enter another WebId.', 'warning')
     return null
   }
+
   try {
     // Get Pod(s) associated with the WebID
     console.log(`(addProvider) Getting provider data for WebId ${WebId}`)
@@ -106,7 +107,12 @@ const addProvider = async (WebId) => {
       }
     })
   } catch (error) {
-    //
+    // Add meaningful user messages based on error types
+    if (error.message.includes('network')) {
+      showAlert('Network error: Could not connect to provider.', 'danger')
+    } else {
+      showAlert(`Error adding provider: ${error.message}`, 'danger')
+    }
     console.error(`(addProvider(${WebId}):`, error)
   }
 }
@@ -123,7 +129,10 @@ const checkProcessRootContainerAt = async (pURL) => {
    * @ds For a given /process-container URL, store the dataset if it exists in ds:
    * @pc Return the existence as a boolean under pc:
    */
-  if (!isContainer(pURL)) return { pc: false, ds: null }
+  if (!isContainer(pURL)) {
+    showAlert(`URL ${pURL} is not a container`, 'danger')
+    return { pc: false, ds: null }
+  }
   try {
     // Check the container
     const processesDataSet = await getSolidDataset(pURL, {
@@ -134,11 +143,13 @@ const checkProcessRootContainerAt = async (pURL) => {
       processesDataSet
     )
 
+    showAlert(`Successfully accessed process container at ${pURL}`, 'success', 3000)
     return { pc: true, ds: processesDataSet }
   } catch (erreur) {
     console.error(
       `(checkProcessRootContainerAt) On /process container at ${pURL}: does not exist or error: ${erreur}`
     )
+    showAlert(`Could not access process container at ${pURL}: ${erreur.message}`, 'danger')
     return { pc: false, ds: null }
   }
 }
@@ -159,15 +170,15 @@ const AddProcessProvider = async (WebId, forceReload = false) => {
       )
       processStore.processProviders = updatedProcessStore
       console.warn(processStore.processProviders)
+      showAlert(`Reloading provider ${WebId}`, 'info', 3000)
     }
     if (!providerExists || forceReload) await addProvider(WebId)
     else {
-      // FIXME: better way of showing these
-      // modalStore.showToastWithMessage = true
-      // modalStore.ToastMessage = 'Provider already added: please enter another WebId.'
+      showAlert('Provider already added: please enter another WebId.', 'warning')
       console.warn(`(addProcessProvider(${WebId}): skipping addProvider()!`)
     }
   } catch (err) {
+    showAlert(`Error adding process provider: ${err.message}`, 'danger')
     console.error(
       `(addProcessProvider(${WebId}): Adding Process provider failed with error: ${err}`
     )
@@ -178,19 +189,35 @@ const addNewProvider = async () => {
   // add the provider as entered in the UI into the SolidPod of the user
   console.log(`Adding Provider from input, WebId ${newProviderWebId.value}...`)
 
+  if (!newProviderWebId.value || newProviderWebId.value.trim() === '') {
+    showAlert('Please enter a valid WebId', 'warning')
+    return
+  }
+
+  showAlert(`Attempting to add provider ${newProviderWebId.value}...`, 'info', 3000)
   await AddProcessProvider(newProviderWebId.value)
 }
 
 const addNewProcess = async () => {
   // add a process container to the own Pod.
   try {
-    const newProcessContainerURI =
-      sessionStore.selectedPodUrl + 'process/' + newProcessName.value.replaceAll(' ', '').trim()
+    if (!newProcessName.value || newProcessName.value.trim() === '') {
+      showAlert('Please enter a valid process name', 'warning')
+      return
+    }
+
+    const processName = newProcessName.value.replaceAll(' ', '').trim()
+    const newProcessContainerURI = sessionStore.selectedPodUrl + 'process/' + processName
+
+    showAlert(`Creating process container ${processName}...`, 'info', 3000)
     await createContainerAt(newProcessContainerURI, { fetch: fetch })
+
     processWasNotAdded.value = true
     newProcessName.value = ''
+    showAlert(`Process container ${processName} created successfully`, 'success')
     // FIXME: this allows one process to be added and is very bad UI.
   } catch (err) {
+    showAlert(`Failed to create process: ${err.message}`, 'danger')
     console.error(`addNewProcess() failed with error: ${err}`)
   }
 }
@@ -202,17 +229,19 @@ const checkSelfProcessContainer = async () => {
    * @function checkSelfProcessContainer ONLY checks the own /process resource and
    * adds 'itself to processStore.'
    */
-  if (sessionStore.selectedPodUrl.length === 0) return null
+  if (sessionStore.selectedPodUrl.length === 0) {
+    showAlert('No Pod selected. Please log in first.', 'warning')
+    return null
+  }
+
   const ownPPUrl = sessionStore.selectedPodUrl + 'process/'
   try {
     // Checks in the WebId's root if /process exist.
-    // ds is thrown away here.
     const providerExists = processStore.processProviders.find(
       (o) => o.ProviderWebId == sessionStore.loggedInWebId.trim()
     )
 
     // FIXME: if this has been executed once and providerExists, this line should not be executed.
-    // PROPOSAL, remove check for pc in next if, and move this line IN the if statemenmt.
     const { pc, ds } = await checkProcessRootContainerAt(ownPPUrl)
 
     if (pc && !providerExists) {
@@ -226,11 +255,28 @@ const checkSelfProcessContainer = async () => {
         Active: true,
         ProcessDataSet: ds
       })
+
+      showAlert('Found your process container and added it as a provider', 'success', 3000)
     }
     ownProcessContainerExists.value = pc
   } catch (e) {
+    showAlert(`Error checking your process container: ${e.message}`, 'danger')
     ownProcessContainerExists.value = false
   }
+}
+
+// Alert system
+const alertMessage = ref('')
+const alertVariant = ref('info')
+const alertDuration = ref(0) // 0 = hidden, positive value = shown with countdown
+const alertCountdown = ref(0)
+
+// Helper function to show alerts
+const showAlert = (message, variant = 'warning', duration = 5000) => {
+  alertMessage.value = message
+  alertVariant.value = variant
+  alertDuration.value = duration
+  alertCountdown.value = duration
 }
 </script>
 
@@ -249,6 +295,23 @@ const checkSelfProcessContainer = async () => {
       data model.
     </p>
     <BButton class="mb-3" @click="showPPHelp = !showPPHelp">Details</BButton>
+
+    <BAlert
+      v-model="alertDuration"
+      ref="statusAlert"
+      :variant="alertVariant"
+      @close-countdown="alertCountdown = $event"
+      class="mb-3"
+    >
+      <p>{{ alertMessage }}</p>
+      <BProgress
+        :variant="alertVariant"
+        :max="alertDuration"
+        :value="alertCountdown"
+        height="4px"
+      />
+    </BAlert>
+
     <BInputGroup prepend="Provider WebId">
       <!-- list="providerList" -->
       <BFormInput
@@ -287,54 +350,59 @@ const checkSelfProcessContainer = async () => {
         </BInputGroup>
       </BCardBody>
     </BCard>
-    <p class="mt-3">
-      You can add processes in your own pod as well, they WILL be stored in the
-      <code>/process/</code> <b>container</b>.
-    </p>
-    <p v-if="sessionStore.loggedInWebId">
-      <BInputGroup prepend="Your WebId" class="mt-3">
-        <!-- list="providerList" -->
-        <BFormInput
-          id="selfProvider"
-          :placeholder="sessionStore.loggedInWebId"
-          type="text"
-          :disabled="true"
-          @keyup.enter="addNewProvider"
-        ></BFormInput>
-        <!-- <datalist id="providerList">
+    <BCard header="Your own processes" class="mt-3">
+      <p class="mt-3">
+        You can add processes in your own pod as well, they WILL be stored in the
+        <code>/process/</code> <b>container</b>.
+      </p>
+      <BCardBody>
+        <p v-if="sessionStore.loggedInWebId">
+          <BInputGroup prepend="Your WebId" class="mt-3">
+            <!-- list="providerList" -->
+            <BFormInput
+              id="selfProvider"
+              :placeholder="sessionStore.loggedInWebId"
+              type="text"
+              :disabled="true"
+              @keyup.enter="addNewProvider"
+            ></BFormInput>
+            <!-- <datalist id="providerList">
           <option>{{ sessionStore.loggedInWebId }}</option>
         </datalist> -->
-        <AsyncButton
-          v-if="!ownProcessContainerExists"
-          :async-done="finishedAddingSelfPP"
-          variant="secondary"
-          label="Activate"
-          icon-class="IMdiNoteAdd"
-          @aclick="addProvider(sessionStore.loggedInWebId)"
-        /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
-      </BInputGroup>
-      <BInputGroup prepend="Process Name" class="mt-2">
-        <BFormInput
-          id="selfProcessAdd"
-          placeholder="Process Name"
-          v-model="newProcessName"
-          type="text"
-          @keyup.enter="addNewProcess"
-        ></BFormInput>
-        <AsyncButton
-          v-if="processWasNotAdded"
-          :async-done="newProcessName.replaceAll(' ', '').length > 6"
-          variant="secondary"
-          label="+"
-          icon-class="IMdiNoteAdd"
-          @aclick="addNewProcess"
-        /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
-      </BInputGroup>
-    </p>
-    <BAlert variant="warning" :model-value="true" class="mt-3" v-else
-      >Log in to your Solid Pod, in order to use your own processes!</BAlert
-    >
+            <AsyncButton
+              v-if="!ownProcessContainerExists"
+              :async-done="finishedAddingSelfPP"
+              variant="secondary"
+              label="Activate"
+              icon-class="IMdiNoteAdd"
+              @aclick="addProvider(sessionStore.loggedInWebId)"
+            /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
+          </BInputGroup>
+          <BInputGroup prepend="Process Name" class="mt-2">
+            <BFormInput
+              id="selfProcessAdd"
+              placeholder="Process Name"
+              v-model="newProcessName"
+              type="text"
+              @keyup.enter="addNewProcess"
+            ></BFormInput>
+            <AsyncButton
+              v-if="processWasNotAdded"
+              :async-done="newProcessName.replaceAll(' ', '').length > 6"
+              variant="secondary"
+              label="+"
+              icon-class="IMdiNoteAdd"
+              @aclick="addNewProcess"
+            /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
+          </BInputGroup>
+        </p>
+        <BAlert variant="warning" :model-value="true" class="mt-3" v-else
+          >Log in to your Solid Pod, in order to use your own processes!</BAlert
+        >
+      </BCardBody>
+    </BCard>
   </BModal>
+
   <BModal id="ProcessHelpModal" v-model="showPPHelp" size="lg" :no-close-on-esc="true" ok-only>
     <p>Process providers are:</p>
     <ul>
