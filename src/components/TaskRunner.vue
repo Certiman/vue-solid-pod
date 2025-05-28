@@ -94,55 +94,70 @@ const addStepsToStepsList = (st, ver) => {
 }
 
 const recalculateOrder = () => {
-  // Group pointers by version
-  const versionGroups = {}
+  // Fix starting points first - match them with step versions
+  const startingPoints = pointersList.value.filter((p) => p[0] === null)
 
-  // First, organize pointers into version groups
-  pointersList.value.forEach((pointer) => {
-    const [current, next, version] = pointer
-    if (!versionGroups[version]) versionGroups[version] = []
-    versionGroups[version].push({ current, next })
+  startingPoints.forEach((startPointer) => {
+    const [, startURI] = startPointer
+
+    // Find the corresponding step to get its version
+    const matchingStep = stepsList.value.find((step) => asUrl(step.step) === startURI)
+
+    if (matchingStep) {
+      // Update the starting point with the correct version
+      const pointerIndex = pointersList.value.findIndex((p) => p[0] === null && p[1] === startURI)
+      if (pointerIndex !== -1) {
+        pointersList.value[pointerIndex][2] = matchingStep.version
+      }
+    }
   })
 
-  // For each version, determine the steps sequence
-  Object.entries(versionGroups).forEach(([version, pointers]) => {
-    // Find starting points (where current is null)
-    const startPoints = pointers.filter((p) => p.current === null).map((p) => p.next)
+  // Now group by version and calculate sequences
+  const versionGroups = {}
 
-    if (startPoints.length === 0) {
-      console.warn(`No starting points found for version ${version}`)
+  pointersList.value.forEach((pointer) => {
+    const [current, next, version] = pointer
+    if (version !== null) {
+      // Only process pointers with known versions
+      if (!versionGroups[version]) versionGroups[version] = []
+      versionGroups[version].push({ current, next })
+    }
+  })
+
+  // For each version, trace the chain starting from the beginning
+  Object.entries(versionGroups).forEach(([version, pointers]) => {
+    // Find the starting point (where current is null)
+    const startPoint = pointers.find((p) => p.current === null)
+
+    if (!startPoint) {
+      console.warn(`No starting point found for version ${version}`)
       return
     }
 
-    // For each starting point, trace the chain
-    startPoints.forEach((startPoint) => {
-      let currentURI = startPoint
-      let sequence = 0
+    // Trace the chain and assign sequences
+    let currentURI = startPoint.next
+    let sequence = 0
 
-      // Trace the chain and update sequences
-      while (currentURI) {
-        // Find step in stepsList and update its sequence
-        const stepIndex = stepsList.value.findIndex(
-          (item) => item.version == version && asUrl(item.step) === currentURI
-        )
+    while (currentURI) {
+      // Find step in stepsList and update its sequence
+      const stepIndex = stepsList.value.findIndex(
+        (item) => item.version == version && asUrl(item.step) === currentURI
+      )
 
-        if (stepIndex !== -1) {
-          stepsList.value[stepIndex].sequence = sequence++
-        } else {
-          console.warn(`Step ${currentURI} not found in stepsList for version ${version}`)
-        }
-
-        // Find the next pointer in the chain
-        const nextPointer = pointers.find((p) => p.current === currentURI)
-        currentURI = nextPointer ? nextPointer.next : null
+      if (stepIndex !== -1) {
+        stepsList.value[stepIndex].sequence = sequence++
       }
-    })
+
+      // Find the next step in the chain
+      const nextPointer = pointers.find((p) => p.current === currentURI)
+      currentURI = nextPointer ? nextPointer.next : null
+    }
   })
 
   // Sort stepsList by version and sequence
   stepsList.value.sort((a, b) => {
     if (a.version !== b.version) return a.version - b.version
-    return a.sequence - b.sequence
+    return (a.sequence || 0) - (b.sequence || 0)
   })
 
   return stepsList.value
