@@ -39,6 +39,10 @@ const updateRights = async () => {
     if (resWebId.value.length == 0) {
       // Assume PUBLIC rights
       await universalAccess.setPublicAccess(props.resourceURI, resRights.value, { fetch: fetch })
+      feedback.value = 'Public access rights updated successfully!'
+      state.value = true
+      // Refresh the displayed rights after update
+      await checkCurrentRights()
     } else {
       // Precheck the WebId
       const webIdOK = await getWebIdDataset(resWebId.value)
@@ -56,6 +60,8 @@ const updateRights = async () => {
         if (accessSet) {
           feedback.value = 'Access rights granted!'
           state.value = true
+          // Refresh the displayed rights after update
+          await checkCurrentRights()
         } else {
           feedback.value = 'Access rights could not be changed for given WebId'
           state.value = false
@@ -65,6 +71,7 @@ const updateRights = async () => {
   } catch (err) {
     // Check error type as well
     feedback.value = err
+    state.value = false
   } finally {
     updatingRights.value = false
   }

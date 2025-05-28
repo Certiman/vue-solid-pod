@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { sessionStore } from '@/stores/sessions'
 
 /**
  * A processProvider must be stored as:
@@ -17,6 +18,11 @@ export const processStore = reactive({
   currentTaskURI: '', // pod URI of the process/task which is being selected for execution
   canProcessData() {
     return this.processProviders.length > 0
+  },
+  isOwnedResource(resourceUri) {
+    // Check if a URI belongs to the currently logged-in user's Pod
+    if (!resourceUri || !sessionStore.selectedPodUrl) return false
+    return resourceUri.startsWith(sessionStore.selectedPodUrl)
   },
   extractProcessName(processURI) {
     // https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/Organisation/add

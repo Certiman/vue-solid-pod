@@ -61,6 +61,7 @@ declare module 'vue' {
     IMdiBellRing: typeof import('~icons/mdi/bell-ring')['default']
     IMdiCloudCancel: typeof import('~icons/mdi/cloud-cancel')['default']
     IMdiCloudCheck: typeof import('~icons/mdi/cloud-check')['default']
+    IMdiCodeTags: typeof import('~icons/mdi/code-tags')['default']
     IMdiDetails: typeof import('~icons/mdi/details')['default']
     IMdiFileDocumentDelete: typeof import('~icons/mdi/file-document-delete')['default']
     IMdiLogin: typeof import('~icons/mdi/login')['default']

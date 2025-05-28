@@ -115,7 +115,6 @@ onBeforeMount(async () => await loadAllTasks())
 </script>
 
 <template>
-  {{ props.processURI }}
   <BCard
     no-body
     :header="taskList.length > 0 ? 'Available tasks' : 'Process contains no tasks'"

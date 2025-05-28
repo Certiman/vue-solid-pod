@@ -6,13 +6,14 @@
  * Creates list:
  * Agent | inline radio buttons
  */
-import { ref } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({ allRights: Object })
-const allRightsIn = ref(Object.entries(props.allRights))
+
+const allRightsIn = computed(() => Object.entries(props.allRights || {}))
 </script>
 <template>
-  <BContainer v-if="allRightsIn.length>0">
+  <BContainer v-if="allRightsIn.length > 0">
     <AccessRightsItem
       v-for="[owner, rights] of allRightsIn"
       :key="owner"
