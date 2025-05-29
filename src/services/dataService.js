@@ -389,12 +389,12 @@ export const dataService = {
    * @returns {Object} Properties object
    */
   extractThingProperties(thing) {
-    const properties = {}
-
-    // Common properties to extract
+    const properties = {}    // Common properties to extract
     const propertiesToExtract = [
       RDFS.label,
       RDFS.comment,
+      'http://www.w3.org/2004/02/skos/core#prefLabel',
+      'http://www.w3.org/2004/02/skos/core#altLabel',
       'http://schema.org/name',
       'http://schema.org/description',
       'http://schema.org/email',

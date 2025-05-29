@@ -1,11 +1,13 @@
 <template>
   <BCard class="resource-card h-100">
-    <BCardBody class="d-flex flex-column">
-      <!-- Resource title -->
-      <h6 class="card-title mb-2">
-        {{ resourceTitle || 'Untitled Resource' }}
+    <BCardHeader class="py-2">
+      <h6 class="card-title mb-0 d-flex align-items-center justify-content-between">
+        <span>{{ resourceTitle || 'Untitled Resource' }}</span>
+        <BBadge variant="secondary" class="small">{{ rdfTypeLabel }}</BBadge>
       </h6>
+    </BCardHeader>
 
+    <BCardBody class="d-flex flex-column">
       <!-- Resource URI -->
       <p class="text-muted small mb-2">
         <code class="resource-uri">{{ truncatedURI }}</code>
@@ -40,46 +42,46 @@
           Modified: {{ formatDate(resource.modified) }}
         </div>
       </div>
-
-      <!-- Actions -->
-      <div class="actions mt-auto">
-        <BButtonGroup size="sm" class="w-100">
-          <BButton
-            variant="outline-primary"
-            @click="$emit('view', resource)"
-            title="View resource details"
-          >
-            <IMdiEyeOutline class="me-1" />
-            View
-          </BButton>
-
-          <BButton
-            variant="outline-secondary"
-            @click="$emit('edit', resource)"
-            title="Edit resource"
-            :disabled="!canEdit"
-          >
-            <IMdiPencilOutline class="me-1" />
-            Edit
-          </BButton>
-
-          <BButton
-            variant="outline-danger"
-            @click="confirmDelete"
-            title="Delete resource"
-            :disabled="!canDelete"
-          >
-            <IMdiDeleteOutline />
-          </BButton>
-        </BButtonGroup>
-      </div>
     </BCardBody>
+
+    <BCardFooter class="py-2">
+      <!-- Actions -->
+      <BButtonGroup size="sm" class="w-100">
+        <BButton
+          variant="outline-primary"
+          @click="$emit('view', resource)"
+          title="View resource details"
+        >
+          <IMdiEyeOutline class="me-1" />
+          View
+        </BButton>
+
+        <BButton
+          variant="outline-secondary"
+          @click="$emit('edit', resource)"
+          title="Edit resource"
+          :disabled="!canEdit"
+        >
+          <IMdiPencilOutline class="me-1" />
+          Edit
+        </BButton>
+
+        <BButton
+          variant="outline-danger"
+          @click="confirmDelete"
+          title="Delete resource"
+          :disabled="!canDelete"
+        >
+          <IMdiDeleteOutline />
+        </BButton>
+      </BButtonGroup>
+    </BCardFooter>
   </BCard>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { BCard, BCardBody, BButton, BButtonGroup } from 'bootstrap-vue-next'
+import { BCard, BCardHeader, BCardBody, BCardFooter, BButton, BButtonGroup, BBadge } from 'bootstrap-vue-next'
 import IMdiEyeOutline from '~icons/mdi/eye-outline'
 import IMdiPencilOutline from '~icons/mdi/pencil-outline'
 import IMdiDeleteOutline from '~icons/mdi/delete-outline'
@@ -102,9 +104,11 @@ const emit = defineEmits(['view', 'edit', 'delete'])
 
 // Computed properties
 const resourceTitle = computed(() => {
-  // Try common title properties
+  // Prioritize RDFS and SKOS label properties
   const titleProps = [
     'http://www.w3.org/2000/01/rdf-schema#label',
+    'http://www.w3.org/2004/02/skos/core#prefLabel',
+    'http://www.w3.org/2004/02/skos/core#altLabel',
     'http://schema.org/name',
     'http://purl.org/dc/terms/title',
     'http://xmlns.com/foaf/0.1/name'
@@ -113,7 +117,8 @@ const resourceTitle = computed(() => {
   if (props.resource.properties) {
     for (const prop of titleProps) {
       if (props.resource.properties[prop]) {
-        return props.resource.properties[prop]
+        const value = props.resource.properties[prop]
+        return Array.isArray(value) ? value[0] : value
       }
     }
   }
@@ -129,6 +134,27 @@ const truncatedURI = computed(() => {
     return '...' + uri.slice(-47)
   }
   return uri
+})
+
+const rdfTypeLabel = computed(() => {
+  const typeMap = {
+    'http://www.w3.org/ns/org#FormalOrganization': 'Formal Org',
+    'http://www.w3.org/ns/org#Organization': 'Organization', 
+    'http://www.w3.org/ns/org#OrganizationalUnit': 'Unit',
+    'http://www.w3.org/ns/org#Site': 'Site',
+    'http://schema.org/Organization': 'Org',
+    'http://schema.org/Place': 'Place',
+    'http://xmlns.com/foaf/0.1/Organization': 'Org',
+    'http://xmlns.com/foaf/0.1/Person': 'Person',
+    'https://www.w3.org/ns/activitystreams#Article': 'Article'
+  }
+  
+  const shortLabel = typeMap[props.rdfType]
+  if (shortLabel) return shortLabel
+  
+  // Fallback to extracting class name from URI
+  const parts = props.rdfType.split(/[#/]/)
+  return parts[parts.length - 1] || 'Resource'
 })
 
 const previewProperties = computed(() => {
@@ -187,6 +213,8 @@ const getPropertyLabel = (propertyURI) => {
   const labelMap = {
     'http://www.w3.org/2000/01/rdf-schema#label': 'Label',
     'http://www.w3.org/2000/01/rdf-schema#comment': 'Description',
+    'http://www.w3.org/2004/02/skos/core#prefLabel': 'Preferred Label',
+    'http://www.w3.org/2004/02/skos/core#altLabel': 'Alternative Label',
     'http://schema.org/name': 'Name',
     'http://schema.org/description': 'Description',
     'http://schema.org/email': 'Email',
@@ -248,8 +276,20 @@ const confirmDelete = () => {
   padding-top: 0.5rem;
 }
 
+/* Remove border styling from the old actions div since we now use card footer */
 .actions {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Ensure card header and footer have consistent styling */
+.card-header {
+  background-color: var(--bs-light);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.card-footer {
+  background-color: var(--bs-light);
   border-top: 1px solid var(--bs-border-color);
-  padding-top: 0.5rem;
 }
 </style>
