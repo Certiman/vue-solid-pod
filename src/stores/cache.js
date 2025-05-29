@@ -4,6 +4,9 @@ export const cacheStore = reactive({
   // SHACL shape blob URLs cache
   allShapeBlobUrls: [],
 
+  // SHACL shape source URL to BLOB URL mapping
+  shapeUrlMapping: new Map(),
+
   // Process data cache with metadata
   processCache: new Map(),
 
@@ -103,13 +106,42 @@ export const cacheStore = reactive({
       lastAccessed: new Date()
     })
   },
-
   clearCache() {
     this.processCache.clear()
     this.taskCache.clear()
     this.stepCache.clear()
     this.shapeSourceCache.clear()
     this.providerStatusCache.clear()
+    // Clear SHACL shape cache
+    this.shapeUrlMapping.clear()
+    // Revoke existing BLOB URLs to free memory
+    this.allShapeBlobUrls.forEach(blobUrl => {
+      if (blobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(blobUrl)
+      }
+    })
+    this.allShapeBlobUrls.length = 0
+  },
+
+  // SHACL shape caching methods
+  getShapeBlobUrl(sourceUrl) {
+    return this.shapeUrlMapping.get(sourceUrl)
+  },
+
+  isShapeCached(sourceUrl) {
+    return this.shapeUrlMapping.has(sourceUrl)
+  },
+
+  cacheShapeBlob(sourceUrl, blobUrl) {
+    if (!this.isShapeCached(sourceUrl)) {
+      this.shapeUrlMapping.set(sourceUrl, blobUrl)
+      this.allShapeBlobUrls.push(blobUrl)
+      console.log(`Cached new SHACL shape: ${sourceUrl} -> ${blobUrl}`)
+      return true
+    } else {
+      console.log(`SHACL shape already cached: ${sourceUrl}`)
+      return false
+    }
   },
 
   // Get cache statistics
@@ -119,7 +151,9 @@ export const cacheStore = reactive({
       tasks: this.taskCache.size,
       steps: this.stepCache.size,
       shapes: this.shapeSourceCache.size,
-      providers: this.providerStatusCache.size
+      providers: this.providerStatusCache.size,
+      shapeBlobUrls: this.allShapeBlobUrls.length,
+      shapeMappings: this.shapeUrlMapping.size
     }
   }
 })

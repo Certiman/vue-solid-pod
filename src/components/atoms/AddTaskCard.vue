@@ -54,8 +54,7 @@ const taskShapeBlobUrl = ref(null) // New local ref for this card's shape blob U
 // SHACL form configuration
 const SHAPE_URL =
   'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/Process/task_creation.ttl'
-// const numberOfShapesLoaded = ref(0) // Removed this ref
-const dataShapesLoaded = computed(() => !!taskShapeBlobUrl.value) // Updated logic
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(SHAPE_URL))
 
 // Helper function to show alerts
 const displayAlert = (message, variant = 'warning', duration = 5000) => {
@@ -114,8 +113,7 @@ const submitListener = async (event) => {
 // Load SHACL shapes from file
 const loadShapesFromFile = async () => {
   try {
-    if (!taskShapeBlobUrl.value && SHAPE_URL) {
-      // Use local ref to check if already loaded for this instance
+    if (!dataShapesLoaded.value && SHAPE_URL) {
       displayAlert('Loading task creation form...', 'info', 2000)
       console.log(`Loading task creation shapes from ${SHAPE_URL}`)
 
@@ -123,8 +121,8 @@ const loadShapesFromFile = async () => {
       const data_blob_url = URL.createObjectURL(data_blob)
       taskShapeBlobUrl.value = data_blob_url // Set the local ref
 
-      // Still push to global cache if other parts of the application might use it
-      cacheStore.allShapeBlobUrls.push(data_blob_url)
+      // Use new caching mechanism
+      cacheStore.cacheShapeBlob(SHAPE_URL, data_blob_url)
 
       console.log('Task creation shapes loaded successfully')
     } else if (taskShapeBlobUrl.value) {
@@ -259,7 +257,7 @@ onMounted(async () => {
             <BCol>
               <!-- SHACL Form Component -->
               <shacl-form
-                :data-shapes-url="taskShapeBlobUrl"
+                :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_URL)"
                 data-shape-subject="http://www.w3.org/ns/ldp#RDFSource"
                 data-values-namespace="#task"
                 submit-button-text="Create Task"

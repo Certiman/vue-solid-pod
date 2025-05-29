@@ -33,20 +33,17 @@ const emit = defineEmits(['viewerHidden'])
 // Allows caching of shape files
 const SHAPE_DATA_URL = props.shapeFileUrl
 const SOURCE_DATA_URL = props.resourceUri
-const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(
-  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
-)
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(SHAPE_DATA_URL))
 
 // event handler (Modal is shown) : get the data and update the view
 const loadDataAndShapesFromNonRDFFile = async () => {
   try {
-    if (!dataShapesLoaded.value) {
+    if (!dataShapesLoaded.value && SHAPE_DATA_URL) {
       console.warn(`Trying to (re)load the shapes from POD (viewing purpose)!`)
       const data_blob = await getFile(SHAPE_DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
       console.warn(data_blob_url)
-      cacheStore.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.cacheShapeBlob(SHAPE_DATA_URL, data_blob_url)
     } else {
       console.log(`CACHED SHAPE URL, length ${cacheStore.allShapeBlobUrls.length}`)
     }
@@ -82,7 +79,7 @@ const handleHidingModal = () => {
     <span v-if="dataShapesLoaded">
       <shacl-form
         v-if="foundRDFData"
-        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
+        :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_DATA_URL)"
         :data-values="foundRDFData"
         :data-values-subject="resourceUri"
         :data-loading="`Retrieving shapes from ${getDSUriEnding(SHAPE_DATA_URL)}, data from ${getDSUriEnding(SOURCE_DATA_URL)}...`"

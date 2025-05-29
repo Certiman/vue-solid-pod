@@ -23,6 +23,10 @@ import {
 } from 'bootstrap-vue-next'
 import { onBeforeMount, ref, computed } from 'vue'
 
+// Import icons
+import IMdiNotePlus from '~icons/mdi/note-plus'
+import IMdiCodeTags from '~icons/mdi/code-tags'
+
 // Import StepItem component
 import StepItem from './StepItem.vue'
 
@@ -285,16 +289,83 @@ const debugSummary = computed(() => [
     metric: 'Selected Version',
     value: selectedVersion.value || 'None',
     description: 'Currently active version'
+  },
+  {
+    metric: 'SHACL Shape BLOBs',
+    value: cacheStore.allShapeBlobUrls.length,
+    description: 'Cached SHACL shape files'
+  },
+  {
+    metric: 'Shape Mappings',
+    value: cacheStore.shapeUrlMapping.size,
+    description: 'Source URL to BLOB mappings'
+  },
+  {
+    metric: 'Cache Status',
+    value: `P:${cacheStore.processCache.size} T:${cacheStore.taskCache.size} S:${cacheStore.stepCache.size}`,
+    description: 'Process/Task/Step cache counts'
   }
 ])
 
-const debugFields = [
-  { key: 'metric', label: 'Metric' },
-  { key: 'value', label: 'Value' },
-  { key: 'description', label: 'Description' }
-]
+// Enhanced debug information for SHACL shapes
+const shapeDebugInfo = computed(() => {
+  const shapes = cacheStore.allShapeBlobUrls.map((url, index) => ({
+    index,
+    url: url, // Show full URL for debugging
+    urlTruncated: url.substring(0, 80) + (url.length > 80 ? '...' : ''), // Longer truncated version for display
+    isValid: url.startsWith('blob:'),
+    createdAt: 'Unknown' // BLOB URLs don't have creation timestamps
+  }))
 
-// Validation issues
+  return shapes
+})
+
+// SHACL shape source URL mappings
+const shapeMappingInfo = computed(() => {
+  const mappings = []
+  for (const [sourceUrl, blobUrl] of cacheStore.shapeUrlMapping.entries()) {
+    mappings.push({
+      sourceUrl: sourceUrl.split('/').slice(-1)[0], // Show just filename
+      fullSourceUrl: sourceUrl,
+      blobUrl: blobUrl.substring(0, 40) + (blobUrl.length > 40 ? '...' : ''),
+      fullBlobUrl: blobUrl
+    })
+  }
+  return mappings
+})
+
+// Step source analysis
+const stepSourceInfo = computed(() => {
+  return stepsList.value
+    .map((stepItem, index) => {
+      const step = stepItem.step
+      const stepURI = asUrl(step)
+
+      // Try to extract dcterms:source from the step
+      const source =
+        step.predicates?.['http://purl.org/dc/terms/source']?.[0]?.object?.value || 'No source'
+
+      return {
+        index,
+        stepURI:
+          stepURI.split('/').slice(-1)[0] +
+          (stepURI.includes('#') ? '#' + stepURI.split('#')[1] : ''),
+        version: stepItem.version,
+        sequence: stepItem.sequence,
+        source: source === 'No source' ? source : source.split('/').slice(-1)[0]
+      }
+    })
+    .sort((a, b) => a.version - b.version || (a.sequence || 0) - (b.sequence || 0))
+})
+
+// Debug table fields configuration
+const debugFields = computed(() => [
+  { key: 'metric', label: 'Metric', sortable: false },
+  { key: 'value', label: 'Value', sortable: false },
+  { key: 'description', label: 'Description', sortable: false }
+])
+
+// Validation issues detection
 const validationIssues = computed(() => {
   const issues = []
 
@@ -332,6 +403,56 @@ const validationIssues = computed(() => {
     }
   })
 
+  // NEW: Check for steps without sequence (alternative check)
+  const stepsWithoutSequence = stepsList.value.filter(
+    (s) => s.sequence === undefined || s.sequence === null
+  )
+  if (stepsWithoutSequence.length > 0) {
+    issues.push({
+      type: 'warning',
+      message: `${stepsWithoutSequence.length} steps missing sequence information`
+    })
+  }
+
+  // NEW: Check for version mismatches
+  const versionSet = new Set(stepsList.value.map((s) => s.version))
+  if (versionSet.has(undefined) || versionSet.has(null)) {
+    issues.push({
+      type: 'error',
+      message: 'Some steps have undefined version numbers'
+    })
+  }
+  // NEW: Check for SHACL shape caching issues
+  if (cacheStore.allShapeBlobUrls.length !== cacheStore.shapeUrlMapping.size) {
+    issues.push({
+      type: 'error',
+      message: `SHACL cache inconsistency: ${cacheStore.allShapeBlobUrls.length} BLOBs vs ${cacheStore.shapeUrlMapping.size} mappings`
+    })
+  }
+
+  if (cacheStore.allShapeBlobUrls.length > 1) {
+    issues.push({
+      type: 'warning',
+      message: `Multiple SHACL shape files cached (${cacheStore.allShapeBlobUrls.length}). This may cause form rendering conflicts.`
+    })
+  }
+
+  if (cacheStore.allShapeBlobUrls.length === 0) {
+    issues.push({
+      type: 'info',
+      message: 'No SHACL shape files found in cache'
+    })
+  }
+
+  // NEW: Check for broken pointer chains (version information)
+  const orphanedPointers = pointersList.value.filter((p) => p[2] === null || p[2] === undefined)
+  if (orphanedPointers.length > 0) {
+    issues.push({
+      type: 'warning',
+      message: `${orphanedPointers.length} pointers without version information`
+    })
+  }
+
   return issues
 })
 </script>
@@ -339,8 +460,10 @@ const validationIssues = computed(() => {
   <BCard no-body class="mt-2">
     <BCardHeader>
       <BRow cols="12">
-        <BCol class="col-10">[TaskRunner] 
-          <b>{{ action || taskName }}</b> ({{ taskContact || 'No contact information provided' }})</BCol
+        <BCol class="col-10"
+          >[TaskRunner] <b>{{ action || taskName }}</b> ({{
+            taskContact || 'No contact information provided'
+          }})</BCol
         >
         <BCol class="col-2" v-if="canDisplaySteps"
           ><BFormSelect
@@ -430,6 +553,54 @@ const validationIssues = computed(() => {
                 </BListGroupItem>
               </BListGroup>
 
+              <h6 class="text-warning">SHACL Shape Cache Debug</h6>
+              <small class="text-muted">Cached BLOB URLs for SHACL shape files</small>
+              <BListGroup class="mt-2 mb-3">
+                <BListGroupItem class="py-1 d-flex justify-content-between">
+                  <span>Cached Shape BLOBs:</span>
+                  <BBadge variant="info">{{ cacheStore.allShapeBlobUrls.length }}</BBadge>
+                </BListGroupItem>
+                <BListGroupItem v-for="shape in shapeDebugInfo" :key="shape.index" class="py-1">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <span class="me-2">BLOB {{ shape.index }}:</span>
+                    <BBadge :variant="shape.isValid ? 'success' : 'danger'" class="ms-auto">
+                      {{ shape.isValid ? 'Valid' : 'Invalid' }}
+                    </BBadge>
+                  </div>
+                  <code
+                    class="small text-muted d-block mt-1"
+                    style="word-break: break-all; white-space: pre-wrap"
+                    >{{ shape.urlTruncated }}</code
+                  >
+                  <small class="text-info">Full URL length: {{ shape.url.length }} chars</small>
+                </BListGroupItem>
+                <BListGroupItem v-if="cacheStore.allShapeBlobUrls.length === 0" variant="light">
+                  <em class="text-muted">No SHACL shape BLOBs cached</em>
+                </BListGroupItem>
+              </BListGroup>
+
+              <h6 class="text-warning">Shape Source Mappings</h6>
+              <small class="text-muted">Source URL to BLOB URL mappings</small>
+              <BListGroup class="mt-2 mb-3">
+                <BListGroupItem
+                  v-for="mapping in shapeMappingInfo"
+                  :key="mapping.sourceUrl"
+                  class="py-1"
+                >
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <span class="me-2 fw-bold">{{ mapping.sourceUrl }}</span>
+                    <BBadge variant="success">Cached</BBadge>
+                  </div>
+                  <div class="small text-muted">
+                    <div><strong>Source:</strong> {{ mapping.fullSourceUrl }}</div>
+                    <div><strong>BLOB:</strong> {{ mapping.blobUrl }}</div>
+                  </div>
+                </BListGroupItem>
+                <BListGroupItem v-if="shapeMappingInfo.length === 0" variant="light">
+                  <em class="text-muted">No shape mappings found</em>
+                </BListGroupItem>
+              </BListGroup>
+
               <h6 class="text-success">Calculated Order</h6>
               <small class="text-muted">After sequence calculation</small>
               <div v-for="version in taskVersions" :key="version.value" class="mt-2">
@@ -481,7 +652,6 @@ const validationIssues = computed(() => {
               >
                 No validation issues detected
               </BAlert>
-
               <h6 class="text-secondary mt-3">Technical Details</h6>
               <BListGroup>
                 <BListGroupItem class="py-1 d-flex justify-content-between">
@@ -509,6 +679,20 @@ const validationIssues = computed(() => {
                   </BBadge>
                 </BListGroupItem>
               </BListGroup>
+
+              <h6 class="text-info mt-3">Step Source Files</h6>
+              <BTable
+                :items="stepSourceInfo"
+                :fields="[
+                  { key: 'stepURI', label: 'Step' },
+                  { key: 'version', label: 'Ver' },
+                  { key: 'sequence', label: 'Seq' },
+                  { key: 'source', label: 'Shape Source' }
+                ]"
+                small
+                striped
+                class="mt-2"
+              />
             </BCol>
           </BRow>
         </BContainer>

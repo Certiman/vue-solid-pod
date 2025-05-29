@@ -33,7 +33,7 @@
   to be grabbed as a instance and then data-viewed...
 
   */
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 
 import { getFile, getSolidDataset, toRdfJsDataset } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
@@ -52,10 +52,7 @@ const BooksAsRDF = ref('')
 // refs
 // Option to read shape from a Pod (as a file)
 const SHAPE_DATA_URL = `${sessionStore.selectedPodUrl}getting-started/formShapes/new_book_form.ttl`
-const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(
-  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
-)
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(SHAPE_DATA_URL))
 
 // Shape files are alas non-RDF resources
 // reset forces a new Blob

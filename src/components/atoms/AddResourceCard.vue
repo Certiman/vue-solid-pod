@@ -74,10 +74,7 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
 
 // Option to read shape from a Pod (as a file)
 const DATA_URL = props.shapeFileUrl
-const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(
-  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
-)
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(DATA_URL))
 
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
@@ -121,7 +118,7 @@ const loadShapesFromNonRDFFile = async () => {
       console.log(`(editing) Trying to (re)load the shapes from POD at ${DATA_URL}!`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
-      cacheStore.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.cacheShapeBlob(DATA_URL, data_blob_url)
       showAlert('SHACL shapes loaded successfully', 'success', 3000)
     } else {
       console.warn(`Blob URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
@@ -228,7 +225,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
           :key="ind" -->
         <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
         <shacl-form
-          :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
+          :data-shapes-url="cacheStore.getShapeBlobUrl(DATA_URL)"
           @change="changeListener"
           @submit="submitListener"
           data-show-node-ids

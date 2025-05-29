@@ -12,7 +12,7 @@
  *      :data-shape-subject="props.targetResource.subjectClass"
         :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
  */
-import { ref, onMounted, computed } from 'vue'
+import { onMounted, computed } from 'vue'
 
 import { BModal, BAlert } from 'bootstrap-vue-next'
 import { ShaclForm } from '@ulb-darmstadt/shacl-form'
@@ -44,10 +44,7 @@ const props = defineProps({
 
 // Option to read shape from a Pod (as a file)
 const DATA_URL = props.shapeFileUrl
-const numberOfShapesLoaded = ref(0)
-const dataShapesLoaded = computed(
-  () => cacheStore.allShapeBlobUrls.length > numberOfShapesLoaded.value
-)
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(DATA_URL))
 
 // Adding event listeners to the form in order to check and use the generated content
 const changeListener = (event) => {
@@ -73,11 +70,11 @@ const submitListener = async (event) => {
 // reset forces a new Blob
 const loadShapesFromNonRDFFile = async () => {
   try {
-    if (!dataShapesLoaded.value) {
+    if (!dataShapesLoaded.value && DATA_URL) {
       console.log(`(editing) Trying to (re)load the shapes from POD at ${DATA_URL}!`)
       const data_blob = await getFile(DATA_URL, { fetch: fetch })
       const data_blob_url = URL.createObjectURL(data_blob)
-      cacheStore.allShapeBlobUrls.push(data_blob_url)
+      cacheStore.cacheShapeBlob(DATA_URL, data_blob_url)
     } else {
       console.warn(`Blob URL from cache, length ${cacheStore.allShapeBlobUrls.length}`)
     }
@@ -117,11 +114,8 @@ const addResourceAsRDF = async () => {
     // save the new dataset
     let updatedDataset = await saveSolidDatasetAt(props.targetResource.URI, targetDataset, {
       fetch: fetch
-    })
-
-    // EMIT the signal to the main page in order to refesh the list
+    }) // EMIT the signal to the main page in order to refesh the list
     // Also emit the updatedDataset itself, to reuse the cycle of the basic app
-    numberOfShapesLoaded.value += 1 // forces a reload
     await loadShapesFromNonRDFFile() // reset the form
     emit('DataSetUpdated', updatedDataset) // pushes the saved DS to the parent ReadingList compoment
     modalStore.canShowEditModal = false // hides the modal
@@ -149,7 +143,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
           :key="ind" -->
       <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
       <shacl-form
-        :data-shapes-url="cacheStore.allShapeBlobUrls.at(-1)"
+        :data-shapes-url="cacheStore.getShapeBlobUrl(DATA_URL)"
         @change="changeListener"
         @submit="submitListener"
         data-show-node-ids
