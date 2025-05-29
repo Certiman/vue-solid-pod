@@ -1,5 +1,6 @@
 <script setup>
 import { onBeforeMount, ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   getSolidDataset,
   getStringNoLocale,
@@ -10,7 +11,6 @@ import {
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 import TaskItem from './TaskItem.vue'
-import AddTaskCard from './atoms/AddTaskCard.vue'
 
 import { processStore } from '@/stores/process'
 import { cacheStore } from '@/stores/cache'
@@ -26,16 +26,34 @@ import {
 } from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
 
+// Import icons
+import IMdiNotePlus from '~icons/mdi/note-plus'
+
 const props = defineProps({ processURI: String })
+const router = useRouter()
 const taskList = ref([])
 const isLoading = ref(false)
 const loadError = ref(null)
 
-// Handle task added event from AddTaskCard
-const handleTaskAdded = async (taskData) => {
-  console.log('Task added:', taskData)
-  // Reload the task list to include the new task
-  await loadAllTasks(true) // Force refresh
+// Navigate to ERA Container add task process with current process as context
+const navigateToAddTask = () => {
+  // Extract the process name from the URI for context
+  const processName = processStore.extractProcessName(props.processURI)
+
+  console.log('Navigating to add task for process:', {
+    processURI: props.processURI,
+    processName,
+    eraAddTaskProcessURI: processStore.eraAddTaskProcessURI
+  })
+
+  // Route to the ERA addTask process with the target process as a query parameter
+  router.push({
+    path: '/process/Process/addTask/0',
+    query: {
+      targetProcess: props.processURI,
+      targetProcessName: processName
+    }
+  })
 }
 
 const tasksOfYourOwnPod = computed(() => {
@@ -251,8 +269,7 @@ watch(
       This process provider has provided a process without tasks. If you are the owner of the
       process, you can add these yourself. If not, contact the [process provider].
     </BCardBody>
-
-    <BCardFooter>
+    <BCardFooter class="d-flex justify-content-between align-items-center">
       <!-- Cache status information -->
       <small class="text-muted">
         {{ taskList.length }} tasks loaded
@@ -260,14 +277,20 @@ watch(
           • Cache: {{ processStore.getCacheStatus.value?.totalCached || 0 }} items
         </span>
       </small>
+      <!-- Add Task button - routes to ERA process management -->
+      <BButton
+        v-if="tasksOfYourOwnPod"
+        variant="primary"
+        size="sm"
+        @click="navigateToAddTask"
+        class="ms-auto"
+      >
+        <IMdiNotePlus class="me-1" />
+        Add Task
+      </BButton>
+      <small v-else class="text-muted"> You cannot add tasks to other providers' processes </small>
     </BCardFooter>
   </BCard>
-  <AddTaskCard
-    v-if="tasksOfYourOwnPod"
-    :process-uri="props.processURI"
-    @task-added="handleTaskAdded"
-  />
-  <p v-else>You cannot add tasks in other process providers' storage.</p>
 </template>
 
 <style lang="scss" scoped></style>

@@ -12,7 +12,7 @@ import { sessionStore } from '@/stores/sessions'
 import AsyncButton from '../atoms/AsyncButton.vue'
 import { BCardBody } from 'bootstrap-vue-next'
 
-const newProviderWebId = ref('https://id.inrupt.com/euarpod')
+const newProviderWebId = ref('')
 const showPPHelp = ref(false)
 const finishedAddingPP = ref(false)
 const finishedAddingSelfPP = ref(true)
@@ -23,6 +23,9 @@ const newProcessName = ref('')
 const processWasNotAdded = ref(true)
 // const finishedAddingOwnProcess = ref(false)
 
+// Flag to prevent multiple executions of modal show event
+const isInitializing = ref(false)
+
 const addProvider = async (WebId) => {
   /**
    * RUN within addProcessProvider
@@ -31,12 +34,12 @@ const addProvider = async (WebId) => {
    * - retrieve all its container URLs
    * - check if /process exist in that container
    * - in the OWN container URLs, create the /process container.
-   */
-  finishedAddingPP.value = false
+   */ finishedAddingPP.value = false
   const providerExists = processStore.processProviders.find((o) => o.ProviderWebId == WebId.trim())
 
   if (providerExists) {
     showAlert('Provider already added: please enter another WebId.', 'warning')
+    finishedAddingPP.value = true
     return null
   }
 
@@ -95,14 +98,23 @@ const addProvider = async (WebId) => {
           )
         }
       } finally {
-        // Store the found pp in the state
-        processStore.processProviders.push({
-          ContainerURI: ppPodProcessUrl,
-          Label: `P-${WebId}#${i + 1}`,
-          ProviderWebId: WebId,
-          Active: isUsefulContainer,
-          ProcessDataSet: foundDS
-        })
+        // Store the found pp in the state - but check if it already exists first
+        const existingProvider = processStore.processProviders.find(
+          (provider) => provider.ContainerURI === ppPodProcessUrl
+        )
+
+        if (!existingProvider) {
+          processStore.processProviders.push({
+            ContainerURI: ppPodProcessUrl,
+            Label: `P-${WebId}#${i + 1}`,
+            ProviderWebId: WebId,
+            Active: isUsefulContainer,
+            ProcessDataSet: foundDS
+          })
+          console.log(`Added provider for ${WebId} at ${ppPodProcessUrl}`)
+        } else {
+          console.log(`Provider for ${WebId} at ${ppPodProcessUrl} already exists, skipping`)
+        }
         finishedAddingPP.value = true
       }
     })
@@ -228,7 +240,18 @@ const checkSelfProcessContainer = async () => {
    *
    * @function checkSelfProcessContainer ONLY checks the own /process resource and
    * adds 'itself to processStore.'
+   * Also automatically adds the ERA Container provider.
    */
+
+  // Prevent multiple simultaneous executions (Bootstrap Vue modal @show can trigger twice)
+  if (isInitializing.value) {
+    console.log('Already initializing, skipping checkSelfProcessContainer...')
+    return null
+  }
+
+  // First, add the ERA Container provider automatically
+  await addERAContainerProvider()
+
   if (sessionStore.selectedPodUrl.length === 0) {
     showAlert('No Pod selected. Please log in first.', 'warning')
     return null
@@ -265,6 +288,112 @@ const checkSelfProcessContainer = async () => {
   }
 }
 
+const addERAContainerProvider = async () => {
+  /**
+   * Automatically add the ERA Container provider
+   * This provides access to the shared process management system
+   */
+  console.log('addERAContainerProvider called, isInitializing:', isInitializing.value)
+
+  // Prevent multiple simultaneous executions
+  if (isInitializing.value) {
+    console.log('Already initializing ERA Container, skipping...')
+    return
+  }
+
+  const eraWebId = 'https://id.inrupt.com/euarpod'
+
+  // Check if ERA provider already exists
+  const existingERA = processStore.processProviders.find(
+    (provider) => provider.ProviderWebId === eraWebId
+  )
+
+  if (existingERA) {
+    console.log('ERA Container provider already exists')
+    return existingERA
+  }
+
+  isInitializing.value = true
+
+  try {
+    console.log('Adding ERA Container provider...')
+    showAlert('Adding ERA Container (Shared Process Management)...', 'info', 2000)
+
+    // Directly fetch the ERA Container dataset without going through addProvider
+    const eraContainerURI =
+      'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/'
+    const { pc, ds } = await checkProcessRootContainerAt(eraContainerURI)
+
+    if (pc) {
+      const eraProvider = {
+        ContainerURI: eraContainerURI,
+        Label: 'ERA Container - Shared Process Management',
+        ProviderWebId: eraWebId,
+        Active: true,
+        ProcessDataSet: ds
+      }
+
+      processStore.processProviders.push(eraProvider)
+      console.log('Added ERA Container provider directly:', eraProvider)
+      showAlert(
+        'ERA Container provider added successfully! You now have access to shared processes.',
+        'success',
+        4000
+      )
+
+      return eraProvider
+    } else {
+      throw new Error('ERA Container is not accessible')
+    }
+  } catch (error) {
+    console.error('Failed to add ERA Container provider:', error)
+    showAlert(`Failed to add ERA Container: ${error.message}`, 'danger')
+
+    // Add inactive provider as fallback
+    const eraContainerURI =
+      'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/'
+    const eraProvider = {
+      ContainerURI: eraContainerURI,
+      Label: 'ERA Container - Shared Process Management (Unavailable)',
+      ProviderWebId: eraWebId,
+      Active: false,
+      ProcessDataSet: null
+    }
+
+    processStore.processProviders.push(eraProvider)
+    return eraProvider
+  } finally {
+    isInitializing.value = false
+  }
+}
+
+// Add a method to clear duplicate providers (for debugging)
+const clearDuplicateProviders = () => {
+  const uniqueProviders = []
+  const seenWebIds = new Set()
+  const seenContainerURIs = new Set()
+
+  processStore.processProviders.forEach((provider) => {
+    const key = `${provider.ProviderWebId}-${provider.ContainerURI}`
+    if (!seenWebIds.has(key) && !seenContainerURIs.has(provider.ContainerURI)) {
+      uniqueProviders.push(provider)
+      seenWebIds.add(key)
+      seenContainerURIs.add(provider.ContainerURI)
+    } else {
+      console.log('Removing duplicate provider:', provider)
+    }
+  })
+
+  const removedCount = processStore.processProviders.length - uniqueProviders.length
+  processStore.processProviders = uniqueProviders
+  showAlert(`Removed ${removedCount} duplicate providers`, 'info', 3000)
+}
+
+const clearAllProviders = () => {
+  processStore.processProviders = []
+  showAlert('Cleared all providers', 'info', 2000)
+}
+
 // Alert system
 const alertMessage = ref('')
 const alertVariant = ref('info')
@@ -289,10 +418,12 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
     size="lg"
     ok-only
     scrollable
+    @show="checkSelfProcessContainer"
   >
     <p>
       Process providers allow you to add data to your data pod following a fixed process and shared
-      data model.
+      data model. The ERA Container (shared process management system) will be automatically added
+      when you open this modal.
     </p>
     <BButton class="mb-3" @click="showPPHelp = !showPPHelp">Details</BButton>
 
@@ -350,6 +481,24 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
         </BInputGroup>
       </BCardBody>
     </BCard>
+
+    <!-- Debug controls -->
+    <BCard header="Debug Controls" class="mt-3" v-if="processStore.processProviders.length > 1">
+      <BCardBody>
+        <div class="d-flex gap-2">
+          <BButton variant="warning" size="sm" @click="clearDuplicateProviders">
+            Remove Duplicates
+          </BButton>
+          <BButton variant="danger" size="sm" @click="clearAllProviders">
+            Clear All Providers
+          </BButton>
+        </div>
+        <small class="text-muted mt-2 d-block">
+          Use these controls if you see duplicate providers.
+        </small>
+      </BCardBody>
+    </BCard>
+
     <BCard header="Your own processes" class="mt-3">
       <p class="mt-3">
         You can add processes in your own pod as well, they WILL be stored in the

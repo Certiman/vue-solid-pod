@@ -23,6 +23,7 @@
 import { computed, onBeforeMount, ref } from 'vue'
 import { getStringWithLocale, getStringNoLocale, getUrl } from '@inrupt/solid-client'
 import { DCTERMS, RDFS } from '@inrupt/vocab-common-rdf'
+import { useRoute } from 'vue-router'
 
 import { sessionStore } from '@/stores/sessions'
 import { processStore } from '@/stores/process'
@@ -31,6 +32,7 @@ import { DUL } from '@/vocabularies/DUL'
 
 const props = defineProps({ step: Object, sequence: Number })
 const emit = defineEmits(['nextStep'])
+const route = useRoute()
 const stepTitle = ref('') // http://www.w3.org/2000/01/rdf-schema#label (multi-lingual)
 const stepIntro = ref('') // http://purl.org/dc/elements/1.1/description (idem)
 const formShapeFile = ref('') // A TTL file under http://purl.org/dc/terms/source
@@ -48,8 +50,19 @@ const dulRealizesTarget = ref('') // Resource target as defined by dul:realizes 
  * }
  * */
 const dataTarget = computed(() => {
-  // Extract process name (e.g., "/Organisation" from process URI)
-  const processName = processStore.extractProcessName(processStore.currentTaskURI)
+  let processName
+
+  // Check if we're in "add task to target process" mode via query parameters
+  if (route.query.targetProcess && route.query.targetProcessName) {
+    // Extract process name from the target process URI
+    processName = processStore.extractProcessName(route.query.targetProcess)
+    console.log(`StepItem: Using target process from query parameter: ${processName}`)
+  } else {
+    // Normal mode: extract process name from current task URI
+    processName = processStore.extractProcessName(processStore.currentTaskURI)
+    console.log(`StepItem: Using current task process: ${processName}`)
+  }
+
   let resourceName
 
   // Check if step has dul:realizes property (preferred approach)

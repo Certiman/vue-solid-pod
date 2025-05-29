@@ -25,8 +25,18 @@ const updateProcessList = () => {
   // Extract the dataset provided by the provider, and extract the Processes
   try {
     accessError.value = null // Clear any previous errors
+
+    // Check if provider has a valid ProcessDataSet
+    if (!props.provider.ProcessDataSet) {
+      processes.value = []
+      console.warn(
+        `No ProcessDataSet available for provider ${props.provider.ProviderWebId}. Provider may be inactive or dataset failed to load.`
+      )
+      return
+    }
+
     const processesFromProvider = getContainedResourceUrlAll(props.provider.ProcessDataSet)
-    if (processesFromProvider) {
+    if (processesFromProvider && processesFromProvider.length > 0) {
       processes.value = processesFromProvider.map((p) => ({
         value: p,
         text: processStore.shorthandForProcessURI(p)

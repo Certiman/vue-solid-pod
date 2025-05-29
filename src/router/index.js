@@ -46,11 +46,11 @@ const router = createRouter({
       name: 'process',
       component: ProcessView
     },
-    {
-      path: '/manage/:type?/:process?/:task?',
-      name: 'manage',
-      component: () => import('../views/ManageView.vue')
-    },
+    // {
+    //   path: '/manage/:type?/:process?/:task?',
+    //   name: 'manage',
+    //   component: () => import('../views/ManageView.vue')
+    // },
     {
       path: '/profile/:action/:orgsite',
       name: 'profile',

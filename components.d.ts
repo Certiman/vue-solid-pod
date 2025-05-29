@@ -76,6 +76,7 @@ declare module 'vue' {
     IMdiNotePlus: typeof import('~icons/mdi/note-plus')['default']
     IMdiPlayBoxLockOpenOutline: typeof import('~icons/mdi/play-box-lock-open-outline')['default']
     IMdiPlayCircle: typeof import('~icons/mdi/play-circle')['default']
+    IMdiPlus: typeof import('~icons/mdi/plus')['default']
     IMdiReloadAlert: typeof import('~icons/mdi/reload-alert')['default']
     IMdiShieldUnlocked: typeof import('~icons/mdi/shield-unlocked')['default']
     IMdiStorage: typeof import('~icons/mdi/storage')['default']

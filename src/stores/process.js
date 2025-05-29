@@ -2,6 +2,7 @@ import { reactive, computed } from 'vue'
 import { sessionStore } from '@/stores/sessions'
 import { cacheStore } from '@/stores/cache'
 import { dataService } from '@/services/dataService'
+import { getSolidDataset } from '@inrupt/solid-client'
 
 /**
  * A processProvider must be stored as:
@@ -18,6 +19,25 @@ export const processStore = reactive({
   canShowAddProcessProviderModal: false,
   processTaskInEdit: '',
   currentTaskURI: '', // pod URI of the process/task which is being selected for execution
+  // ERA Container system configuration
+  eraContainerURI: 'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/',
+
+  // ERA Container management processes
+  get eraManagementProcessURI() {
+    return `${this.eraContainerURI}Process/`
+  },
+
+  get eraAddTaskProcessURI() {
+    return `${this.eraContainerURI}Process/addTask`
+  },
+
+  get eraAddStepProcessURI() {
+    return `${this.eraContainerURI}Process/addStep`
+  },
+
+  get eraAddProcessURI() {
+    return `${this.eraContainerURI}Process/add`
+  },
 
   // Cached data organization
   extractedProcesses: new Map(),
@@ -28,21 +48,80 @@ export const processStore = reactive({
     return this.processProviders.length > 0
   },
   isOwnedResource(resourceUri) {
-    // Check if a URI belongs to the currently logged-in user's Pod
+    // Check if a URI belongs to the currently logged-in user's Pod storage
     if (!resourceUri) return false
 
-    // Check against selectedPodUrl
-    if (sessionStore.selectedPodUrl && resourceUri.includes(sessionStore.selectedPodUrl)) {
+    // Primary check: Does the resource URI start with the user's selected Pod URL?
+    // Example: selectedPodUrl = "https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/"
+    //          resourceUri = "https://storage.inrupt.com/b5186a91-fffe-422a-bf6a-02a61f470541/process/Organisation/"
+    if (sessionStore.selectedPodUrl && resourceUri.startsWith(sessionStore.selectedPodUrl)) {
       return true
     }
 
-    // Check against ownStoragePodRoot if available
+    // Secondary check: Use ownStoragePodRoot for more flexible matching
+    // This handles cases where the full Pod URL might vary but the root storage is the same
     const ownStoragePodRoot = sessionStore.ownStoragePodRoot()
-    if (ownStoragePodRoot && resourceUri.includes(ownStoragePodRoot)) {
-      return true
+    if (ownStoragePodRoot) {
+      try {
+        const resourceURL = new URL(resourceUri)
+        const podRootURL = new URL(ownStoragePodRoot)
+
+        // Check if it's the same storage provider and if the resource path starts with the user's Pod ID
+        if (
+          resourceURL.hostname === podRootURL.hostname &&
+          resourceUri.includes(sessionStore.selectedPodUrl.split('/').slice(-2, -1)[0])
+        ) {
+          return true
+        }
+      } catch (error) {
+        console.warn('Error parsing URLs for ownership check:', error)
+      }
     }
 
     return false
+  }, // Enhanced provider management for ERA Container system
+  async addERAContainerProvider() {
+    // Add the ERA Container as a process provider if not already present
+    // ERA Container is owned by the euarpod WebId
+    const existingERA = this.processProviders.find((p) => p.ContainerURI === this.eraContainerURI)
+    if (existingERA) {
+      return existingERA
+    }
+
+    try {
+      // Fetch the actual dataset from the ERA Container
+      const dataset = await getSolidDataset(this.eraContainerURI, { fetch: fetch })
+
+      const eraProvider = {
+        ContainerURI: this.eraContainerURI,
+        Label: 'ERA Container - Generic Process Management',
+        ProviderWebId: 'https://id.inrupt.com/euarpod', // Actual owner of the ERA Container
+        Active: true,
+        ProcessDataSet: dataset
+      }
+
+      this.processProviders.push(eraProvider)
+      console.log('Added ERA Container provider:', eraProvider)
+      return eraProvider
+    } catch (error) {
+      console.error('Failed to fetch ERA Container dataset:', error)
+
+      // Add provider without dataset for now, but mark as inactive
+      const eraProvider = {
+        ContainerURI: this.eraContainerURI,
+        Label: 'ERA Container - Generic Process Management (Unavailable)',
+        ProviderWebId: 'https://id.inrupt.com/euarpod',
+        Active: false,
+        ProcessDataSet: null
+      }
+
+      this.processProviders.push(eraProvider)
+      return eraProvider
+    }
+  },
+  // Get user's own process provider
+  getOwnProcessProvider() {
+    return this.processProviders.find((provider) => this.isOwnedResource(provider.ContainerURI))
   },
 
   // Cache management methods for processes

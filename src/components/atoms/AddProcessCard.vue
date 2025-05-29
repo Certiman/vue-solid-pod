@@ -1,6 +1,12 @@
 <template>
   <BCard header="Create New Process" class="mt-3">
     <BCardBody>
+      <!-- Alert system -->
+      <BAlert v-model="showAlert" :variant="alertVariant" dismissible class="mb-3">
+        {{ alertMessage }}
+      </BAlert>
+
+      <!-- Permission check -->
       <div v-if="!canCreateProcess" class="alert alert-warning">
         <p class="mb-2">
           <strong>Process creation is only available for your own Pod.</strong>
@@ -10,59 +16,62 @@
         </p>
       </div>
 
-      <div v-else>
-        <!-- Process creation form using SHACL -->
-        <div v-if="!isFormValid" class="mb-3">
-          <p class="text-muted">
-            Fill out the form below to create a new process definition. The process will be stored
-            in your Pod's <code>/process/</code> container.
-          </p>
-        </div>
+      <!-- SHACL Form -->
+      <div v-else-if="dataShapesLoaded">
+        <p class="text-muted mb-3">
+          Fill out the form below to create a new process definition. The process will be stored in
+          your Pod's <code>/process/</code> container.
+        </p>
 
-        <!-- SHACL Form Container -->
-        <div
-          id="process-creation-form"
-          class="shacl-form-container"
-          @shacl-form-change="changeListener"
-          @shacl-form-submit="submitListener"
-        ></div>
+        <!-- SHACL Form Component -->
+        <shacl-form
+          :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_URL)"
+          data-shape-subject="http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Workflow"
+          data-values-namespace="#process"
+          submit-button-text="Create Process"
+          :submit-button-disabled="!isFormValid || isCreating"
+          @change="changeListener"
+          @submit="submitListener"
+        ></shacl-form>
 
-        <!-- Action buttons -->
-        <div class="d-flex gap-2 mt-3">
-          <BButton
-            variant="primary"
-            @click="createProcess"
-            :disabled="!isFormValid || isCreating"
-            class="px-4"
-          >
-            <BSpinner small v-if="isCreating" class="me-2" />
-            <i class="bi bi-plus-circle me-2" v-else></i>
-            {{ isCreating ? 'Creating...' : 'Create Process' }}
-          </BButton>
-
-          <BButton variant="outline-secondary" @click="resetForm" :disabled="isCreating">
-            Reset Form
+        <!-- Custom submit button when creating -->
+        <div v-if="isCreating" class="mt-3 text-center">
+          <BButton variant="primary" disabled>
+            <BSpinner small class="me-2" />
+            Creating Process...
           </BButton>
         </div>
+      </div>
 
-        <!-- Status alerts -->
-        <BAlert
-          v-if="alertMessage"
-          :variant="alertVariant"
-          class="mt-3"
-          dismissible
-          @dismissed="clearAlert"
-        >
-          {{ alertMessage }}
-        </BAlert>
+      <!-- Loading state -->
+      <div v-else class="text-center py-4">
+        <BSpinner class="me-2" />
+        Loading process creation form...
       </div>
     </BCardBody>
   </BCard>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import {
+  getFile,
+  fromRdfJsDataset,
+  saveSolidDatasetAt,
+  createSolidDataset,
+  createThing,
+  addStringNoLocale,
+  addUrl,
+  setThing,
+  createContainerAt
+} from '@inrupt/solid-client'
+import { fetch } from '@inrupt/solid-client-authn-browser'
+import { RDF, RDFS } from '@inrupt/vocab-common-rdf'
+import { DUL } from '@/vocabularies/DUL'
 import { BCard, BCardBody, BButton, BAlert, BSpinner } from 'bootstrap-vue-next'
+
+// Store
+import { cacheStore } from '@/stores/cache'
 import { processStore } from '@/stores/process'
 import { sessionStore } from '@/stores/sessions'
 
@@ -77,28 +86,41 @@ const props = defineProps({
 // Reactive data
 const isFormValid = ref(false)
 const isCreating = ref(false)
-const shaclFormData = ref(null)
 const alertMessage = ref('')
 const alertVariant = ref('info')
+const showAlert = ref(false)
+
+// SHACL form configuration for process creation
+const SHAPE_URL = `${processStore.eraContainerURI}process_creation.ttl`
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(SHAPE_URL))
+
+// Helper function to show alerts
+const displayAlert = (message, variant = 'info', duration = 5000) => {
+  alertMessage.value = message
+  alertVariant.value = variant
+  showAlert.value = true
+
+  if (duration > 0) {
+    setTimeout(() => {
+      showAlert.value = false
+    }, duration)
+  }
+}
 
 // Check if user can create processes (only in their own Pod)
 const canCreateProcess = computed(() => {
   const hasSession = !!sessionStore.loggedInWebId && !!sessionStore.selectedPodUrl
-  const hasOwnProvider = processStore.processProviders.some((provider) =>
-    processStore.isOwnedResource(provider.ContainerURI)
-  )
+  const hasOwnProvider = processStore.getOwnProcessProvider()
 
   console.log('AddProcessCard - canCreateProcess debug:', {
     hasSession,
-    hasOwnProvider,
+    hasOwnProvider: !!hasOwnProvider,
     loggedInWebId: sessionStore.loggedInWebId,
     selectedPodUrl: sessionStore.selectedPodUrl,
-    ownProviders: processStore.processProviders.filter((p) =>
-      processStore.isOwnedResource(p.ContainerURI)
-    )
+    ownProvider: hasOwnProvider
   })
 
-  return hasSession && hasOwnProvider
+  return hasSession && !!hasOwnProvider
 })
 
 // SHACL form event listeners
@@ -107,28 +129,52 @@ const changeListener = (event) => {
 
   if (event.detail?.valid) {
     isFormValid.value = true
-    shaclFormData.value = event.detail.data
     displayAlert('Process details are valid and ready to create', 'success', 3000)
   } else {
     isFormValid.value = false
-    shaclFormData.value = null
+    displayAlert('Please check all required fields', 'warning')
   }
 }
 
-const submitListener = (event) => {
-  console.log('SHACL form submit event:', event.detail)
+const submitListener = async (event) => {
+  event.preventDefault()
 
-  if (event.detail?.valid) {
-    shaclFormData.value = event.detail.data
-    createProcess()
-  } else {
-    displayAlert('Please complete all required fields before submitting', 'warning')
+  if (!isFormValid.value) {
+    displayAlert('Cannot create process - form data is invalid', 'danger')
+    return
+  }
+
+  displayAlert('Creating new process...', 'info', 2000)
+  await createProcessFromForm()
+}
+
+// Load SHACL shapes from file
+const loadShapesFromFile = async () => {
+  try {
+    if (!dataShapesLoaded.value && SHAPE_URL) {
+      displayAlert('Loading process creation form...', 'info', 2000)
+      console.log(`Loading process creation shapes from ${SHAPE_URL}`)
+
+      const data_blob = await getFile(SHAPE_URL, { fetch: fetch })
+      const data_blob_url = URL.createObjectURL(data_blob)
+
+      // Use caching mechanism
+      cacheStore.cacheShapeBlob(SHAPE_URL, data_blob_url)
+
+      displayAlert('Process creation form loaded successfully', 'success', 3000)
+      console.log('Process creation shapes loaded successfully')
+    } else {
+      console.log('Process creation shapes already loaded.')
+    }
+  } catch (err) {
+    console.error(`Failed loading process creation shapes: ${err}`)
+    displayAlert('Failed to load process creation form. Please check access permissions.', 'danger')
   }
 }
 
 // Process creation logic
-const createProcess = async () => {
-  if (!canCreateProcess.value || !isFormValid.value || !shaclFormData.value) {
+const createProcessFromForm = async () => {
+  if (!canCreateProcess.value || !isFormValid.value) {
     displayAlert('Form is not ready for submission', 'warning')
     return
   }
@@ -136,47 +182,113 @@ const createProcess = async () => {
   isCreating.value = true
 
   try {
-    // Extract process name from form data
-    const processName = shaclFormData.value.name || shaclFormData.value.label
+    // Get data from SHACL form
+    const form = document.querySelector('shacl-form')
+    const shaclFormGraph = await form.toRDF()
+    const shaclFormDataset = await fromRdfJsDataset(shaclFormGraph)
 
-    if (!processName) {
-      throw new Error('Process name is required')
+    // Extract form data
+    const formThings = Object.values(shaclFormDataset.graphs.default)
+    if (formThings.length === 0) {
+      throw new Error('No data found in form')
     }
 
-    // Get the user's own process provider
-    const ownProvider = processStore.processProviders.find((provider) =>
-      processStore.isOwnedResource(provider.ContainerURI)
-    )
+    const formThing = formThings[0]
+    const processIdentifier =
+      formThing.predicates['http://purl.org/dc/terms/identifier']?.[0]?.object?.value
+    const processTitle = formThing.predicates[RDFS.label]?.[0]?.object?.value
+    const processDescription = formThing.predicates[RDFS.comment]?.[0]?.object?.value
+    const processVersion =
+      formThing.predicates['http://schema.org/version']?.[0]?.object?.value || '1.0'
+    const contactInfo =
+      formThing.predicates['http://www.w3.org/2006/vcard/ns#hasContactInfo']?.[0]?.object?.value
 
+    if (!processIdentifier || !processTitle) {
+      throw new Error('Missing required process information (identifier and title are mandatory)')
+    }
+
+    console.log('Creating process with data:', {
+      processIdentifier,
+      processTitle,
+      processDescription,
+      processVersion,
+      contactInfo
+    })
+
+    // Get the user's own process provider
+    const ownProvider = processStore.getOwnProcessProvider()
     if (!ownProvider) {
       throw new Error('No owned process provider found')
     }
 
     // Create the process container URL
-    const processContainerURL = `${ownProvider.ContainerURI}${processName.replace(/\s+/g, '')}/`
+    const processContainerURL = `${ownProvider.ContainerURI}${processIdentifier}/`
 
     console.log('Creating process container at:', processContainerURL)
 
-    // TODO: Implement actual process creation logic
-    // This would involve:
-    // 1. Creating the process container
-    // 2. Storing the process metadata using SHACL form data
-    // 3. Setting up appropriate access controls
+    // Create the process container
+    try {
+      await createContainerAt(processContainerURL, { fetch: fetch })
+      displayAlert('Process container created successfully', 'success', 2000)
+    } catch (containerError) {
+      // Container might already exist, which could be fine
+      if (containerError.status !== 409 && containerError.statusCode !== 409) {
+        throw containerError
+      }
+      console.warn('Process container might already exist, continuing...')
+    }
 
-    // For now, simulate the creation
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Create process metadata
+    let processDataset = createSolidDataset()
+    let processThing = createThing({ url: processContainerURL })
 
-    displayAlert(`Process "${processName}" created successfully!`, 'success')
+    // Add process properties from SHACL form
+    processThing = addUrl(processThing, RDF.type, DUL.Workflow)
+    processThing = addStringNoLocale(
+      processThing,
+      'http://purl.org/dc/terms/identifier',
+      processIdentifier
+    )
+    processThing = addStringNoLocale(processThing, RDFS.label, processTitle)
+    processThing = addStringNoLocale(processThing, 'http://schema.org/version', processVersion)
+
+    if (processDescription) {
+      processThing = addStringNoLocale(processThing, RDFS.comment, processDescription)
+    }
+
+    if (contactInfo) {
+      processThing = addStringNoLocale(
+        processThing,
+        'http://www.w3.org/2006/vcard/ns#hasContactInfo',
+        contactInfo
+      )
+    }
+
+    processDataset = setThing(processDataset, processThing)
+
+    // Save process metadata to the container
+    const processMetadataURI = `${processContainerURL}index.ttl`
+    await saveSolidDatasetAt(processMetadataURI, processDataset, { fetch: fetch })
+
+    displayAlert(`Process "${processTitle}" created successfully!`, 'success')
 
     // Notify parent component
     props.onProcessCreated({
-      name: processName,
+      identifier: processIdentifier,
+      title: processTitle,
       uri: processContainerURL,
-      data: shaclFormData.value
+      data: {
+        processIdentifier,
+        processTitle,
+        processDescription,
+        processVersion,
+        contactInfo
+      }
     })
 
     // Reset form
-    resetForm()
+    form.reset()
+    isFormValid.value = false
   } catch (error) {
     console.error('Error creating process:', error)
     displayAlert(`Failed to create process: ${error.message}`, 'danger')
@@ -185,138 +297,13 @@ const createProcess = async () => {
   }
 }
 
-// Form management
-const resetForm = () => {
-  isFormValid.value = false
-  shaclFormData.value = null
-  clearAlert()
+// Setup component on mount
+onMounted(async () => {
+  // Initialize process providers with ERA Container
+  processStore.initializeProcessProviders()
 
-  // Reset SHACL form if it exists
-  const formContainer = document.getElementById('process-creation-form')
-  if (formContainer) {
-    formContainer.innerHTML = ''
-    loadShaclForm()
-  }
-}
-
-// Alert management
-const displayAlert = (message, variant = 'info', duration = 0) => {
-  alertMessage.value = message
-  alertVariant.value = variant
-
-  if (duration > 0) {
-    setTimeout(() => {
-      clearAlert()
-    }, duration)
-  }
-}
-
-const clearAlert = () => {
-  alertMessage.value = ''
-  alertVariant.value = 'info'
-}
-
-// SHACL form loading
-const loadShaclForm = async () => {
-  if (!canCreateProcess.value) return
-
-  try {
-    // Load SHACL form for process creation
-    const formContainer = document.getElementById('process-creation-form')
-    if (!formContainer) return
-
-    // TODO: Load the actual SHACL form
-    // This would use the SHACL form library to render the process_creation.ttl shape
-    // For now, we'll create a placeholder form structure
-
-    formContainer.innerHTML = `
-      <div class="mb-3">
-        <label class="form-label">Process Name <span class="text-danger">*</span></label>
-        <input 
-          type="text" 
-          class="form-control" 
-          id="process-name"
-          placeholder="Enter process name (e.g., OrganisationManagement)"
-          required
-        />
-        <div class="form-text">The process name will be used as the container identifier.</div>
-      </div>
-      
-      <div class="mb-3">
-        <label class="form-label">Process Description</label>
-        <textarea 
-          class="form-control" 
-          id="process-description"
-          rows="3"
-          placeholder="Describe what this process is used for..."
-        ></textarea>
-      </div>
-      
-      <div class="mb-3">
-        <label class="form-label">Process Category</label>
-        <select class="form-select" id="process-category">
-          <option value="">Select a category...</option>
-          <option value="data-collection">Data Collection</option>
-          <option value="organization">Organization Management</option>
-          <option value="reporting">Reporting</option>
-          <option value="workflow">Workflow</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-    `
-
-    // Add event listeners for form validation
-    const nameField = formContainer.querySelector('#process-name')
-    const descField = formContainer.querySelector('#process-description')
-    const categoryField = formContainer.querySelector('#process-category')
-
-    const validateForm = () => {
-      const name = nameField?.value?.trim()
-      const description = descField?.value?.trim()
-      const category = categoryField?.value
-
-      const isValid = name && name.length >= 3
-
-      // Simulate SHACL form change event
-      const changeEvent = new CustomEvent('shacl-form-change', {
-        detail: {
-          valid: isValid,
-          data: isValid
-            ? {
-                name,
-                description,
-                category,
-                label: name
-              }
-            : null
-        }
-      })
-
-      formContainer.dispatchEvent(changeEvent)
-    }
-
-    // Add event listeners
-    ;[nameField, descField, categoryField].forEach((field) => {
-      if (field) {
-        field.addEventListener('input', validateForm)
-        field.addEventListener('change', validateForm)
-      }
-    })
-  } catch (error) {
-    console.error('Error loading SHACL form:', error)
-    displayAlert('Failed to load process creation form', 'danger')
-  }
-}
-
-// Lifecycle
-onMounted(() => {
-  if (canCreateProcess.value) {
-    loadShaclForm()
-  }
-})
-
-onUnmounted(() => {
-  clearAlert()
+  // Load SHACL shapes
+  await loadShapesFromFile()
 })
 </script>
 
