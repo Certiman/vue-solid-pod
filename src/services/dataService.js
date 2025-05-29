@@ -389,7 +389,7 @@ export const dataService = {
    * @returns {Object} Properties object
    */
   extractThingProperties(thing) {
-    const properties = {}    // Common properties to extract
+    const properties = {} // Common properties to extract
     const propertiesToExtract = [
       RDFS.label,
       RDFS.comment,

@@ -11,13 +11,7 @@
       <!-- Resources list -->
       <div class="row">
         <div v-for="resource in resources" :key="resource.uri" class="col-md-6 col-lg-4 mb-3">
-          <ResourceCard
-            :resource="resource"
-            :rdf-type="rdfType"
-            @view="handleViewResource"
-            @edit="handleEditResource"
-            @delete="handleDeleteResource"
-          />
+          <ResourceCard :resource="resource" :rdf-type="rdfType" @view="handleViewResource" />
         </div>
       </div>
 
@@ -89,8 +83,6 @@ const props = defineProps({
     required: true
   }
 })
-
-const emit = defineEmits(['refresh'])
 
 const router = useRouter()
 
@@ -184,19 +176,8 @@ const handleViewResource = async (resource) => {
     'modalStore.canShowViewModal:',
     modalStore.canShowViewModal
   )
+  
   console.log('=== End ViewResource Debug Info ===')
-}
-
-const handleEditResource = (resource) => {
-  console.log('Editing resource:', resource)
-  // TODO: Open resource edit modal or navigate to edit form
-}
-
-const handleDeleteResource = async (resource) => {
-  console.log('Deleting resource:', resource)
-  // TODO: Implement delete functionality with confirmation
-  // After deletion, emit refresh event
-  emit('refresh')
 }
 
 const handleAddNew = () => {
@@ -232,6 +213,8 @@ const handleViewerHidden = (data) => {
 .data-type-section {
   border-left: 4px solid var(--bs-primary);
 }
+
+/* Clean Bootstrap card styling - no custom overrides */
 
 .btn-group-sm .btn {
   font-size: 0.75rem;

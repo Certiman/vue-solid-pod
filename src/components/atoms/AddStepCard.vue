@@ -298,9 +298,7 @@ onMounted(async () => {
 
 <style scoped>
 /* Custom styles for the step creation form */
-.card-header h5 {
-  color: #495057;
-}
+/* Clean Bootstrap card styling - no custom card-header overrides */
 
 :deep(shacl-form) {
   max-width: none;

@@ -1,6 +1,6 @@
 <template>
   <BCard class="resource-card h-100">
-    <BCardHeader class="py-2">
+    <BCardHeader>
       <h6 class="card-title mb-0 d-flex align-items-center justify-content-between">
         <span>{{ resourceTitle || 'Untitled Resource' }}</span>
         <BBadge variant="secondary" class="small">{{ rdfTypeLabel }}</BBadge>
@@ -43,8 +43,7 @@
         </div>
       </div>
     </BCardBody>
-
-    <BCardFooter class="py-2">
+    <BCardFooter>
       <!-- Actions -->
       <BButtonGroup size="sm" class="w-100">
         <BButton
@@ -57,22 +56,13 @@
         </BButton>
 
         <BButton
-          variant="outline-secondary"
-          @click="$emit('edit', resource)"
-          title="Edit resource"
-          :disabled="!canEdit"
+          variant="outline-success"
+          @click="navigateToProcess"
+          title="Open the process workflow that manages this data"
+          :disabled="!extractedProcessName"
         >
-          <IMdiPencilOutline class="me-1" />
-          Edit
-        </BButton>
-
-        <BButton
-          variant="outline-danger"
-          @click="confirmDelete"
-          title="Delete resource"
-          :disabled="!canDelete"
-        >
-          <IMdiDeleteOutline />
+          <IMdiCompassOutline class="me-1" />
+          Open Process
         </BButton>
       </BButtonGroup>
     </BCardFooter>
@@ -81,13 +71,20 @@
 
 <script setup>
 import { computed } from 'vue'
-import { BCard, BCardHeader, BCardBody, BCardFooter, BButton, BButtonGroup, BBadge } from 'bootstrap-vue-next'
+import { useRouter } from 'vue-router'
+import {
+  BCard,
+  BCardHeader,
+  BCardBody,
+  BCardFooter,
+  BButton,
+  BButtonGroup,
+  BBadge
+} from 'bootstrap-vue-next'
 import IMdiEyeOutline from '~icons/mdi/eye-outline'
 import IMdiPencilOutline from '~icons/mdi/pencil-outline'
-import IMdiDeleteOutline from '~icons/mdi/delete-outline'
 import IMdiClockOutline from '~icons/mdi/clock-outline'
-
-import { sessionStore } from '@/stores/sessions'
+import IMdiCompassOutline from '~icons/mdi/compass-outline'
 
 const props = defineProps({
   resource: {
@@ -100,7 +97,45 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view', 'edit', 'delete'])
+const router = useRouter()
+
+// Extract process name from resource URI
+const extractedProcessName = computed(() => {
+  const uri = props.resource.uri
+  if (!uri) return null
+
+  // Resource URIs follow pattern: {UsersPodURL}/data/{ProcessAbbreviated}/{resourceName}#{uuid}
+  // We need to extract the ProcessAbbreviated part
+  const dataPathMatch = uri.match(/\/data\/([^/]+)\//)
+  if (dataPathMatch) {
+    const processAbbreviated = dataPathMatch[1]
+    // Convert ProcessAbbreviated back to ProcessName
+    // According to PROCESS.md: ProcessAbbreviated = LOWERCASE(if no CamelCase is used ? full process name : CamelCase capitals only)
+    // For simplicity, we'll capitalize the first letter to get back to the process name
+    return processAbbreviated.charAt(0).toUpperCase() + processAbbreviated.slice(1)
+  }
+
+  console.warn('Could not extract process name from resource URI:', uri)
+  return null
+})
+
+// Navigate to the process workflow
+const navigateToProcess = () => {
+  if (!extractedProcessName.value) {
+    console.warn('Cannot navigate to process: no process name extracted from resource URI')
+    return
+  }
+
+  console.log(
+    'Navigating to process:',
+    extractedProcessName.value,
+    'from resource:',
+    props.resource.uri
+  )
+
+  // Navigate to the process overview page
+  router.push(`/process/${extractedProcessName.value}/`)
+}
 
 // Computed properties
 const resourceTitle = computed(() => {
@@ -139,7 +174,7 @@ const truncatedURI = computed(() => {
 const rdfTypeLabel = computed(() => {
   const typeMap = {
     'http://www.w3.org/ns/org#FormalOrganization': 'Formal Org',
-    'http://www.w3.org/ns/org#Organization': 'Organization', 
+    'http://www.w3.org/ns/org#Organization': 'Organization',
     'http://www.w3.org/ns/org#OrganizationalUnit': 'Unit',
     'http://www.w3.org/ns/org#Site': 'Site',
     'http://schema.org/Organization': 'Org',
@@ -148,10 +183,10 @@ const rdfTypeLabel = computed(() => {
     'http://xmlns.com/foaf/0.1/Person': 'Person',
     'https://www.w3.org/ns/activitystreams#Article': 'Article'
   }
-  
+
   const shortLabel = typeMap[props.rdfType]
   if (shortLabel) return shortLabel
-  
+
   // Fallback to extracting class name from URI
   const parts = props.rdfType.split(/[#/]/)
   return parts[parts.length - 1] || 'Resource'
@@ -200,14 +235,6 @@ const previewProperties = computed(() => {
   return preview
 })
 
-const canEdit = computed(() => {
-  return Boolean(sessionStore.selectedPodUrl)
-})
-
-const canDelete = computed(() => {
-  return Boolean(sessionStore.selectedPodUrl)
-})
-
 // Methods
 const getPropertyLabel = (propertyURI) => {
   const labelMap = {
@@ -234,12 +261,6 @@ const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString()
   } catch {
     return dateString
-  }
-}
-
-const confirmDelete = () => {
-  if (confirm(`Are you sure you want to delete "${resourceTitle.value}"?`)) {
-    emit('delete', props.resource)
   }
 }
 </script>
@@ -282,14 +303,5 @@ const confirmDelete = () => {
   padding-top: 0;
 }
 
-/* Ensure card header and footer have consistent styling */
-.card-header {
-  background-color: var(--bs-light);
-  border-bottom: 1px solid var(--bs-border-color);
-}
-
-.card-footer {
-  background-color: var(--bs-light);
-  border-top: 1px solid var(--bs-border-color);
-}
+/* Clean Bootstrap card styling - no custom overrides */
 </style>
