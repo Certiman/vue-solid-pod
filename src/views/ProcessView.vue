@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { BAccordion, BBreadcrumb } from 'bootstrap-vue-next'
 
@@ -39,7 +39,7 @@ const breadcrumbItems = computed(() => {
   // FIXME: component reroutes to app routes which insinuate tasks within tasks
   // converts the route.params into a BBcrum array,
   let breadCrumRoot = [{ text: 'Processes', to: '/process/' }]
-  const breadCrumbBase = Object.entries(route.params).map(([path, r]) => {
+  const breadCrumbBase = Object.entries(route.params).map(([, r]) => {
     // console.log(path, r, route.fullPath)
 
     const rfp = route.fullPath
@@ -53,13 +53,98 @@ const breadcrumbItems = computed(() => {
 
 // If no task is running, show all Tasks whcih can be started.
 // else show the steps in the Task
-const taskRunning = computed(() =>
-  route.params.step != '' && route.params.task != '' && route.params.process != ''
+const taskRunning = computed(() => {
+  // Check if we have process and task parameters
+  const hasTask = route.params.task && route.params.task !== ''
+  const hasProcess = route.params.process && route.params.process !== ''
+
+  // Show TaskRunner if we have both process and task (step is optional)
+  // This allows TaskRunner to show even with step = 0 or no step
+  const shouldShowTaskRunner = hasTask && hasProcess
+
+  console.log(
+    `ProcessView routing - Process: ${route.params.process}, Task: ${route.params.task}, Step: ${route.params.step}`
+  )
+  console.log(`TaskRunner should show: ${shouldShowTaskRunner}`)
+
+  return shouldShowTaskRunner
     ? processStore.shorthandForTaskURI(processStore.currentTaskURI)
     : false
-)
+})
+
+// Compute the correct process URI from route parameters
+const currentProcessURI = computed(() => {
+  if (!route.params.process) return null
+
+  // Build process URI from route parameters
+  // For example: /process/Organisation/ -> processProvider URI + /process/Organisation/
+  const processName = route.params.process
+
+  // Find the first available process provider that contains this process
+  const processProvider = processStore.processProviders.find(
+    (provider) => provider.ContainerURI && provider.ContainerURI.includes('/process/')
+  )
+
+  if (!processProvider) {
+    console.warn('No process provider found for process:', processName)
+    return null
+  }
+
+  // Build the full process container URI
+  const processURI = `${processProvider.ContainerURI}${processName}/`
+
+  console.log('ProcessView - currentProcessURI computed:', {
+    routeProcess: route.params.process,
+    processProvider: processProvider.ContainerURI,
+    computedProcessURI: processURI
+  })
+
+  return processURI
+})
+
+// Compute the current task URI from route parameters when in TaskRunner mode
+const currentTaskURI = computed(() => {
+  if (!route.params.process || !route.params.task) return null
+
+  const processName = route.params.process
+  const taskName = route.params.task
+
+  // Find the first available process provider
+  const processProvider = processStore.processProviders.find(
+    (provider) => provider.ContainerURI && provider.ContainerURI.includes('/process/')
+  )
+
+  if (!processProvider) {
+    console.warn('No process provider found for task:', processName, taskName)
+    return null
+  }
+
+  // Build the full task URI
+  const taskURI = `${processProvider.ContainerURI}${processName}/${taskName}`
+
+  console.log('ProcessView - currentTaskURI computed:', {
+    routeProcess: route.params.process,
+    routeTask: route.params.task,
+    processProvider: processProvider.ContainerURI,
+    computedTaskURI: taskURI
+  })
+
+  return taskURI
+})
 
 const showProcesses = computed(() => route.params.process === '')
+
+// Watch for task URI changes and sync with store when TaskRunner is active
+watch(
+  currentTaskURI,
+  (newTaskURI) => {
+    if (newTaskURI && taskRunning.value) {
+      console.log('ProcessView - Syncing currentTaskURI with store:', newTaskURI)
+      processStore.currentTaskURI = newTaskURI
+    }
+  },
+  { immediate: true }
+)
 </script>
 <template>
   <BBreadcrumb :items="breadcrumbItems" class="mt-2" />
@@ -70,13 +155,15 @@ const showProcesses = computed(() => route.params.process === '')
       <div>Query full: {{ $route.query }}</div>
       <div>This route: {{ $route.fullPath }}</div>
       <div>Running task: {{ taskRunning }}</div>
-      <div>Running Pod Path: {{ processStore.currentTaskURI }}</div>
+      <div>Computed Process URI: {{ currentProcessURI }}</div>
+      <div>Computed Task URI: {{ currentTaskURI }}</div>
+      <div>Store currentTaskURI: {{ processStore.currentTaskURI }}</div>
       <!-- <div>Full ProcessProvider Object: {{ processStore.processProviders }}</div> -->
     </BAccordionItem>
   </BAccordion>
   <ProcessList v-if="showProcesses" />
-  <TaskList v-else-if="!taskRunning" :processURI="processStore.currentTaskURI" />
-  <TaskRunner :taskURI="processStore.currentTaskURI" :action="$route.params.action" v-else></TaskRunner>
+  <TaskList v-else-if="!taskRunning" :processURI="currentProcessURI" />
+  <TaskRunner :taskURI="currentTaskURI" :action="$route.params.action" v-else></TaskRunner>
   <!-- Below Modal is triggered from both ProcessList as TaskList component -->
   <ChangeAccessToResource
     v-if="modalStore.canShowResourceACL"

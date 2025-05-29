@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeMount, ref, computed } from 'vue'
+import { onBeforeMount, ref, computed, watch } from 'vue'
 import {
   getSolidDataset,
   getStringNoLocale,
@@ -15,7 +15,15 @@ import AddTaskCard from './atoms/AddTaskCard.vue'
 import { processStore } from '@/stores/process'
 import { cacheStore } from '@/stores/cache'
 import { RDFS } from '@inrupt/vocab-common-rdf'
-import { BCardFooter, BSpinner, BButton, BFormGroup, BListGroup } from 'bootstrap-vue-next'
+import {
+  BCard,
+  BCardBody,
+  BCardFooter,
+  BSpinner,
+  BButton,
+  BFormGroup,
+  BListGroup
+} from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
 
 const props = defineProps({ processURI: String })
@@ -43,7 +51,23 @@ const tasksOfYourOwnPod = computed(() => {
   return isOwn
 })
 
+const headerText = computed(() => {
+  if (isLoading.value) {
+    return '[TaskList] Loading tasks...'
+  } else if (taskList.value.length > 0) {
+    return '[TaskList] Available tasks'
+  } else {
+    return '[TaskList] Process contains no tasks'
+  }
+})
+
 const loadAllTasks = async (forceRefresh = false) => {
+  console.log('TaskList - loadAllTasks called:', {
+    processURI: props.processURI,
+    forceRefresh,
+    currentTaskCount: taskList.value.length
+  })
+
   // Check cache first if not forcing refresh
   if (!forceRefresh && props.processURI) {
     const cached = cacheStore.getCachedProcess(props.processURI)
@@ -172,20 +196,21 @@ const loadAllTasks = async (forceRefresh = false) => {
 }
 
 onBeforeMount(async () => await loadAllTasks())
+
+// Watch for processURI changes (when navigating between processes)
+watch(
+  () => props.processURI,
+  async (newProcessURI, oldProcessURI) => {
+    console.log('TaskList - processURI changed:', { oldProcessURI, newProcessURI })
+    if (newProcessURI && newProcessURI !== oldProcessURI) {
+      await loadAllTasks()
+    }
+  }
+)
 </script>
 
 <template>
-  <BCard
-    no-body
-    :header="
-      isLoading
-        ? 'Loading tasks...'
-        : taskList.length > 0
-          ? 'Available tasks [TaskList]'
-          : 'Process contains no tasks'
-    "
-    class="mt-2"
-  >
+  <BCard no-body :header="headerText" class="mt-2">
     <!-- Loading state -->
     <BCardBody v-if="isLoading" class="text-center py-4">
       <BSpinner class="me-2" />

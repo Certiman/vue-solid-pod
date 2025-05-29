@@ -73,7 +73,12 @@ const startTask = () => {
 // Add computed to determine if ACL button should be enabled
 const canChangeRights = computed(() => processStore.isOwnedResource(props.task.taskThings.url))
 
-const playTaskURL = computed(() => sessionStore.fullAppTaskURL(props.task.taskThings.url, '', 0))
+// Create task URL without step parameter to show TaskRunner with all steps
+const playTaskURL = computed(() => {
+  if (!props.task.taskThings.url) return null
+  const taskName = processStore.extractProcTaskResource(props.task.taskThings.url, null)
+  return `/process/${taskName}`
+})
 const playTaskURI = computed(() => sessionStore.fullAppTaskURL(props.task.taskThings.url, '', ''))
 // const addStepURL = computed(() => sessionStore.fullAppTaskURL(props.task.taskThings.url, '', 'addStep'))
 </script>
