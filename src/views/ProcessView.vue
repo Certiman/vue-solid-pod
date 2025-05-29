@@ -1,11 +1,12 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { BAccordion, BBreadcrumb } from 'bootstrap-vue-next'
+import { BBreadcrumb } from 'bootstrap-vue-next'
 
 // components
 import TaskList from '@/components/TaskList.vue'
 import ProcessList from '@/components/ProcessList.vue'
+import DebugAccordion from '@/components/atoms/DebugAccordion.vue'
 
 // store
 import { processStore } from '@/stores/process'
@@ -133,29 +134,36 @@ watch(
   },
   { immediate: true }
 )
+
+// Debug information for the DebugAccordion component
+const debugStoreData = computed(() => ({
+  'Running Task': taskRunning.value,
+  'Computed Process URI': currentProcessURI.value,
+  'Computed Task URI': currentTaskURI.value,
+  'Store currentTaskURI': processStore.currentTaskURI,
+  'Store currentProcessURI': processStore.currentProcessURI,
+  'Store selectedProcessURI': processStore.selectedProcessURI
+}))
 </script>
 <template>
   <BBreadcrumb :items="breadcrumbItems" class="mt-2" />
-  <BAccordion class="mt-2">
-    <BAccordionItem title="Debug Information">
-      <h5>Process manager redirect (debug)</h5>
-      <div>Parameters: {{ $route.params }}</div>
-      <div>Query full: {{ $route.query }}</div>
-      <div>This route: {{ $route.fullPath }}</div>
-      <div>Running task: {{ taskRunning }}</div>
-      <div>Computed Process URI: {{ currentProcessURI }}</div>
-      <div>Computed Task URI: {{ currentTaskURI }}</div>
-      <div>Store currentTaskURI: {{ processStore.currentTaskURI }}</div>
-      <!-- <div>Full ProcessProvider Object: {{ processStore.processProviders }}</div> -->
-    </BAccordionItem>
-  </BAccordion>
+
+  
   <ProcessList v-if="showProcesses" />
   <TaskList v-else-if="!taskRunning" :processURI="currentProcessURI" />
   <TaskRunner :taskURI="currentTaskURI" :action="$route.params.action" v-else></TaskRunner>
   <!-- Below Modal is triggered from both ProcessList as TaskList component -->
   <ChangeAccessToResource
-    v-if="modalStore.canShowResourceACL"
-    :resource-u-r-i="modalStore.selectedResourceACL"
+  v-if="modalStore.canShowResourceACL"
+  :resource-u-r-i="modalStore.selectedResourceACL"
+  />
+  <!-- Reusable Debug Component -->
+  <DebugAccordion
+    title="Process Manager Debug"
+    :show-route-info="true"
+    :show-store-info="true"
+    :store-data="debugStoreData"
+    class="mt-2"
   />
 </template>
 

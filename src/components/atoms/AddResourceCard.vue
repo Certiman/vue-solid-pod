@@ -279,7 +279,9 @@ onMounted(async () => await loadShapesFromNonRDFFile())
           <BCol md="8">
             <h6 class="text-primary">Generated RDF Triples</h6>
             <small class="text-muted">Data that will be saved to your Pod</small>
-            <pre class="bg-light p-3 mt-2 border rounded"><code>{{ currentRdfData }}</code></pre>
+            <pre
+              class="bg-body-secondary p-3 mt-2 border rounded"
+            ><code>{{ currentRdfData }}</code></pre>
           </BCol>
           <BCol md="4">
             <h6 class="text-info">Target Information</h6>

@@ -1,5 +1,21 @@
 <script setup>
-import { BButton, BNavbarNav, BNavItem, vBColorMode } from 'bootstrap-vue-next'
+import {
+  BButton,
+  BNavbar,
+  BNavbarBrand,
+  BNavbarToggle,
+  BCollapse,
+  BNavbarNav,
+  BNavItem,
+  vBColorMode
+} from 'bootstrap-vue-next'
+
+// Import icons
+import IMdiStorage from '~icons/mdi/storage'
+import ICarbonProcess from '~icons/carbon/process'
+import IMaterialSymbolsLightLightMode from '~icons/material-symbols-light/light-mode'
+import IMaterialSymbolsLightDarkModeRounded from '~icons/material-symbols-light/dark-mode-rounded'
+
 // store holds mode
 import { modalStore } from '@/stores/ui'
 import { processStore } from '@/stores/process'

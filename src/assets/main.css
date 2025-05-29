@@ -5,6 +5,8 @@
   margin: 0 auto;
   padding: 2rem;
   font-weight: normal;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
 a,
@@ -32,4 +34,20 @@ a,
     grid-template-columns: 1fr 1fr;
     padding: 0 2rem;
   }
+}
+
+/* Additional dark mode fixes for Bootstrap components */
+[data-bs-theme='dark'] .bg-body-secondary {
+  --bs-bg-opacity: 1;
+  background-color: var(--color-background-mute) !important;
+}
+
+[data-bs-theme='dark'] pre,
+[data-bs-theme='dark'] code {
+  background-color: var(--color-background-mute);
+  color: var(--color-text);
+}
+
+[data-bs-theme='dark'] .border {
+  border-color: var(--color-border) !important;
 }

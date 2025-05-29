@@ -51,6 +51,7 @@ declare module 'vue' {
     BTh: typeof import('bootstrap-vue-next')['BTh']
     BTr: typeof import('bootstrap-vue-next')['BTr']
     ChangeAccessToResource: typeof import('./src/components/modals/ChangeAccessToResource.vue')['default']
+    DebugAccordion: typeof import('./src/components/atoms/DebugAccordion.vue')['default']
     ICarbonProcess: typeof import('~icons/carbon/process')['default']
     IconCommunity: typeof import('./src/components/icons/IconCommunity.vue')['default']
     IconDocumentation: typeof import('./src/components/icons/IconDocumentation.vue')['default']

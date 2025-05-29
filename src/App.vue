@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { RouterView } from 'vue-router'
+import { BContainer } from 'bootstrap-vue-next'
 
 // UI store holds mode and toasts
 import { modalStore } from '@/stores/ui'
@@ -13,23 +14,47 @@ import AddProcessProvider from './components/modals/AddProcessProvider.vue'
 // Initialize app
 onMounted(() => {
   // App initialization - ERA Container will be added when user opens AddProcessProvider modal
+
+  // Apply initial dark mode state to the actual document body
+  applyThemeToDocument(modalStore.mode)
 })
+
+// Watch for theme changes and apply them to the actual document
+watch(
+  () => modalStore.mode,
+  (newMode) => {
+    applyThemeToDocument(newMode)
+  }
+)
+
+// Function to apply theme to the actual document body
+const applyThemeToDocument = (mode) => {
+  const body = document.body
+  const html = document.documentElement
+
+  if (mode === 'dark') {
+    body.setAttribute('data-bs-theme', 'dark')
+    html.setAttribute('data-bs-theme', 'dark')
+    body.classList.add('dark')
+    html.classList.add('dark')
+  } else {
+    body.setAttribute('data-bs-theme', 'light')
+    html.setAttribute('data-bs-theme', 'light')
+    body.classList.remove('dark')
+    html.classList.remove('dark')
+  }
+}
 </script>
 
 <template>
   <header>
     <NavBar />
   </header>
-  <body v-b-color-mode="modalStore.mode">
+  <main>
     <BContainer>
       <RouterView />
     </BContainer>
-    <!-- <Teleport to="body"> Already here, mate -->
-    <!-- <div class="bottom-10 end-10">
-        <BToast value="5000" v-model="modalStore.showToastWithMessage" variant="warning">{{ modalStore.ToastMessage }}</BToast>
-      </div> -->
-    <!-- </Teleport> -->
-  </body>
+  </main>
   <AddStorageProvider />
   <AddProcessProvider />
 </template>

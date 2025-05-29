@@ -305,4 +305,10 @@ onMounted(async () => {
   background-color: #007bff;
   border-color: #007bff;
 }
+
+/* Dark mode styles for SHACL form buttons */
+[data-bs-theme='dark'] :deep(shacl-form .btn-primary) {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
 </style>

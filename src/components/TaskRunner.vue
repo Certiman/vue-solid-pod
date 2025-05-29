@@ -12,7 +12,6 @@ import {
   BAccordion,
   BAccordionItem,
   BButton,
-  BInputGroup,
   BModal,
   BContainer,
   BListGroup,
@@ -30,6 +29,7 @@ import IMdiCodeTags from '~icons/mdi/code-tags'
 
 // Import StepItem component
 import StepItem from './StepItem.vue'
+import DebugAccordion from './atoms/DebugAccordion.vue'
 
 // Stores and Services
 import { processStore } from '@/stores/process'
@@ -320,6 +320,20 @@ const debugSummary = computed(() => [
   }
 ])
 
+// General debug information for DebugAccordion
+const generalDebugData = computed(() => [
+  { label: 'Task URI', value: props.taskURI },
+  { label: 'Action', value: props.action },
+  { label: 'Selected Version', value: selectedVersion.value || 'None' },
+  { label: 'Total Steps', value: stepsList.value.length },
+  {
+    label: 'Available Versions',
+    value: taskVersions.value.map((v) => v.value).join(', ') || 'None'
+  },
+  { label: 'Process Store currentTaskURI', value: processStore.currentTaskURI },
+  { label: 'Process Store currentProcessURI', value: processStore.currentProcessURI }
+])
+
 // Enhanced debug information for SHACL shapes
 const shapeDebugInfo = computed(() => {
   const shapes = cacheStore.allShapeBlobUrls.map((url, index) => ({
@@ -506,31 +520,40 @@ const validationIssues = computed(() => {
         to run an older version.
       </p>
     </BCardBody>
-    <BCardFooter>
-      <BInputGroup :prepend="`Found ${stepsList.length} steps in this task.`">
-        <BButton
-          @click="setProcessTaskToAddStep"
-          :disabled="!canAddStep"
-          :variant="
-            !props.taskURI
-              ? 'secondary'
-              : !processStore.isOwnedResource(props.taskURI)
-                ? 'outline-secondary'
-                : 'primary'
-          "
-        >
-          <IMdiNotePlus class="mb-1 me-2" />
-          {{
-            !props.taskURI
-              ? 'Select a task first'
-              : !processStore.isOwnedResource(props.taskURI)
-                ? 'Cannot edit (not your task)'
-                : 'Add a task step'
-          }}
-        </BButton>
-      </BInputGroup>
+    <BCardFooter class="d-flex justify-content-between align-items-center">
+      <!-- Cache status information -->
+      <small class="text-muted">
+        {{ stepsList.length }} steps loaded
+        <span v-if="!loadingError">
+          • Cache: {{ processStore.getCacheStatus.value?.totalCached || 0 }} items
+        </span>
+        <span v-if="selectedVersion"> • Version: {{ selectedVersion }} </span>
+      </small>
+      <!-- Add Step button -->
+      <BButton
+        v-if="canAddStep"
+        variant="primary"
+        size="sm"
+        @click="setProcessTaskToAddStep"
+        class="ms-auto"
+      >
+        <IMdiNotePlus class="me-1" />
+        Add Step
+      </BButton>
+      <small v-else class="text-muted">
+        {{
+          !props.taskURI ? 'Select a task first' : "You cannot add steps to other providers' tasks"
+        }}
+      </small>
     </BCardFooter>
   </BCard>
+
+  <!-- General Debug Information -->
+  <DebugAccordion
+    title="TaskRunner General Debug"
+    :custom-debug-data="generalDebugData"
+    class="mt-2"
+  />
 
   <BCard no-body class="mt-3" variant="light">
     <BAccordion>

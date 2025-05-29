@@ -299,7 +299,7 @@ watch(
 }
 
 code {
-  background-color: #f8f9fa;
+  background-color: var(--color-background-mute);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
 }
