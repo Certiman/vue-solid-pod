@@ -22,6 +22,7 @@ import {
   BAlert
 } from 'bootstrap-vue-next'
 import { onBeforeMount, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 // Import icons
 import IMdiNotePlus from '~icons/mdi/note-plus'
@@ -38,6 +39,7 @@ import { dataService } from '@/services/dataService'
 
 // Props, refs
 const props = defineProps({ taskURI: String, action: String })
+const router = useRouter()
 
 /**
  * stepsList contains all steps of the task, no matter their version
@@ -85,8 +87,19 @@ const shiftToStep = (s) => {
 }
 
 const setProcessTaskToAddStep = () => {
-  processStore.processTaskInEdit = props.taskURI
-  modalStore.canShowAddTaskStep = true
+  // Navigate to ERA addStep process
+  // The StepItem component can extract all context from the current route and task URI
+  console.log('Navigating to add step for task:', {
+    taskURI: props.taskURI,
+    processName: processStore.extractProcessNameFromTaskURI(props.taskURI),
+    taskName: processStore.extractTaskName(props.taskURI)
+  })
+
+  // Store the current task URI in the process store for context
+  processStore.currentTaskURI = props.taskURI
+
+  // Route to the ERA addStep process
+  router.push('/process/Process/addStep/0')
 }
 
 // const stepsFound = computed(() => {

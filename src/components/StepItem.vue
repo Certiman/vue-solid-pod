@@ -51,16 +51,36 @@ const dulRealizesTarget = ref('') // Resource target as defined by dul:realizes 
  * */
 const dataTarget = computed(() => {
   let processName
+  let targetURI
 
-  // Check if we're in "add task to target process" mode via query parameters
-  if (route.query.targetProcess && route.query.targetProcessName) {
-    // Extract process name from the target process URI
-    processName = processStore.extractProcessName(route.query.targetProcess)
-    console.log(`StepItem: Using target process from query parameter: ${processName}`)
-  } else {
-    // Normal mode: extract process name from current task URI
-    processName = processStore.extractProcessName(processStore.currentTaskURI)
-    console.log(`StepItem: Using current task process: ${processName}`)
+  // Check if we're in ERA addProcess mode (adding process to a specific container)
+  if (processStore.currentProcessURI && route.path.includes('/add/')) {
+    // We're adding a process to the container stored in currentProcessURI
+    targetURI = processStore.currentProcessURI
+    // For process creation, the target is the container, not a specific process
+    console.log(`StepItem: ERA addProcess mode - using target container: ${targetURI}`)
+    processName = 'Process' // Use generic name for process creation
+  }
+  // Check if we're in ERA addTask mode (adding task to a specific process)
+  else if (processStore.currentProcessURI && route.path.includes('/addTask/')) {
+    // We're adding a task to the process stored in currentProcessURI
+    targetURI = processStore.currentProcessURI
+    processName = processStore.extractProcessName(targetURI)
+    console.log(`StepItem: ERA addTask mode - using target process: ${processName}`)
+  }
+  // Check if we're in ERA addStep mode (adding step to a specific task)
+  else if (processStore.currentTaskURI && route.path.includes('/addStep/')) {
+    // We're adding a step to the task stored in currentTaskURI
+    targetURI = processStore.currentTaskURI
+    processName = processStore.extractProcessNameFromTaskURI(targetURI)
+    console.log(`StepItem: ERA addStep mode - using target task process: ${processName}`)
+  }
+  // Normal step execution mode
+  else {
+    // Normal mode: extract process name from current task URI in route
+    targetURI = processStore.currentTaskURI
+    processName = processStore.extractProcessName(targetURI)
+    console.log(`StepItem: Normal execution mode - using current task process: ${processName}`)
   }
 
   let resourceName

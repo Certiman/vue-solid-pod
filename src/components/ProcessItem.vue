@@ -37,12 +37,14 @@ const updateProcessList = () => {
 
     const processesFromProvider = getContainedResourceUrlAll(props.provider.ProcessDataSet)
     if (processesFromProvider && processesFromProvider.length > 0) {
-      processes.value = processesFromProvider.map((p) => ({
-        value: p,
-        text: processStore.shorthandForProcessURI(p)
+      // Use full process URIs with provider context for collision-free handling
+      processes.value = processesFromProvider.map((processURI) => ({
+        value: processURI, // Store full process URI, not just name
+        text: `${processStore.shorthandForProcessURI(processURI)} (${props.provider.Label})` // Show provider context
       }))
       console.log(
-        `Added ${processes.value.length} processes for provider: ${props.provider.ProviderWebId}.`
+        `Added ${processes.value.length} processes for provider: ${props.provider.ProviderWebId}:`,
+        processes.value.map((p) => p.text)
       )
     } else {
       processes.value = []
@@ -67,7 +69,7 @@ const updateProcessList = () => {
 
 const showChangeResourceACLModal = () => {
   modalStore.canShowResourceACL = true
-  modalStore.selectedResourceACL = processStore.currentTaskURI
+  modalStore.selectedResourceACL = processStore.selectedProcessURI
 }
 
 // Check if the current user can access the process container
@@ -76,7 +78,7 @@ const canAccessProcess = computed(() => {
   if (accessError.value) {
     // For access denied errors, only allow if user owns the process
     if (accessError.value.includes('Access denied')) {
-      const isOwnProcess = processStore.isOwnedResource(processStore.currentTaskURI)
+      const isOwnProcess = processStore.isOwnedResource(processStore.selectedProcessURI)
       console.log(`Access denied - Own process check: ${isOwnProcess}`)
       return isOwnProcess
     }
@@ -96,14 +98,23 @@ const canAccessProcess = computed(() => {
 })
 
 const startProcess = () => {
-  console.warn(
-    `(startProcess) Updating processStore: should execute process on pod: ${processStore.currentTaskURI}. `
-  )
+  if (!processStore.selectedProcessURI) {
+    console.error('No process selected')
+    return
+  }
 
-  // store the CORRECT URI to execute task from.
-  // processStore.currentTaskURI = SELECTED_PROCESS.value
-  // reroute to :to="appProcessURL ? appProcessURL : '/'"
-  router.push(appProcessURL.value ? appProcessURL.value : '/')
+  // Store the selected process using provider-aware method
+  processStore.selectProcess(processStore.selectedProcessURI)
+
+  // Extract process name from URI for route navigation
+  const processName = processStore.shorthandForProcessURI(processStore.selectedProcessURI)
+  const appProcessURL = `/process/${processName}`
+
+  console.log(`Starting process: ${processName} from URI: ${processStore.selectedProcessURI}`)
+  console.log(`Navigating to: ${appProcessURL}`)
+
+  // Navigate to the process view
+  router.push(appProcessURL)
 }
 
 onBeforeMount(() => updateProcessList())
@@ -114,17 +125,17 @@ onBeforeMount(() => updateProcessList())
     <!-- {{  appProcessURL  }} -->
     <BInputGroup>
       <BFormInput :placeholder="provider.Label" />
-      <BFormSelect v-model="processStore.currentTaskURI" :options="processes" />
+      <BFormSelect v-model="processStore.selectedProcessURI" :options="processes" />
       <BButton
         name="ChangeResourceACL"
         variant="danger"
         @click="showChangeResourceACLModal"
-        :disabled="appProcessURL === null || !canAccessProcess"
+        :disabled="!processStore.selectedProcessURI || !canAccessProcess"
         ><IMdiShieldUnlocked class="mb-1"
       /></BButton>
       <BButton
         @click="startProcess"
-        :disabled="appProcessURL === null || !canAccessProcess"
+        :disabled="!processStore.selectedProcessURI || !canAccessProcess"
         :variant="canAccessProcess ? 'primary' : 'outline-secondary'"
         ><IMdiPlayCircle class="mb-1"
       /></BButton>

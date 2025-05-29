@@ -19,6 +19,8 @@ export const processStore = reactive({
   canShowAddProcessProviderModal: false,
   processTaskInEdit: '',
   currentTaskURI: '', // pod URI of the process/task which is being selected for execution
+  currentProcessURI: '', // pod URI of the process being worked with (for adding tasks)
+  selectedProcessURI: '', // Currently selected process URI from ProcessItem
   // ERA Container system configuration
   eraContainerURI: 'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/',
 
@@ -196,7 +198,6 @@ export const processStore = reactive({
       throw error
     }
   },
-
   // Helper method to identify which provider a URI belongs to
   getProviderForURI(uri) {
     return this.processProviders.find(
@@ -204,6 +205,48 @@ export const processStore = reactive({
     )
   },
 
+  // Provider-aware process handling methods
+  getProcessProvider(processURI) {
+    // Find which provider owns this specific process URI
+    return this.processProviders.find(
+      (provider) => processURI && processURI.startsWith(provider.ContainerURI)
+    )
+  },
+
+  getProcessesByProvider() {
+    // Return processes grouped by provider with full context
+    const processesByProvider = new Map()
+
+    this.processProviders.forEach((provider) => {
+      if (!provider.Active || !provider.ProcessDataSet) {
+        processesByProvider.set(provider, [])
+        return
+      }
+
+      try {
+        const processURIs = getContainedResourceUrlAll(provider.ProcessDataSet)
+        const processes = processURIs.map((uri) => ({
+          uri: uri,
+          name: this.shorthandForProcessURI(uri),
+          provider: provider,
+          displayName: `${this.shorthandForProcessURI(uri)} (${provider.Label})`
+        }))
+        processesByProvider.set(provider, processes)
+      } catch (error) {
+        console.error(`Error getting processes for provider ${provider.ProviderWebId}:`, error)
+        processesByProvider.set(provider, [])
+      }
+    })
+
+    return processesByProvider
+  },
+
+  selectProcess(processURI) {
+    // Provider-aware process selection
+    this.selectedProcessURI = processURI
+    const provider = this.getProcessProvider(processURI)
+    console.log(`Selected process: ${processURI} from provider: ${provider?.ProviderWebId}`)
+  },
   // Find the correct process URI by searching across all providers
   findProcessURI(processName) {
     if (!processName) return null
@@ -306,16 +349,49 @@ export const processStore = reactive({
     const cached = cache.get(uri)
     return cached && cached.loadStatus === 'failed'
   },
-
   extractProcessName(processURI) {
-    // https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/Organisation/add
-    // returns '/Organisation'
     if (!processURI) return null
-    let p = processURI
-    const identifier = '/process/'
-    const pName = p.substring(p.indexOf(identifier) + identifier.length).split('/')
-    console.log(`extractProcessName(${processURI}): ${pName[0]}`)
-    return `/${pName[0]}`
+    // Extract process name from URI like: https://pod.com/process/ProcessName/ -> ProcessName
+    const match = processURI.match(/\/process\/([^/]+)\/?$/)
+    return match ? match[1] : null
+  },
+
+  // New method to extract task name from task URI
+  extractTaskName(taskURI) {
+    if (!taskURI) return null
+    // Extract task name from URI like: https://pod.com/process/ProcessName/TaskName -> TaskName
+    const match = taskURI.match(/\/process\/([^/]+)\/([^/]+)\/?$/)
+    return match ? match[2] : null
+  },
+
+  // New method to extract process name from task URI
+  extractProcessNameFromTaskURI(taskURI) {
+    if (!taskURI) return null
+    // Extract process name from URI like: https://pod.com/process/ProcessName/TaskName -> ProcessName
+    const match = taskURI.match(/\/process\/([^/]+)\/([^/]+)\/?$/)
+    return match ? match[1] : null
+  },
+
+  // New method to extract step information from step URI
+  extractStepInfo(stepURI) {
+    if (!stepURI) return null
+    // Extract from URI like: https://pod.com/process/ProcessName/TaskName/StepSequence
+    const match = stepURI.match(/\/process\/([^/]+)\/([^/]+)\/([^/]+)\/?$/)
+    return match
+      ? {
+          processName: match[1],
+          taskName: match[2],
+          stepSequence: match[3]
+        }
+      : null
+  },
+
+  // New method to get container URI from any process/task/step URI
+  extractContainerURI(uri) {
+    if (!uri) return null
+    // Find the provider that owns this URI
+    const provider = this.getProviderForURI(uri)
+    return provider ? provider.ContainerURI : null
   },
 
   shorthandForProcessURI(processURI) {

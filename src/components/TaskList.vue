@@ -37,23 +37,16 @@ const loadError = ref(null)
 
 // Navigate to ERA Container add task process with current process as context
 const navigateToAddTask = () => {
-  // Extract the process name from the URI for context
-  const processName = processStore.extractProcessName(props.processURI)
-
   console.log('Navigating to add task for process:', {
     processURI: props.processURI,
-    processName,
-    eraAddTaskProcessURI: processStore.eraAddTaskProcessURI
+    processName: processStore.extractProcessName(props.processURI)
   })
 
-  // Route to the ERA addTask process with the target process as a query parameter
-  router.push({
-    path: '/process/Process/addTask/0',
-    query: {
-      targetProcess: props.processURI,
-      targetProcessName: processName
-    }
-  })
+  // Store the current process URI in the process store for context
+  processStore.currentProcessURI = props.processURI
+
+  // Route to the ERA addTask process
+  router.push('/process/Process/addTask/0')
 }
 
 const tasksOfYourOwnPod = computed(() => {

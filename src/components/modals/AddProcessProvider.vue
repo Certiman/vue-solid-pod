@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { createContainerAt, getPodUrlAll, isContainer } from '@inrupt/solid-client'
 import { getSolidDataset } from '@inrupt/solid-client'
@@ -12,16 +13,13 @@ import { sessionStore } from '@/stores/sessions'
 import AsyncButton from '../atoms/AsyncButton.vue'
 import { BCardBody } from 'bootstrap-vue-next'
 
+const router = useRouter()
+
 const newProviderWebId = ref('')
 const showPPHelp = ref(false)
 const finishedAddingPP = ref(false)
 const finishedAddingSelfPP = ref(true)
 const ownProcessContainerExists = ref(false)
-
-// Adding processes
-const newProcessName = ref('')
-const processWasNotAdded = ref(true)
-// const finishedAddingOwnProcess = ref(false)
 
 // Flag to prevent multiple executions of modal show event
 const isInitializing = ref(false)
@@ -210,28 +208,18 @@ const addNewProvider = async () => {
   await AddProcessProvider(newProviderWebId.value)
 }
 
-const addNewProcess = async () => {
-  // add a process container to the own Pod.
-  try {
-    if (!newProcessName.value || newProcessName.value.trim() === '') {
-      showAlert('Please enter a valid process name', 'warning')
-      return
-    }
+const navigateToAddProcess = () => {
+  // Store the user's own process container URI for context
+  const ownPPUrl = sessionStore.selectedPodUrl + 'process/'
+  processStore.currentProcessURI = ownPPUrl
 
-    const processName = newProcessName.value.replaceAll(' ', '').trim()
-    const newProcessContainerURI = sessionStore.selectedPodUrl + 'process/' + processName
+  // Close the modal
+  processStore.canShowAddProcessProviderModal = false
 
-    showAlert(`Creating process container ${processName}...`, 'info', 3000)
-    await createContainerAt(newProcessContainerURI, { fetch: fetch })
+  // Navigate to ERA add process
+  router.push('/process/Process/add/0')
 
-    processWasNotAdded.value = true
-    newProcessName.value = ''
-    showAlert(`Process container ${processName} created successfully`, 'success')
-    // FIXME: this allows one process to be added and is very bad UI.
-  } catch (err) {
-    showAlert(`Failed to create process: ${err.message}`, 'danger')
-    console.error(`addNewProcess() failed with error: ${err}`)
-  }
+  showAlert('Navigating to process creation...', 'info', 2000)
 }
 
 const checkSelfProcessContainer = async () => {
@@ -498,56 +486,54 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
         </small>
       </BCardBody>
     </BCard>
-
-    <BCard header="Your own processes" class="mt-3">
-      <p class="mt-3">
-        You can add processes in your own pod as well, they WILL be stored in the
-        <code>/process/</code> <b>container</b>.
-      </p>
+    <BCard header="Access Control on your /process/ Container" class="mt-3">
       <BCardBody>
         <p v-if="sessionStore.loggedInWebId">
-          <BInputGroup prepend="Your WebId" class="mt-3">
-            <!-- list="providerList" -->
-            <BFormInput
-              id="selfProvider"
-              :placeholder="sessionStore.loggedInWebId"
-              type="text"
-              :disabled="true"
-              @keyup.enter="addNewProvider"
-            ></BFormInput>
-            <!-- <datalist id="providerList">
-          <option>{{ sessionStore.loggedInWebId }}</option>
-        </datalist> -->
-            <AsyncButton
-              v-if="!ownProcessContainerExists"
-              :async-done="finishedAddingSelfPP"
-              variant="secondary"
-              label="Activate"
-              icon-class="IMdiNoteAdd"
-              @aclick="addProvider(sessionStore.loggedInWebId)"
-            /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
-          </BInputGroup>
-          <BInputGroup prepend="Process Name" class="mt-2">
-            <BFormInput
-              id="selfProcessAdd"
-              placeholder="Process Name"
-              v-model="newProcessName"
-              type="text"
-              @keyup.enter="addNewProcess"
-            ></BFormInput>
-            <AsyncButton
-              v-if="processWasNotAdded"
-              :async-done="newProcessName.replaceAll(' ', '').length > 6"
-              variant="secondary"
-              label="+"
-              icon-class="IMdiNoteAdd"
-              @aclick="addNewProcess"
-            /><BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
-          </BInputGroup>
+          Your special <code>/process/</code> container stores all your process definitions and
+          controls access to process management features.
         </p>
-        <BAlert variant="warning" :model-value="true" class="mt-3" v-else
-          >Log in to your Solid Pod, in order to use your own processes!</BAlert
+
+        <BInputGroup prepend="Your WebId" class="mt-3">
+          <BFormInput
+            id="selfProvider"
+            :placeholder="sessionStore.loggedInWebId"
+            type="text"
+            :disabled="true"
+          ></BFormInput>
+          <AsyncButton
+            v-if="!ownProcessContainerExists"
+            :async-done="finishedAddingSelfPP"
+            variant="secondary"
+            label="Activate Container"
+            icon-class="IMdiNoteAdd"
+            @aclick="addProvider(sessionStore.loggedInWebId)"
+          />
+          <BInputGroupText v-else><IMdiCloudCheck></IMdiCloudCheck></BInputGroupText>
+        </BInputGroup>
+
+        <!-- Add Process using ERA Process Management -->
+        <div class="mt-3 d-flex gap-2">
+          <BButton
+            variant="primary"
+            @click="navigateToAddProcess"
+            :disabled="!ownProcessContainerExists"
+          >
+            <IMdiNotePlus class="me-1" />
+            Add New Process
+          </BButton>
+          <small class="text-muted align-self-center">
+            Uses the shared ERA process management system
+          </small>
+        </div>
+
+        <BAlert
+          variant="warning"
+          :model-value="true"
+          class="mt-3"
+          v-if="!sessionStore.loggedInWebId"
         >
+          Log in to your Solid Pod to use your own processes!
+        </BAlert>
       </BCardBody>
     </BCard>
   </BModal>
