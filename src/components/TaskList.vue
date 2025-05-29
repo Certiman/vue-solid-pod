@@ -1,94 +1,50 @@
 <script setup>
 //  IN: URI of a Process, lists all TASKS (non-container RDFResource)
-import { onBeforeMount, ref, computed, reactive } from 'vue'
+import { onBeforeMount, ref, computed } from 'vue'
 import {
   getSolidDataset,
   getStringNoLocale,
   getStringWithLocale,
-  createSolidDataset,
-  createThing,
-  addStringNoLocale,
-  setThing,
-  saveSolidDatasetAt,
-  getUrl,
-  addUrl,
   getContainedResourceUrlAll,
   getThing
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 import TaskItem from './TaskItem.vue'
+import AddTaskCard from './atoms/AddTaskCard.vue'
 
 // import { processStore } from '@/stores/process'
-import { LDP, RDF, RDFS, VCARD } from '@inrupt/vocab-common-rdf'
+import { RDFS } from '@inrupt/vocab-common-rdf'
 import { BCardFooter } from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
 
 const props = defineProps({ processURI: String })
 const taskList = ref([])
-const addingTask = ref(false)
-const form = reactive({
-  newTask: '',
-  newTaskLabel: '',
-  newTaskContact: ''
-})
 
-const tasksOfYourOwnPod = computed(() => props.processURI.includes(sessionStore.selectedPodUrl))
-
-/**
- * TODO:
- * Ideally, the list allows for a selection of Public & WebId list, in order
- * to list the CURRENT rights to that selection.
- */
-// const aclRightsTarget = ref('')
-// const aclRightsWebId = ref('')
-// const aclRightsValues = [
-//   { text: 'Public Access', value: '' },
-//   { text: 'WebId', value: aclRightsWebId.value }
-// ]
-
-const addTaskToProcess = async (event) => {
-  // adds a task to the process
-  // Reminder: task is a Solid Dataset like myReadingList
-  // Reminder 2: one can ONLY ADD TASKS in the OWN storage pod!!
-  event.preventDefault()
-  addingTask.value = true
-
-  const taskResourceURI = props.processURI
-    .replace('#', '')
-    .replace(sessionStore.ownStoragePodRoot, '')
-  const newTaskURI = taskResourceURI + form.newTask.replaceAll(' ', '')
-  try {
-    let newTaskDS = createSolidDataset()
-    /**
-     * The following ADDS A THING to the TASK container
-     * with ?s uri forced same as the main resource, so
-     * </b5186a91-fffe-422a-bf6a-02a61f470541/process/ECCertificates/Task2>
-     *  rdfs:comment "name of the task" ; <<<< ADDED
-     *  http://www.w3.org/2006/vcard/ns#hasEmail "email of the contact"  <<< ADDED
-        rdf:type  ldp:RDFSource .
-     */
-    let taskComment = createThing({ url: newTaskURI })
-    taskComment = addStringNoLocale(taskComment, RDFS.comment, form.newTaskLabel)
-    taskComment = addUrl(taskComment, VCARD.hasEmail, 'mailto:' + form.newTaskContact)
-    taskComment = addUrl(taskComment, RDF.type, LDP.RDFSource)
-    // console.log(taskComment)
-    newTaskDS = setThing(newTaskDS, taskComment)
-    await saveSolidDatasetAt(newTaskURI, newTaskDS, { fetch: fetch })
-    await loadAllTasks()
-    // modalStore.showToastWithMessage = true
-    // modalStore.ToastMessage = 'Task added!'
-    form.newTask = ''
-    form.newTaskLabel = ''
-    form.newTaskContact = ''
-  } catch (e) {
-    const eMsg = `addTaskToProcess failed to create task at ${newTaskURI}: error ${e}`
-    console.error(eMsg)
-    return Promise.reject(eMsg)
-  } finally {
-    addingTask.value = false
-  }
+// Handle task added event from AddTaskCard
+const handleTaskAdded = async (taskData) => {
+  console.log('Task added:', taskData)
+  // Reload the task list to include the new task
+  await loadAllTasks()
 }
+
+const tasksOfYourOwnPod = computed(() => {
+  const ownStoragePodRoot = sessionStore.ownStoragePodRoot()
+  const isOwn =
+    props.processURI.includes(sessionStore.selectedPodUrl) ||
+    (ownStoragePodRoot && props.processURI.includes(ownStoragePodRoot))
+
+  console.log('TaskList - tasksOfYourOwnPod debug:', {
+    processURI: props.processURI,
+    selectedPodUrl: sessionStore.selectedPodUrl,
+    ownStoragePodRoot: ownStoragePodRoot,
+    includesSelected: props.processURI.includes(sessionStore.selectedPodUrl),
+    includesStorage: ownStoragePodRoot && props.processURI.includes(ownStoragePodRoot),
+    isOwn
+  })
+
+  return isOwn
+})
 
 const loadAllTasks = async () => {
   // tasks exist as Solid Datasets in the Process Container as Dataset RDFresources.
@@ -187,65 +143,14 @@ onBeforeMount(async () => await loadAllTasks())
       process, you can add these yourself. If not, contact the [process provider].
     </BCardBody>
     <BCardFooter>
-      <h5>Add task to process</h5>
-      <!-- <p>Process: {{ props.processURI }}</p> -->
-      <!-- @reset="resetAddTaskForm" -->
-      <BForm
-        v-if="tasksOfYourOwnPod"
-        @submit="addTaskToProcess"
-        description="Add a task to this process"
-        class="d-flex flex-row"
-      >
-        <BFormGroup
-          description="Resource name of the task"
-          label="Short taskname"
-          label-for="newTaskToAdd"
-          class="mx-2"
-        >
-          <BFormInput
-            id="newTaskToAdd"
-            v-model="form.newTask"
-            placeholder="myTaskShort (e.g. addTaxReturn)"
-            type="text"
-          ></BFormInput>
-        </BFormGroup>
-        <BFormGroup
-          label="Task name title"
-          label-for="newTaskLabelToAdd"
-          description="A title for this Task"
-          class="mx-2"
-        >
-          <BFormInput
-            id="newTaskLabelToAdd"
-            v-model="form.newTaskLabel"
-            placeholder="Enter task title"
-            type="text"
-          ></BFormInput>
-        </BFormGroup>
-        <BFormGroup
-          label="Task contact"
-          label-for="newTaskContact"
-          description="Email of the person who can be contacted regarding this task"
-          class="mx-2"
-        >
-          <BFormInput
-            id="newTaskContact"
-            v-model="form.newTaskContact"
-            placeholder="user@domain.com"
-            type="email"
-          >
-          </BFormInput>
-        </BFormGroup>
-        <BFormGroup label="-">
-          <BButton type="submit" :loading="addingTask" variant="primary"
-            ><IMdiNoteAdd class="me-2 mb-1" />Add task</BButton
-          >
-          <!-- <BButton type="reset" variant="danger" class="mx-2">Reset</BButton> -->
-        </BFormGroup>
-      </BForm>
-      <p v-else>You cannot add tasks in other process providers' storage.</p>
     </BCardFooter>
   </BCard>
+  <AddTaskCard
+    v-if="tasksOfYourOwnPod"
+    :process-uri="props.processURI"
+    @task-added="handleTaskAdded"
+  />
+  <p v-else>You cannot add tasks in other process providers' storage.</p>
 </template>
 
 <style lang="scss" scoped></style>

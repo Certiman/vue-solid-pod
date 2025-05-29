@@ -40,20 +40,26 @@ import {
   handleIncomingRedirect,
   getDefaultSession
 } from '@inrupt/solid-client-authn-browser'
-import { BFormGroup, BFormSelect } from 'bootstrap-vue-next'
+import { BFormGroup, BFormSelect, BButton } from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
 
-// Data
-const idpProviders = [
-  // { value: null, text: 'Please select an Identity Provider (IdP)' },
-  { value: 'https://login.inrupt.com', text: 'Inrupt.com (PodSpaces)' },
-  { value: 'https://solid.redpencil.io/idp/login/', text: 'Redpencil.io (CSS)' },
-  { value: 'https://solidcommunity.net/login', text: 'Solid Community (CSS)' },
-  { value: 'https://solidweb.org/login', text: 'Solid Web (CSS)' }
-]
+// Solid Provider configurations
+const SOLID_PROVIDERS = {
+  'Inrupt.com (PodSpaces)': 'https://login.inrupt.com',
+  'RedPencil.io (CSS)': 'https://solid.redpencil.io',
+  'Solid Community (CSS)': 'https://solidcommunity.net',
+  'Solid Web (CSS)': 'https://solidweb.org',
+  'Use.id': 'https://idp.use.id',
+  'Inrupt.net': 'https://inrupt.net',
+  'Solidweb.me': 'https://solidweb.me',
+  'TeamId.Live': 'https://teamid.live'
+}
+
+// Dynamically generate the list of IdP providers for the select
+const idpProviders = Object.entries(SOLID_PROVIDERS).map(([text, value]) => ({ value, text }))
 
 // v-model
-const SELECTED_IDP = ref('https://login.inrupt.com')
+const SELECTED_IDP = ref(idpProviders[0]?.value || '')
 const loggedIn = ref(false)
 const lockRetry = ref(false)
 

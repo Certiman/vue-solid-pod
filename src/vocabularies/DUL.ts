@@ -9,13 +9,13 @@ export const DUL = {
   NAMESPACE: _NAMESPACE,
   PREFIX_AND_NAMESPACE: { dul: 'http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#' },
   NS: _NS,
-
   // *****************
   // All the Classes.
   // *****************
   Action: _NS('Action'),
   Description: _NS('Description'),
   Task: _NS('Task'),
+  Process: _NS('Process'),
   Role: _NS('Role'),
   definesTask: _NS('definesTask'), // Description definesTask Task
   executesTask: _NS('executesTask'), // Action executesTask Task

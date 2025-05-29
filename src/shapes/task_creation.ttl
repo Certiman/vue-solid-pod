@@ -1,0 +1,63 @@
+@prefix dash:    <http://datashapes.org/dash#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dul:     <http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#> .
+@prefix ldp:     <http://www.w3.org/ns/ldp#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix vcard:   <http://www.w3.org/2006/vcard/ns#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+# SHACL Shape for creating new tasks in a process
+dul:TaskCreationShape a sh:NodeShape, rdfs:Class ;
+  rdfs:label "Create New Task" ;
+  rdfs:comment "Form for creating a new task within a process" ;
+  sh:targetClass ldp:RDFSource ;
+  
+  # Task name/identifier (used for the resource URI)
+  sh:property [
+    sh:path rdfs:comment ;
+    sh:datatype xsd:string ;
+    sh:name "Task Name" ;
+    sh:description "A descriptive name for this task (e.g., 'Add Organisation', 'Submit Report')" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:minLength 3 ;
+    sh:maxLength 100 ;
+  ] ;
+  
+  # Task resource identifier (for URI generation)
+  sh:property [
+    sh:path dcterms:identifier ;
+    sh:datatype xsd:string ;
+    sh:name "Task Resource ID" ;
+    sh:description "Short identifier for the task resource (e.g., 'addOrg', 'submitReport'). Used in the URL." ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:pattern "^[a-zA-Z][a-zA-Z0-9]*$" ;
+    sh:minLength 2 ;
+    sh:maxLength 50 ;
+  ] ;
+  
+  # Contact email
+  sh:property [
+    sh:path vcard:hasEmail ;
+    sh:name "Contact Email" ;
+    sh:description "Email of the person who can be contacted regarding this task" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:pattern "^mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" ;
+  ] ;
+  
+  # Task description (optional)
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:name "Description" ;
+    sh:description "Optional detailed description of what this task accomplishes" ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+    sh:maxLength 500 ;
+    dash:singleLine false ;
+  ] .
