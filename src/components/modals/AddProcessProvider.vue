@@ -404,7 +404,6 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
     v-model="processStore.canShowAddProcessProviderModal"
     title="Add your process provider"
     size="lg"
-    ok-only
     scrollable
     @show="checkSelfProcessContainer"
   >
@@ -413,7 +412,6 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
       data model. The ERA Container (shared process management system) will be automatically added
       when you open this modal.
     </p>
-    <BButton class="mb-3" @click="showPPHelp = !showPPHelp">Details</BButton>
 
     <BAlert
       v-model="alertDuration"
@@ -430,35 +428,14 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
         height="4px"
       />
     </BAlert>
-
-    <BInputGroup prepend="Provider WebId">
-      <!-- list="providerList" -->
-      <BFormInput
-        id="newProvider"
-        v-model="newProviderWebId"
-        placeholder="WebID of your Process Provider"
-        type="text"
-        @keyup.enter="addNewProvider"
-      ></BFormInput>
-      <!-- <datalist id="providerList">
-        <option>{{ sessionStore.loggedInWebId }}</option>
-      </datalist> -->
-      <AsyncButton
-        :async-done="true"
-        variant="secondary"
-        label="Add Provider"
-        icon-class="IMdiNoteAdd"
-        @aclick="addNewProvider"
-      />
-    </BInputGroup>
     <BCard class="mt-3" v-if="processStore.processProviders.length > 0" header="Process providers">
-      <BCardBody v-for="provider in processStore.processProviders" :key="provider.Label">
-        <BInputGroup>
-          <BFormInput
-            variant="success"
-            :placeholder="provider.ProviderWebId"
-            type="text"
-          ></BFormInput>
+      <BCardBody>
+        <BInputGroup
+          v-for="provider in processStore.processProviders"
+          :key="provider.Label"
+          class="mb-3 col-6"
+        >
+          <BInputGroupText>{{ provider.ProviderWebId }}</BInputGroupText>
           <BButton variant="warning" @click="AddProcessProvider(provider.ProviderWebId, true)"
             ><IMdiReloadAlert
           /></BButton>
@@ -466,6 +443,27 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
             ><IMdiCloudCancel v-if="!provider.Active" variant="danger"></IMdiCloudCancel
             ><IMdiCloudCheck v-else></IMdiCloudCheck
           ></BInputGroupText>
+        </BInputGroup>
+
+        <BInputGroup class="mb-3 col-6">
+          <!-- list="providerList" -->
+          <BFormInput
+            id="newProvider"
+            v-model="newProviderWebId"
+            placeholder="WebID of your Process Provider"
+            type="text"
+            @keyup.enter="addNewProvider"
+          ></BFormInput>
+          <!-- <datalist id="providerList">
+        <option>{{ sessionStore.loggedInWebId }}</option>
+      </datalist> -->
+          <AsyncButton
+            :async-done="true"
+            variant="secondary"
+            label="Add Provider"
+            icon-class="IMdiNoteAdd"
+            @aclick="addNewProvider"
+          />
         </BInputGroup>
       </BCardBody>
     </BCard>
@@ -492,8 +490,7 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
           Your special <code>/process/</code> container stores all your process definitions and
           controls access to process management features.
         </p>
-
-        <BInputGroup prepend="Your WebId" class="mt-3">
+        <BInputGroup prepend="Your WebId" class="mt-3 mb-3 col-6">
           <BFormInput
             id="selfProvider"
             :placeholder="sessionStore.loggedInWebId"
@@ -536,6 +533,13 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
         </BAlert>
       </BCardBody>
     </BCard>
+
+    <template #footer="{ ok }">
+      <div class="d-flex justify-content-between w-100">
+        <BButton variant="outline-secondary" @click="showPPHelp = !showPPHelp"> More Info </BButton>
+        <BButton variant="primary" @click="ok()"> OK </BButton>
+      </div>
+    </template>
   </BModal>
 
   <BModal id="ProcessHelpModal" v-model="showPPHelp" size="lg" :no-close-on-esc="true" ok-only>

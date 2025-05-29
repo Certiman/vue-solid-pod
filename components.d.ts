@@ -67,6 +67,7 @@ declare module 'vue' {
     IMdiCodeTags: typeof import('~icons/mdi/code-tags')['default']
     IMdiDatabaseEyeOutline: typeof import('~icons/mdi/database-eye-outline')['default']
     IMdiFileDocumentDelete: typeof import('~icons/mdi/file-document-delete')['default']
+    IMdiInformation: typeof import('~icons/mdi/information')['default']
     IMdiLogin: typeof import('~icons/mdi/login')['default']
     IMdiLoginVariant: typeof import('~icons/mdi/login-variant')['default']
     IMdiNoteAdd: typeof import('~icons/mdi/note-add')['default']
