@@ -35,18 +35,16 @@
         </div>
       </BCardBody>
     </BCard>
-
     <!-- Data by RDF Type -->
     <div v-if="!isLoading && !error">
-      <DataTypeSection
-        v-for="(resources, rdfType) in dataByType"
-        :key="rdfType"
-        :rdf-type="rdfType"
-        :resources="resources"
-        :process-name="processName"
-        @refresh="loadData"
-        class="mb-3"
-      />
+      <div v-for="(resources, rdfType) in dataByType" :key="rdfType" class="mb-3">
+        <DataTypeSection
+          :rdf-type="rdfType"
+          :resources="resources"
+          :process-name="processName"
+          @refresh="loadData"
+        />
+      </div>
       <!-- Empty state -->
       <BCard v-if="Object.keys(dataByType).length === 0" class="text-center" variant="light">
         <BCardBody>

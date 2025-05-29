@@ -51,17 +51,29 @@
       </div>
     </BCardFooter>
   </BCard>
+
+  <!-- ViewResourceModal -->
+  <ViewResourceModal
+    v-if="showViewModal && viewModalData.resourceUri"
+    :shape-file-url="viewModalData.shapeFileUrl"
+    :resource-uri="viewModalData.resourceUri"
+    :thing-uri="viewModalData.thingUri"
+    :modal-data="viewModalData.modalData"
+    @viewer-hidden="handleViewerHidden"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { BCard, BCardBody, BCardFooter, BButton } from 'bootstrap-vue-next'
 import IMdiPlus from '~icons/mdi/plus'
 import IMdiDownload from '~icons/mdi/download'
 
 import ResourceCard from '@/components/atoms/ResourceCard.vue'
+import ViewResourceModal from '@/components/modals/ViewResourceModal.vue'
 import { sessionStore } from '@/stores/sessions'
+import { modalStore } from '@/stores/ui'
 
 const props = defineProps({
   rdfType: {
@@ -81,6 +93,20 @@ const props = defineProps({
 const emit = defineEmits(['refresh'])
 
 const router = useRouter()
+
+// Modal data for ViewResourceModal
+const viewModalData = ref({
+  shapeFileUrl: '',
+  resourceUri: '',
+  thingUri: '',
+  modalData: {
+    title: 'View Resource',
+    noCancel: true
+  }
+})
+
+// Local modal visibility control
+const showViewModal = ref(false)
 
 // Computed properties
 const displayTypeName = computed(() => {
@@ -110,9 +136,69 @@ const extractTypeNameFromURI = (uri) => {
   return className ? className + 's' : 'Resources'
 }
 
-const handleViewResource = (resource) => {
-  console.log('Viewing resource:', resource)
-  // TODO: Open resource view modal or navigate to detail view
+const deriveShapeFileUrl = (rdfType, processName) => {
+  // Since local TTL files will be removed and shape files should come from the Pod,
+  // we'll return an empty string for now until the proper Pod-based shape loading is implemented
+  console.log('Shape file derivation temporarily disabled - local TTL files will be removed')
+  console.log('RDF type:', rdfType, 'Process name:', processName)
+
+  // TODO: Implement proper Pod-based shape file URL derivation
+  // This should query the Pod for the appropriate shape file based on the process and RDF type
+
+  return '' // Return empty string for now
+}
+
+const handleViewResource = async (resource) => {
+  // Prevent multiple triggers while modal is already open
+  if (showViewModal.value || modalStore.canShowViewModal) {
+    console.log('Modal is already open, ignoring additional trigger')
+    return
+  }
+
+  console.log('=== ViewResource Debug Info ===')
+  console.log('Resource object:', resource)
+  console.log('Resource URI:', resource.uri)
+  console.log('Resource sourceURI:', resource.sourceURI)
+  console.log('RDF Type:', props.rdfType)
+  console.log('Process Name:', props.processName)
+
+  // For now, we'll try to derive the SHACL shape URL from the resource type
+  // This is a basic heuristic - in a real implementation, this mapping should be more sophisticated
+  const shapeFileUrl = deriveShapeFileUrl(props.rdfType, props.processName)
+  console.log('Derived shape file URL:', shapeFileUrl)
+
+  // Set up modal data
+  // Use sourceURI (dataset URI) for loading the data and uri (thing URI) for the SHACL form subject
+  const resourceUri = resource.sourceURI || resource.uri
+  const thingUri = resource.uri
+
+  console.log('Final resourceUri:', resourceUri)
+  console.log('Final thingUri:', thingUri)
+
+  const modalData = {
+    shapeFileUrl: shapeFileUrl,
+    resourceUri: resourceUri, // Dataset URI for loading
+    thingUri: thingUri, // Thing URI for SHACL form subject
+    modalData: {
+      title: `View ${displayTypeName.value.slice(0, -1)}: ${resource.label || 'Resource'}`,
+      noCancel: true
+    }
+  }
+
+  console.log('Modal data being set:', modalData)
+  viewModalData.value = modalData
+
+  // Set both local and global modal states
+  console.log('Setting showViewModal to true')
+  showViewModal.value = true
+  modalStore.canShowViewModal = true
+  console.log(
+    'Modal states set - showViewModal:',
+    showViewModal.value,
+    'modalStore.canShowViewModal:',
+    modalStore.canShowViewModal
+  )
+  console.log('=== End ViewResource Debug Info ===')
 }
 
 const handleEditResource = (resource) => {
@@ -135,6 +221,24 @@ const handleAddNew = () => {
 const handleExport = () => {
   // TODO: Export resources of this type to various formats (TTL, JSON-LD, etc.)
   console.log('Exporting resources of type:', props.rdfType)
+}
+
+const handleViewerHidden = (data) => {
+  console.log('View modal closed with data:', data)
+  // Close both local and global modal states
+  showViewModal.value = false
+  modalStore.canShowViewModal = false
+  // Reset modal data to prevent stale data issues
+  viewModalData.value = {
+    shapeFileUrl: '',
+    resourceUri: '',
+    thingUri: '',
+    modalData: {
+      title: 'View Resource',
+      noCancel: true
+    }
+  }
+  console.log('ViewModalData reset after modal close - showViewModal:', showViewModal.value)
 }
 </script>
 
