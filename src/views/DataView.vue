@@ -47,13 +47,17 @@
         @refresh="loadData"
         class="mb-3"
       />
-
       <!-- Empty state -->
-      <BCard v-if="Object.keys(dataByType).length === 0" class="text-center">
+      <BCard v-if="Object.keys(dataByType).length === 0" class="text-center" variant="light">
         <BCardBody>
-          <h6 class="text-muted">No Data Found</h6>
+          <h6 class="text-primary">No Data Found</h6>
           <p class="text-muted mb-3">
-            No data has been collected for the {{ processName }} process yet.
+            The data container for the <strong>{{ processName }}</strong> process doesn't exist yet,
+            or no data has been collected.
+          </p>
+          <p class="text-muted small mb-3">
+            This is normal if you haven't run this process before. Start the process to create and
+            collect your first data entries.
           </p>
           <BButton variant="primary" @click="navigateToProcess">
             <IMdiNotePlus class="me-1" />
@@ -133,10 +137,20 @@ const loadData = async () => {
 
     console.log('Loaded data by type:', data)
   } catch (err) {
-    console.error('Error loading data:', err)
-    if (err.status === 404) {
-      error.value = `No data container found for process "${processName.value}". Create some data first by running the process.`
-    } else if (err.status === 403) {
+    console.log("Loading data resulted in error, checking if it's a missing container (404):", err)
+
+    // Check for 404 errors in multiple ways (different error object structures)
+    const is404 =
+      err.status === 404 ||
+      (err.message && err.message.includes('[404]')) ||
+      (err.cause && err.cause.status === 404)
+
+    if (is404) {
+      console.log('Container not found (404) - treating as empty data container')
+      error.value = null // Clear error to show info message instead
+      // Set dataByType to empty object to trigger the "No Data Found" card
+      dataByType.value = {}
+    } else if (err.status === 403 || (err.message && err.message.includes('[403]'))) {
       error.value = 'Access denied to data container. Please check your permissions.'
     } else {
       error.value = `Failed to load data: ${err.message}`
