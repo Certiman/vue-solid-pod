@@ -136,25 +136,12 @@ const extractTypeNameFromURI = (uri) => {
   return className ? className + 's' : 'Resources'
 }
 
-const deriveShapeFileUrl = (rdfType, processName) => {
-  // Since local TTL files will be removed and shape files should come from the Pod,
-  // we'll return an empty string for now until the proper Pod-based shape loading is implemented
-  console.log('Shape file derivation temporarily disabled - local TTL files will be removed')
-  console.log('RDF type:', rdfType, 'Process name:', processName)
-
-  // TODO: Implement proper Pod-based shape file URL derivation
-  // This should query the Pod for the appropriate shape file based on the process and RDF type
-
-  return '' // Return empty string for now
-}
-
 const handleViewResource = async (resource) => {
   // Prevent multiple triggers while modal is already open
   if (showViewModal.value || modalStore.canShowViewModal) {
     console.log('Modal is already open, ignoring additional trigger')
     return
   }
-
   console.log('=== ViewResource Debug Info ===')
   console.log('Resource object:', resource)
   console.log('Resource URI:', resource.uri)
@@ -162,10 +149,9 @@ const handleViewResource = async (resource) => {
   console.log('RDF Type:', props.rdfType)
   console.log('Process Name:', props.processName)
 
-  // For now, we'll try to derive the SHACL shape URL from the resource type
-  // This is a basic heuristic - in a real implementation, this mapping should be more sophisticated
-  const shapeFileUrl = deriveShapeFileUrl(props.rdfType, props.processName)
-  console.log('Derived shape file URL:', shapeFileUrl)
+  // Note: We no longer derive shape file URLs here as they are now stored
+  // directly in the RDF data using dcterms:hasFormat and extracted by ViewResourceModal
+  console.log('Shape file URL will be extracted from RDF data using dcterms:hasFormat')
 
   // Set up modal data
   // Use sourceURI (dataset URI) for loading the data and uri (thing URI) for the SHACL form subject
@@ -176,7 +162,7 @@ const handleViewResource = async (resource) => {
   console.log('Final thingUri:', thingUri)
 
   const modalData = {
-    shapeFileUrl: shapeFileUrl,
+    shapeFileUrl: null, // Will be extracted from RDF data by ViewResourceModal
     resourceUri: resourceUri, // Dataset URI for loading
     thingUri: thingUri, // Thing URI for SHACL form subject
     modalData: {

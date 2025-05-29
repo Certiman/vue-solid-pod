@@ -8,7 +8,7 @@
 import { ref, computed } from 'vue'
 import { BModal, BAlert } from 'bootstrap-vue-next'
 
-import { getFile, getSolidDataset, toRdfJsDataset } from '@inrupt/solid-client'
+import { getFile, getSolidDataset, toRdfJsDataset, getThingAll, getUrl } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 // store
@@ -32,9 +32,9 @@ const emit = defineEmits(['viewerHidden'])
 
 // refs
 // Allows caching of shape files
-const SHAPE_DATA_URL = props.shapeFileUrl
+const SHAPE_DATA_URL = ref(props.shapeFileUrl)
 const SOURCE_DATA_URL = props.resourceUri
-const dataShapesLoaded = computed(() => cacheStore.isShapeCached(SHAPE_DATA_URL))
+const dataShapesLoaded = computed(() => cacheStore.isShapeCached(SHAPE_DATA_URL.value))
 
 // event handler (Modal is shown) : get the data and update the view
 const loadDataAndShapesFromNonRDFFile = async () => {
@@ -56,21 +56,22 @@ const loadDataAndShapesFromNonRDFFile = async () => {
     console.log('Data already loaded, skipping reload')
     return
   }
-
   try {
     // Only try to load shape file if we have a valid URL
-    if (SHAPE_DATA_URL && SHAPE_DATA_URL.trim() && !dataShapesLoaded.value) {
-      console.warn(`Trying to (re)load the shapes from POD (viewing purpose): ${SHAPE_DATA_URL}`)
+    if (SHAPE_DATA_URL.value && SHAPE_DATA_URL.value.trim() && !dataShapesLoaded.value) {
+      console.warn(
+        `Trying to (re)load the shapes from POD (viewing purpose): ${SHAPE_DATA_URL.value}`
+      )
       try {
-        const data_blob = await getFile(SHAPE_DATA_URL, { fetch: fetch })
+        const data_blob = await getFile(SHAPE_DATA_URL.value, { fetch: fetch })
         const data_blob_url = URL.createObjectURL(data_blob)
         console.log('Shape file loaded successfully:', data_blob_url)
-        cacheStore.cacheShapeBlob(SHAPE_DATA_URL, data_blob_url)
+        cacheStore.cacheShapeBlob(SHAPE_DATA_URL.value, data_blob_url)
       } catch (shapeErr) {
-        console.error(`Failed to load shape file from ${SHAPE_DATA_URL}:`, shapeErr)
+        console.error(`Failed to load shape file from ${SHAPE_DATA_URL.value}:`, shapeErr)
         // Continue without shape file - we can still load the data
       }
-    } else if (SHAPE_DATA_URL && SHAPE_DATA_URL.trim()) {
+    } else if (SHAPE_DATA_URL.value && SHAPE_DATA_URL.value.trim()) {
       console.log(`CACHED SHAPE URL, length ${cacheStore.allShapeBlobUrls.length}`)
     } else {
       console.warn('No shape file URL provided - will skip SHACL form rendering')
@@ -78,14 +79,57 @@ const loadDataAndShapesFromNonRDFFile = async () => {
   } catch (err) {
     console.error(`Failed loading shape file, check access: ${err}`)
   }
-
   // Grab the dataset from the URL and convert to RDF
   try {
     console.log(`Dataset is being grabbed from ${getDSUriEnding(props.resourceUri)}.`)
     const foundDataset = await getSolidDataset(props.resourceUri, { fetch: fetch })
     const resData = toRdfJsDataset(foundDataset)
     foundRDFData.value = resData
-    console.log('Dataset loaded successfully')
+    console.log('Dataset loaded successfully') // Extract shape file URL from RDF data if not provided via props
+    if (!SHAPE_DATA_URL.value || !SHAPE_DATA_URL.value.trim()) {
+      console.log('No shape file URL provided via props, attempting to extract from RDF data...')
+
+      try {
+        const things = getThingAll(foundDataset)
+        let extractedShapeUrl = null
+
+        // Look for dcterms:hasFormat property in any Thing
+        for (const thing of things) {
+          const hasFormatUrl = getUrl(thing, 'http://purl.org/dc/terms/hasFormat')
+          if (hasFormatUrl) {
+            extractedShapeUrl = hasFormatUrl
+            console.log('Found shape file URL in RDF data:', extractedShapeUrl)
+            break
+          }
+        }
+
+        // If we found a shape URL, try to load it
+        if (extractedShapeUrl && !cacheStore.isShapeCached(extractedShapeUrl)) {
+          console.log('Loading shape file from extracted URL:', extractedShapeUrl)
+          try {
+            const shape_blob = await getFile(extractedShapeUrl, { fetch: fetch })
+            const shape_blob_url = URL.createObjectURL(shape_blob)
+            console.log('Shape file loaded successfully from extracted URL:', shape_blob_url)
+            cacheStore.cacheShapeBlob(extractedShapeUrl, shape_blob_url)
+
+            // Update SHAPE_DATA_URL to the extracted URL so the template can use it
+            SHAPE_DATA_URL.value = extractedShapeUrl
+          } catch (shapeErr) {
+            console.error(
+              `Failed to load shape file from extracted URL ${extractedShapeUrl}:`,
+              shapeErr
+            )
+          }
+        } else if (extractedShapeUrl) {
+          console.log('Shape file from extracted URL already cached')
+          SHAPE_DATA_URL.value = extractedShapeUrl
+        } else {
+          console.log('No dcterms:hasFormat property found in RDF data')
+        }
+      } catch (extractErr) {
+        console.error('Error extracting shape file URL from RDF data:', extractErr)
+      }
+    }
   } catch (err) {
     console.error(`Failed to load dataset from ${props.resourceUri}:`, err)
   }

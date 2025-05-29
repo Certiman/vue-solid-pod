@@ -24,7 +24,8 @@ import {
   getThingAll,
   setThing,
   createSolidDataset,
-  createContainerAt
+  createContainerAt,
+  buildThing
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import {
@@ -182,14 +183,21 @@ const addResourceAsRDF = async () => {
       }
     }
 
-    showAlert('Saving to Solid Pod...', 'info', 2000)
-
-    // THUS, we need to store the new Things from the SHACL dataset in the EXISTING dataset container
+    showAlert('Saving to Solid Pod...', 'info', 2000) // THUS, we need to store the new Things from the SHACL dataset in the EXISTING dataset container
     // get all Things from the shaclFormDataset
-    const shaclFormThings = getThingAll(shaclFormDataset)
-
-    // add the things from ShaclForm to the existing set
-    shaclFormThings.forEach((thing) => (targetDataset = setThing(targetDataset, thing)))
+    const shaclFormThings = getThingAll(shaclFormDataset) // add the things from ShaclForm to the existing set
+    shaclFormThings.forEach((thing) => {
+      // Add dcterms:hasFormat property to store the shape file URL
+      // This creates a reliable link between the resource and its creation shape file
+      if (props.shapeFileUrl) {
+        const updatedThing = buildThing(thing)
+          .setUrl('http://purl.org/dc/terms/hasFormat', props.shapeFileUrl)
+          .build()
+        targetDataset = setThing(targetDataset, updatedThing)
+      } else {
+        targetDataset = setThing(targetDataset, thing)
+      }
+    })
 
     // save the new dataset
     let updatedDataset = await saveSolidDatasetAt(props.targetResource.URI, targetDataset, {
