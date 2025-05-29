@@ -28,6 +28,7 @@ import { sessionStore } from '@/stores/sessions'
 
 // Import icons
 import IMdiNotePlus from '~icons/mdi/note-plus'
+import IMdiDatabaseEyeOutline from '~icons/mdi/database-eye-outline'
 
 const props = defineProps({ processURI: String })
 const router = useRouter()
@@ -44,9 +45,17 @@ const navigateToAddTask = () => {
 
   // Store the current process URI in the process store for context
   processStore.currentProcessURI = props.processURI
-
   // Route to the ERA addTask process
   router.push('/process/Process/addTask/0')
+}
+
+// Navigate to data view for this process
+const navigateToData = () => {
+  const processName = processStore.extractProcessName(props.processURI)
+  if (processName) {
+    console.log('Navigating to data view for process:', processName)
+    router.push(`/data/${processName}`)
+  }
 }
 
 const tasksOfYourOwnPod = computed(() => {
@@ -270,18 +279,29 @@ watch(
           • Cache: {{ processStore.getCacheStatus.value?.totalCached || 0 }} items
         </span>
       </small>
-      <!-- Add Task button - routes to ERA process management -->
-      <BButton
-        v-if="tasksOfYourOwnPod"
-        variant="primary"
-        size="sm"
-        @click="navigateToAddTask"
-        class="ms-auto"
-      >
-        <IMdiNotePlus class="me-1" />
-        Add Task
-      </BButton>
-      <small v-else class="text-muted"> You cannot add tasks to other providers' processes </small>
+
+      <!-- Action buttons -->
+      <div class="d-flex gap-2">
+        <!-- View Data button -->
+        <BButton
+          variant="outline-info"
+          size="sm"
+          @click="navigateToData"
+          :disabled="!sessionStore.selectedPodUrl"
+        >
+          <IMdiDatabaseEyeOutline class="me-1" />
+          View Data
+        </BButton>
+
+        <!-- Add Task button - routes to ERA process management -->
+        <BButton v-if="tasksOfYourOwnPod" variant="primary" size="sm" @click="navigateToAddTask">
+          <IMdiNotePlus class="me-1" />
+          Add Task
+        </BButton>
+        <small v-else class="text-muted">
+          You cannot add tasks to other providers' processes
+        </small>
+      </div>
     </BCardFooter>
   </BCard>
 </template>

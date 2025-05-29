@@ -96,12 +96,11 @@ const dataTarget = computed(() => {
     resourceName = deriveResourceName(taskName)
     console.warn(`Fallback: Derived from task name ${taskName} -> ${resourceName}`)
   }
-
   // Create a proper container URI with trailing slash
-  const containerURI = `${sessionStore.selectedPodUrl}data${processName}/`
+  const containerURI = `${sessionStore.selectedPodUrl}data/${processName}/`
 
   // Create a resource URI (not file URI) for the specific data type
-  const resourceURI = `${sessionStore.selectedPodUrl}data${processName}/${resourceName}#`
+  const resourceURI = `${sessionStore.selectedPodUrl}data/${processName}/${resourceName}#`
 
   console.warn(`Writing data outcome to container: ${containerURI}`)
   console.warn(`Writing data outcome to resource: ${resourceURI}`)

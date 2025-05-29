@@ -46,6 +46,11 @@ const router = createRouter({
       name: 'process',
       component: ProcessView
     },
+    {
+      path: '/data/:process',
+      name: 'data',
+      component: () => import('../views/DataView.vue')
+    },
     // {
     //   path: '/manage/:type?/:process?/:task?',
     //   name: 'manage',

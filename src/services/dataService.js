@@ -312,5 +312,112 @@ export const dataService = {
         pointers: []
       }
     }
+  },
+
+  /**
+   * Fetch data organized by RDF type from a data container
+   * @param {string} containerURI - The data container URI
+   * @returns {Object} Data organized by RDF type
+   */
+  async fetchDataByType(containerURI) {
+    try {
+      console.log(`Fetching data by type from container: ${containerURI}`)
+
+      // First, get the container to see what resources exist
+      const containerDataSet = await getSolidDataset(containerURI, { fetch })
+      const resourceURIs = getContainedResourceUrlAll(containerDataSet)
+
+      console.log(`Found ${resourceURIs.length} resources in container`)
+
+      const dataByType = {}
+
+      // Fetch each resource and organize by RDF type
+      for (const resourceURI of resourceURIs) {
+        try {
+          console.log(`Fetching resource: ${resourceURI}`)
+          const resourceDataSet = await getSolidDataset(resourceURI, { fetch })
+          const things = getThingAll(resourceDataSet)
+
+          for (const thing of things) {
+            const types = getUrlAll(thing, RDF.type)
+
+            // Extract properties for display
+            const properties = this.extractThingProperties(thing)
+
+            // Get created/modified dates if available
+            const created =
+              getStringNoLocale(thing, 'http://purl.org/dc/terms/created') ||
+              getStringNoLocale(thing, 'http://schema.org/dateCreated')
+            const modified =
+              getStringNoLocale(thing, 'http://purl.org/dc/terms/modified') ||
+              getStringNoLocale(thing, 'http://schema.org/dateModified')
+
+            const resourceData = {
+              uri: asUrl(thing),
+              sourceURI: resourceURI,
+              properties,
+              created,
+              modified,
+              types
+            }
+
+            // Organize by each RDF type
+            for (const type of types) {
+              if (!dataByType[type]) {
+                dataByType[type] = []
+              }
+              dataByType[type].push(resourceData)
+            }
+          }
+        } catch (resourceError) {
+          console.warn(`Failed to fetch resource ${resourceURI}:`, resourceError)
+          // Continue with other resources
+        }
+      }
+
+      console.log(`Data organized by type:`, Object.keys(dataByType))
+      return dataByType
+    } catch (error) {
+      console.error(`Failed to fetch data by type from ${containerURI}:`, error)
+      throw error
+    }
+  },
+
+  /**
+   * Extract properties from a Thing for display
+   * @param {Thing} thing - The RDF thing
+   * @returns {Object} Properties object
+   */
+  extractThingProperties(thing) {
+    const properties = {}
+
+    // Common properties to extract
+    const propertiesToExtract = [
+      RDFS.label,
+      RDFS.comment,
+      'http://schema.org/name',
+      'http://schema.org/description',
+      'http://schema.org/email',
+      'http://schema.org/url',
+      'http://purl.org/dc/terms/title',
+      'http://purl.org/dc/terms/description',
+      'http://www.w3.org/2006/vcard/ns#hasEmail',
+      'http://www.w3.org/2006/vcard/ns#hasURL',
+      'http://xmlns.com/foaf/0.1/name',
+      'http://xmlns.com/foaf/0.1/mbox'
+    ]
+
+    for (const property of propertiesToExtract) {
+      const value =
+        getStringNoLocale(thing, property) ||
+        getStringWithLocale(thing, property) ||
+        getUrl(thing, property)
+
+      if (value) {
+        properties[property] = value
+      }
+    }
+
+    return properties
   }
 }

@@ -16,8 +16,8 @@ This application maps its /process/:processname/:task/:step route to Solid Pod R
   
 ## Reserved tasks
 
-Some predefined :tasks are reserved however:
+Some predefined :tasks are reserved however, and originate from a special process called `Process` provided currently by the EUARPod.
 
-- [ ] /process/:processname/addTask shows a modal to add a task, which is a SolidDataset, like mybookList
-- [ ] /process/:processname/search shows a form enabling to search instances created in the process
-- [ ] /process/:processname/:task/addStep shows a form to add a task step, which is a Resource
+- [ ] /process/Process/addTask shows a modal to add a task, which is a SolidDataset, like mybookList
+- [NOT LIKE THIS] /process/Process/search shows a form enabling to search instances created in the process
+- [ ] /process/Process/addStep shows a form to add a task step, which is a Resource, and the URI of the process/task is sent to this path.

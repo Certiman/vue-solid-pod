@@ -7,6 +7,7 @@ import { BCard, BCardBody, BCardFooter, BFormGroup, BListGroup, BButton } from '
 // Import icons
 import IMdiShieldUnlocked from '~icons/mdi/shield-unlocked'
 import IMdiNotePlus from '~icons/mdi/note-plus'
+import IMdiDatabaseEyeOutline from '~icons/mdi/database-eye-outline'
 
 // Regrouping all imported process providers, allowing activation of a process through ProcessItem
 import { processStore } from '@/stores/process'
@@ -28,6 +29,13 @@ const navigateToAddProcess = () => {
 
   // Route to the ERA addProcess process
   router.push('/process/Process/add/0')
+}
+
+// Navigate to data overview (all processes)
+const navigateToDataOverview = () => {
+  console.log('Navigating to data overview')
+  // For now, navigate to a general data route or first available process
+  router.push('/data/Organisation') // Default to Organisation process data
 }
 
 // Compute total number of processes across all providers
@@ -70,7 +78,6 @@ const canAddProcess = computed(() => {
         />
       </BListGroup>
     </BFormGroup>
-
     <BCardFooter class="d-flex justify-content-between align-items-center">
       <!-- Cache status information -->
       <small class="text-muted">
@@ -78,18 +85,27 @@ const canAddProcess = computed(() => {
         <span v-if="totalProcessCount > 0"> • {{ totalProcessCount }} processes </span>
         <span> • Cache: {{ processStore.getCacheStatus.value?.totalCached || 0 }} items </span>
       </small>
-      <!-- Add Process button -->
-      <BButton
-        v-if="canAddProcess"
-        variant="primary"
-        size="sm"
-        @click="navigateToAddProcess"
-        class="ms-auto"
-      >
-        <IMdiNotePlus class="me-1" />
-        Add Process
-      </BButton>
-      <small v-else class="text-muted"> Log in to add processes </small>
+
+      <!-- Action buttons -->
+      <div class="d-flex gap-2">
+        <!-- View Data button -->
+        <BButton
+          variant="outline-info"
+          size="sm"
+          @click="navigateToDataOverview"
+          :disabled="!sessionStore.selectedPodUrl || totalProcessCount === 0"
+        >
+          <IMdiDatabaseEyeOutline class="me-1" />
+          View Data
+        </BButton>
+
+        <!-- Add Process button -->
+        <BButton v-if="canAddProcess" variant="primary" size="sm" @click="navigateToAddProcess">
+          <IMdiNotePlus class="me-1" />
+          Add Process
+        </BButton>
+        <small v-else class="text-muted"> Log in to add processes </small>
+      </div>
     </BCardFooter>
   </BCard>
   <section v-else>Please connect to a Process Provider, or create and run your own...</section>
