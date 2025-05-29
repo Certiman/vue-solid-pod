@@ -1,0 +1,71 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix schema: <http://schema.org/> .
+@prefix dul: <http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#> .
+@prefix ldp: <http://www.w3.org/ns/ldp#> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+
+# SHACL Shape for creating new processes
+<#ProcessCreationShape>
+  a sh:NodeShape ;
+  rdfs:label "Process Creation Form" ;
+  rdfs:comment "Form for creating a new process definition" ;
+  sh:targetClass dul:Workflow ;
+  
+  # Process name/identifier (required)
+  sh:property [
+    sh:path dcterms:identifier ;
+    sh:datatype xsd:string ;
+    sh:name "Process Identifier" ;
+    sh:description "Unique identifier for this process (e.g., 'Organisation', 'Document')" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:minLength 2 ;
+    sh:maxLength 50 ;
+    sh:pattern "^[A-Za-z][A-Za-z0-9_-]*$" ;
+  ] ;
+  
+  # Process title/label (required)
+  sh:property [
+    sh:path rdfs:label ;
+    sh:datatype xsd:string ;
+    sh:name "Process Title" ;
+    sh:description "A descriptive title for this process (e.g., 'Organisation Management', 'Document Workflow')" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:minLength 3 ;
+    sh:maxLength 100 ;
+  ] ;
+  
+  # Process description (optional)
+  sh:property [
+    sh:path rdfs:comment ;
+    sh:datatype xsd:string ;
+    sh:name "Process Description" ;
+    sh:description "Detailed explanation of what this process accomplishes (optional)" ;
+    sh:maxCount 1 ;
+    sh:maxLength 1000 ;
+  ] ;
+  
+  # Process contact/owner (optional)
+  sh:property [
+    sh:path vcard:hasContactInfo ;
+    sh:datatype xsd:string ;
+    sh:name "Contact Information" ;
+    sh:description "Contact person or email for this process (optional)" ;
+    sh:maxCount 1 ;
+    sh:maxLength 200 ;
+  ] ;
+    # Process version (required)
+  sh:property [
+    sh:path schema:version ;
+    sh:datatype xsd:string ;
+    sh:name "Version" ;
+    sh:description "Version identifier for this process (e.g., '1.0', '2.1')" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:defaultValue "1.0" ;
+    sh:pattern "^[0-9]+\\.[0-9]+$" ;
+  ] .

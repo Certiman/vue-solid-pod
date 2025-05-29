@@ -47,6 +47,11 @@ const router = createRouter({
       component: ProcessView
     },
     {
+      path: '/manage/:type?/:process?/:task?',
+      name: 'manage',
+      component: () => import('../views/ManageView.vue')
+    },
+    {
       path: '/profile/:action/:orgsite',
       name: 'profile',
       component: () => import('../views/ProfileView.vue')

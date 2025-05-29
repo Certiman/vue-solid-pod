@@ -40,7 +40,7 @@ import { processStore } from '@/stores/process'
 // Props and Emits
 const emit = defineEmits(['taskAdded'])
 const props = defineProps({
-  processURI: String
+  processUri: String
 })
 
 // Component state
@@ -71,11 +71,11 @@ const displayAlert = (message, variant = 'warning', duration = 5000) => {
 
 // Check if user can add tasks to this process
 const canAddTasks = computed(() => {
-  const hasProcessURI = !!props.processURI
-  const isOwnedResource = processStore.isOwnedResource(props.processURI)
+  const hasProcessURI = !!props.processUri
+  const isOwnedResource = processStore.isOwnedResource(props.processUri)
 
   console.log('AddTaskCard - canAddTasks debug:', {
-    processURI: props.processURI,
+    processURI: props.processUri,
     selectedPodUrl: sessionStore.selectedPodUrl,
     ownStoragePodRoot: sessionStore.ownStoragePodRoot(),
     hasProcessURI,
@@ -173,7 +173,7 @@ const createTaskFromForm = async () => {
       contactEmail,
       taskDescription
     }) // Create task URI
-    const taskResourceURI = props.processURI
+    const taskResourceURI = props.processUri
       .replace('#', '')
       .replace(sessionStore.ownStoragePodRoot(), '')
     const newTaskURI = taskResourceURI + taskIdentifier

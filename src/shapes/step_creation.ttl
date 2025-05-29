@@ -1,0 +1,80 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix schema: <http://schema.org/> .
+@prefix dul: <http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#> .
+
+# SHACL Shape for creating new task steps
+<#StepCreationShape>
+  a sh:NodeShape ;
+  rdfs:label "Step Creation Form" ;
+  rdfs:comment "Form for creating a new step within a task" ;
+  sh:targetClass dul:Action ;
+  
+  # Step title/label (required)
+  sh:property [
+    sh:path rdfs:label ;
+    sh:datatype xsd:string ;
+    sh:name "Step Title" ;
+    sh:description "A descriptive title for this step (e.g., 'Enter Organization Details', 'Upload Document')" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:minLength 3 ;
+    sh:maxLength 100 ;
+  ] ;
+  
+  # Step description/comment (optional)
+  sh:property [
+    sh:path rdfs:comment ;
+    sh:datatype xsd:string ;
+    sh:name "Step Description" ;
+    sh:description "Detailed explanation of what this step involves (optional)" ;
+    sh:maxCount 1 ;
+    sh:maxLength 500 ;
+  ] ;
+  
+  # Version number (required)
+  sh:property [
+    sh:path schema:version ;
+    sh:datatype xsd:integer ;
+    sh:name "Version" ;
+    sh:description "Version number for this step (e.g., 1, 2, 3)" ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:minInclusive 1 ;
+    sh:maxInclusive 100 ;
+    sh:defaultValue 1 ;
+  ] ;
+  
+  # Sequence/position within version (optional)
+  sh:property [
+    sh:path schema:position ;
+    sh:datatype xsd:integer ;
+    sh:name "Sequence Position" ;
+    sh:description "Order of this step within its version (optional, can be auto-calculated)" ;
+    sh:maxCount 1 ;
+    sh:minInclusive 0 ;
+    sh:maxInclusive 100 ;
+  ] ;
+  
+  # SHACL shape source file (optional)
+  sh:property [
+    sh:path dcterms:source ;
+    sh:datatype xsd:anyURI ;
+    sh:name "Shape Source File" ;
+    sh:description "URL to the SHACL shape file defining the form for this step (optional)" ;
+    sh:maxCount 1 ;
+    sh:pattern "^https?://.*\\.ttl$" ;
+  ] ;
+  
+  # DUL realizes property for resource targeting (optional but recommended)
+  sh:property [
+    sh:path dul:realizes ;
+    sh:datatype xsd:string ;
+    sh:name "Resource Target" ;
+    sh:description "Name of the resource type this step creates/manages (e.g., 'org', 'site', 'unit')" ;
+    sh:maxCount 1 ;
+    sh:pattern "^[a-zA-Z][a-zA-Z0-9_]*$" ;
+    sh:maxLength 50 ;
+  ] .
