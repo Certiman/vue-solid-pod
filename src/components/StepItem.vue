@@ -74,12 +74,11 @@ const dataTarget = computed(() => {
     targetURI = processStore.currentTaskURI
     processName = processStore.extractProcessNameFromTaskURI(targetURI)
     console.log(`StepItem: ERA addStep mode - using target task process: ${processName}`)
-  }
-  // Normal step execution mode
+  } // Normal step execution mode
   else {
     // Normal mode: extract process name from current task URI in route
     targetURI = processStore.currentTaskURI
-    processName = processStore.extractProcessName(targetURI)
+    processName = processStore.extractProcessNameFromTaskURI(targetURI)
     console.log(`StepItem: Normal execution mode - using current task process: ${processName}`)
   }
 

@@ -64,6 +64,9 @@ const currentRdfData = ref('')
 const isFormValid = ref(false)
 const showRdfPreview = ref(false)
 
+// Shape loading counter for triggering reloads
+const numberOfShapesLoaded = ref(0)
+
 // Helper function to show alerts
 const showAlert = (message, variant = 'warning', duration = 5000) => {
   alertMessage.value = message
