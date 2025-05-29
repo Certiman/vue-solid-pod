@@ -70,7 +70,7 @@ onBeforeMount(() => updateProcessList())
         ><IMdiShieldUnlocked class="mb-1"
       /></BButton>
       <BButton @click="startProcess" :disabled="appProcessURL === null"
-        ><IMdiAnimationPlay class="mb-1"
+        ><IMdiPlayCircle class="mb-1"
       /></BButton>
     </BInputGroup>
   </BListGroupItem>

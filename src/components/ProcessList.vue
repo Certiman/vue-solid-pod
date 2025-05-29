@@ -13,7 +13,7 @@ const showChangeResourceACLModal = () => {
 </script>
 
 <template>
-  <BCard header="Available processes" class="mt-3" v-if="processStore.processProviders.length > 0">
+  <BCard header="Available processes [ProcessList]" class="mt-3" v-if="processStore.processProviders.length > 0">
     <!-- {{ processStore.currentTaskURI }} -->
 
     <BFormGroup description="Select a process and run it to select from any of its tasks">

@@ -35,6 +35,7 @@ import {
 // Store
 import { cacheStore } from '@/stores/cache'
 import { sessionStore } from '@/stores/sessions'
+import { processStore } from '@/stores/process'
 
 // Props and Emits
 const emit = defineEmits(['taskAdded'])
@@ -72,28 +73,18 @@ const displayAlert = (message, variant = 'warning', duration = 5000) => {
 // Check if user can add tasks to this process
 const canAddTasks = computed(() => {
   const hasProcessURI = !!props.processURI
-  const hasSelectedPodUrl = !!sessionStore.selectedPodUrl
-  const ownStoragePodRoot = sessionStore.ownStoragePodRoot()
-  const hasOwnStoragePodRoot = !!ownStoragePodRoot
-  const isOwnProcessSelected =
-    props.processURI && props.processURI.includes(sessionStore.selectedPodUrl)
-  const isOwnProcessStorage =
-    props.processURI && ownStoragePodRoot && props.processURI.includes(ownStoragePodRoot)
+  const isOwnedResource = processStore.isOwnedResource(props.processURI)
 
   console.log('AddTaskCard - canAddTasks debug:', {
     processURI: props.processURI,
     selectedPodUrl: sessionStore.selectedPodUrl,
-    ownStoragePodRoot: ownStoragePodRoot,
+    ownStoragePodRoot: sessionStore.ownStoragePodRoot(),
     hasProcessURI,
-    hasSelectedPodUrl,
-    hasOwnStoragePodRoot,
-    isOwnProcessSelected,
-    isOwnProcessStorage,
-    canAddBasedOnSelected: hasProcessURI && isOwnProcessSelected,
-    canAddBasedOnStorage: hasProcessURI && isOwnProcessStorage
+    isOwnedResource,
+    result: hasProcessURI && isOwnedResource
   })
 
-  return hasProcessURI && (isOwnProcessSelected || isOwnProcessStorage)
+  return hasProcessURI && isOwnedResource
 })
 
 // SHACL form event listeners

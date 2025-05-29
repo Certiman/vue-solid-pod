@@ -1,23 +1,36 @@
 <script setup>
-import {
-  asUrl,
-  createSolidDataset,
-  getInteger,
-  getSolidDataset,
-  getStringNoLocale,
-  getThingAll,
-  getUrl,
-  getUrlAll
-} from '@inrupt/solid-client'
+import { asUrl, getSolidDataset, getStringNoLocale } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
-import { LDP, RDF, RDFS, VCARD } from '@inrupt/vocab-common-rdf'
-import { DUL } from '@/vocabularies/DUL'
-import { BCardFooter } from 'bootstrap-vue-next'
+import {
+  BCardFooter,
+  BCard,
+  BCardHeader,
+  BCardBody,
+  BRow,
+  BCol,
+  BFormSelect,
+  BAccordion,
+  BAccordionItem,
+  BButton,
+  BInputGroup,
+  BModal,
+  BContainer,
+  BListGroup,
+  BListGroupItem,
+  BBadge,
+  BTable,
+  BAlert
+} from 'bootstrap-vue-next'
 import { onBeforeMount, ref, computed } from 'vue'
 
-// Stores
+// Import StepItem component
+import StepItem from './StepItem.vue'
+
+// Stores and Services
 import { processStore } from '@/stores/process'
+import { cacheStore } from '@/stores/cache'
 import { modalStore } from '@/stores/ui'
+import { dataService } from '@/services/dataService'
 
 // Props, refs
 const props = defineProps({ taskURI: String, action: String })
@@ -85,13 +98,6 @@ const setProcessTaskToAddStep = () => {
 // })
 
 const canDisplaySteps = computed(() => stepsList.value.length > 0)
-
-const addStepsToStepsList = (st, ver) => {
-  // adds a step to the list, with no sequence yet.
-  if (!st) return null
-  stepsList.value.push({ step: st, sequence: null, version: ver })
-  console.warn(`New stepsList`, stepsList.value)
-}
 
 const recalculateOrder = () => {
   // Fix starting points first - match them with step versions
@@ -180,79 +186,61 @@ onBeforeMount(async () => {
 
 // Split the data loading into more manageable functions
 const loadTaskData = async () => {
-  const taskDataSet = await getSolidDataset(props.taskURI, { fetch })
-  const taskContents = getThingAll(taskDataSet)
-  totalThingsFound.value = taskContents.length // Add this line
-  const versions = new Set()
+  // Check cache first
+  const cached = cacheStore.getCachedTask(props.taskURI)
+  if (cached && cached.loadStatus === 'loaded') {
+    console.log('Using cached task data for TaskRunner')
 
-  // Process each thing in the dataset
-  taskContents.forEach((thing) => {
-    const taskTypes = getUrlAll(thing, RDF.type)
-
-    if (taskTypes.includes(DUL.Action)) {
-      processActionStep(thing, versions)
-    } else if (taskTypes.includes(LDP.RDFSource)) {
-      processTaskDescriptor(thing)
-    } else {
-      console.warn('Unrecognized resource type:', taskTypes)
+    // Check if we have runner data already cached
+    if (cached.data.runnerData) {
+      populateTaskRunnerData(cached.data.runnerData)
+      return
     }
-  })
+
+    // If we have a dataSet, process it
+    if (cached.data.dataSet) {
+      const runnerData = dataService.processTaskRunnerData(cached.data.dataSet)
+      populateTaskRunnerData(runnerData)
+      return
+    }
+
+    // If we only have basic task data from TaskList, we need to fetch the full dataset
+    console.log('Cached data incomplete for TaskRunner, fetching full dataset...')
+  }
+
+  // Fetch fresh data
+  const taskDataSet = await getSolidDataset(props.taskURI, { fetch })
+  const runnerData = dataService.processTaskRunnerData(taskDataSet)
+
+  // Cache the runner data with the existing task data or create new cache entry
+  const taskData = cached?.data || (await processStore.getOrFetchTask(props.taskURI))
+  if (taskData) {
+    taskData.runnerData = runnerData
+    taskData.dataSet = taskDataSet
+    cacheStore.cacheTask(props.taskURI, taskData, processStore.getProviderForURI(props.taskURI))
+  }
+
+  populateTaskRunnerData(runnerData)
+}
+
+// Helper function to populate TaskRunner reactive data
+const populateTaskRunnerData = (runnerData) => {
+  stepsList.value = runnerData.stepsList
+  pointersList.value = runnerData.pointersList
+  taskName.value = runnerData.taskName
+  taskContact.value = runnerData.taskContact
+  totalThingsFound.value = runnerData.totalThingsFound
 
   // Update versions dropdown
-  populateVersionsDropdown(versions)
+  populateVersionsDropdown(new Set(runnerData.versions))
 
   // Calculate proper sequences based on the linked list structure
   recalculateOrder()
 }
 
-// Process a step (DUL:Action)
-const processActionStep = (step, versions) => {
-  try {
-    const stepURI = asUrl(step)
-
-    // Extract version
-    let stepVersion = getInteger(step, 'http://schema.org/version') || 0
-    if (!stepVersion) {
-      console.warn('Step is missing schema:version property')
-      stepVersion = 0
-    }
-
-    versions.add(stepVersion)
-
-    // Extract next step pointer
-    const nextStepURI = getUrl(step, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest')
-    const isLastStep = nextStepURI === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'
-
-    // Add to pointers list
-    pointersList.value.push([stepURI, isLastStep ? null : nextStepURI, stepVersion])
-
-    // Add to steps list (sequence will be calculated later)
-    addStepsToStepsList(step, stepVersion)
-  } catch (err) {
-    console.error(`Error processing step: ${err.message}`)
-  }
-}
-
-// Process task descriptor (LDP.RDFSource)
-const processTaskDescriptor = (descriptor) => {
-  try {
-    // Get first tasks in the sequence
-    const firstTasks = getUrlAll(descriptor, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first')
-
-    // Add starting points to pointers list
-    firstTasks.forEach((taskURI) => {
-      // We don't know the version here, will need to match later
-      pointersList.value.push([null, taskURI, null])
-    })
-
-    // Extract task metadata
-    taskName.value = getStringNoLocale(descriptor, RDFS.comment) || 'Unnamed Task'
-    taskContact.value =
-      getStringNoLocale(descriptor, VCARD.hasEmail) || getUrl(descriptor, VCARD.hasEmail) || ''
-  } catch (err) {
-    console.error(`Error processing task descriptor: ${err.message}`)
-  }
-}
+// Add these reactive data and computed properties after your existing ones
+const totalThingsFound = ref(0)
+const loadingError = ref(null)
 
 // Populate versions dropdown
 const populateVersionsDropdown = (versions) => {
@@ -268,13 +256,6 @@ const populateVersionsDropdown = (versions) => {
     selectedVersion.value = taskVersions.value[taskVersions.value.length - 1].value
   }
 }
-
-// Add these imports
-import { BBadge, BTable, BAlert, BAccordion, BAccordionItem } from 'bootstrap-vue-next'
-
-// Add these reactive data and computed properties after your existing ones
-const totalThingsFound = ref(0)
-const loadingError = ref(null)
 
 // Helper function to get steps for a specific version (sorted by sequence)
 const getStepsForVersion = (version) => {
@@ -358,8 +339,8 @@ const validationIssues = computed(() => {
   <BCard no-body class="mt-2">
     <BCardHeader>
       <BRow cols="12">
-        <BCol class="col-10">
-          {{ action || taskName }} ({{ taskContact || 'No contact information provided' }})</BCol
+        <BCol class="col-10">[TaskRunner] 
+          <b>{{ action || taskName }}</b> ({{ taskContact || 'No contact information provided' }})</BCol
         >
         <BCol class="col-2" v-if="canDisplaySteps"
           ><BFormSelect
