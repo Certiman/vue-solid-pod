@@ -76,27 +76,18 @@ const taskRunning = computed(() => {
 const currentProcessURI = computed(() => {
   if (!route.params.process) return null
 
-  // Build process URI from route parameters
-  // For example: /process/Organisation/ -> processProvider URI + /process/Organisation/
+  // Use the process store method to find the correct process URI across all providers
   const processName = route.params.process
-
-  // Find the first available process provider that contains this process
-  const processProvider = processStore.processProviders.find(
-    (provider) => provider.ContainerURI && provider.ContainerURI.includes('/process/')
-  )
-
-  if (!processProvider) {
-    console.warn('No process provider found for process:', processName)
-    return null
-  }
-
-  // Build the full process container URI
-  const processURI = `${processProvider.ContainerURI}${processName}/`
+  const processURI = processStore.findProcessURI(processName)
 
   console.log('ProcessView - currentProcessURI computed:', {
     routeProcess: route.params.process,
-    processProvider: processProvider.ContainerURI,
-    computedProcessURI: processURI
+    foundProcessURI: processURI,
+    availableProviders: processStore.processProviders.map((p) => ({
+      webId: p.ProviderWebId,
+      containerURI: p.ContainerURI,
+      active: p.Active
+    }))
   })
 
   return processURI
@@ -109,23 +100,20 @@ const currentTaskURI = computed(() => {
   const processName = route.params.process
   const taskName = route.params.task
 
-  // Find the first available process provider
-  const processProvider = processStore.processProviders.find(
-    (provider) => provider.ContainerURI && provider.ContainerURI.includes('/process/')
-  )
-
-  if (!processProvider) {
-    console.warn('No process provider found for task:', processName, taskName)
+  // First find the correct process URI using the process store method
+  const processURI = processStore.findProcessURI(processName)
+  if (!processURI) {
+    console.warn('No process URI found for task:', processName, taskName)
     return null
   }
 
-  // Build the full task URI
-  const taskURI = `${processProvider.ContainerURI}${processName}/${taskName}`
+  // Build the task URI from the correct process URI
+  const taskURI = `${processURI}${taskName}`
 
   console.log('ProcessView - currentTaskURI computed:', {
     routeProcess: route.params.process,
     routeTask: route.params.task,
-    processProvider: processProvider.ContainerURI,
+    foundProcessURI: processURI,
     computedTaskURI: taskURI
   })
 

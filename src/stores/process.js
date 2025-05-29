@@ -2,7 +2,7 @@ import { reactive, computed } from 'vue'
 import { sessionStore } from '@/stores/sessions'
 import { cacheStore } from '@/stores/cache'
 import { dataService } from '@/services/dataService'
-import { getSolidDataset } from '@inrupt/solid-client'
+import { getSolidDataset, getContainedResourceUrlAll } from '@inrupt/solid-client'
 
 /**
  * A processProvider must be stored as:
@@ -203,6 +203,64 @@ export const processStore = reactive({
       (provider) => uri.startsWith(provider.ContainerURI) || uri.startsWith(provider.ProviderWebId)
     )
   },
+
+  // Find the correct process URI by searching across all providers
+  findProcessURI(processName) {
+    if (!processName) return null
+
+    // Search through all active providers to find the process
+    for (const provider of this.processProviders) {
+      if (!provider.Active || !provider.ContainerURI) continue
+
+      // Build potential process URI for this provider
+      const potentialProcessURI = `${provider.ContainerURI}${processName}/`
+      // Check if this provider has dataset with processes
+      if (provider.ProcessDataSet) {
+        try {
+          const containedResources = getContainedResourceUrlAll(provider.ProcessDataSet)
+
+          // Check if this process exists in this provider
+          if (containedResources.some((uri) => uri.startsWith(potentialProcessURI.slice(0, -1)))) {
+            console.log(
+              `Found process "${processName}" in provider:`,
+              provider.ProviderWebId,
+              'at URI:',
+              potentialProcessURI
+            )
+            return potentialProcessURI
+          }
+        } catch (error) {
+          console.warn(`Error checking processes in provider ${provider.ProviderWebId}:`, error)
+        }
+      }
+    }
+
+    // If not found in any provider with cached data, prefer user's own provider as fallback
+    const ownProvider = this.getOwnProcessProvider()
+    if (ownProvider && ownProvider.Active) {
+      const ownProcessURI = `${ownProvider.ContainerURI}${processName}/`
+      console.log(
+        `Process "${processName}" not found in cached data, using own provider as fallback:`,
+        ownProcessURI
+      )
+      return ownProcessURI
+    }
+
+    // Final fallback to first active provider (should be rare)
+    const firstActiveProvider = this.processProviders.find((p) => p.Active && p.ContainerURI)
+    if (firstActiveProvider) {
+      const fallbackURI = `${firstActiveProvider.ContainerURI}${processName}/`
+      console.warn(
+        `Process "${processName}" not found, using first active provider as fallback:`,
+        fallbackURI
+      )
+      return fallbackURI
+    }
+
+    console.error(`No active providers found for process "${processName}"`)
+    return null
+  },
+
   // Placeholder methods for actual data fetching (to be implemented)
   async fetchProcessData(processURI) {
     return await dataService.fetchProcessData(processURI)
