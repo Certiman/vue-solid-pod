@@ -31,8 +31,12 @@ export const dataService = {
       const containerDataSet = await getSolidDataset(processURI, { fetch })
       const taskURIs = getContainedResourceUrlAll(containerDataSet)
 
-      // Filter out .ttl files and other non-RDF resources
-      const rdfTaskURIs = taskURIs.filter((uri) => !uri.endsWith('.ttl'))
+      // Filter out shape files and other non-task resources
+      // Filter out SHACL shape files and other non-task resources
+      // TODO: this should better be based on these resources being of rdfs:type http://www.w3.org/ns/ldp#NonRDFSource
+      const rdfTaskURIs = taskURIs.filter((uri) => {
+        return !uri.endsWith('.ttl') && !uri.endsWith('.shacl')
+      })
 
       const processData = {
         uri: processURI,
@@ -276,10 +280,10 @@ export const dataService = {
    * @param {Set} versions - Versions set to update
    * @param {Array} stepsList - Steps list to update
    * @param {Array} pointersList - Pointers list to update
-   */
-  processActionStep(step, versions, stepsList, pointersList) {
+   */ processActionStep(step, versions, stepsList, pointersList) {
     try {
       const stepURI = asUrl(step)
+      console.log('Processing action step:', stepURI)
 
       // Extract version
       let stepVersion = getInteger(step, 'http://schema.org/version') || 0
@@ -293,6 +297,10 @@ export const dataService = {
       // Extract next step pointer
       const nextStepURI = getUrl(step, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest')
       const isLastStep = nextStepURI === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'
+
+      console.log(
+        `Step ${stepURI}: version=${stepVersion}, nextStep=${nextStepURI}, isLast=${isLastStep}`
+      )
 
       // Add to pointers list
       pointersList.push([stepURI, isLastStep ? null : nextStepURI, stepVersion])
@@ -308,16 +316,19 @@ export const dataService = {
    * Process task descriptor (LDP.RDFSource)
    * @param {Object} descriptor - The descriptor thing
    * @returns {Object} Processed descriptor data
-   */
-  processTaskDescriptor(descriptor) {
+   */ processTaskDescriptor(descriptor) {
     try {
       // Get first tasks in the sequence
-      const firstTasks = getUrlAll(descriptor, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first') // Extract task metadata using the robust extraction method
+      const firstTasks = getUrlAll(descriptor, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first')
+      console.log('Task descriptor rdf:first pointers:', firstTasks)
+
+      // Extract task metadata using the robust extraction method
       const taskName = this.extractTaskName(descriptor, asUrl(descriptor))
       const taskContact = this.extractTaskContact(descriptor)
 
       // Add starting points to pointers list
       const pointers = firstTasks.map((taskURI) => [null, taskURI, null])
+      console.log('Created starting point pointers:', pointers)
 
       return {
         taskName,

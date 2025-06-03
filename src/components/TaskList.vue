@@ -131,16 +131,17 @@ const loadAllTasks = async (forceRefresh = false) => {
     // Mark as loading in cache
     if (!cacheStore.getCachedProcess(props.processURI)) {
       cacheStore.markLoading('process', props.processURI)
-    }
-
-    // First, get the container to find all task URIs
+    } // First, get the container to find all task URIs
     const containerDataSet = await getSolidDataset(props.processURI, { fetch: fetch })
     const taskURIs = getContainedResourceUrlAll(containerDataSet)
 
     console.log(`Found ${taskURIs.length} task URIs in container:`, taskURIs)
 
-    // Filter out .ttl files and other non-RDF resources
-    const rdfTaskURIs = taskURIs.filter((uri) => !uri.endsWith('.ttl'))
+    // Filter out shape files and other non-task resources
+    const rdfTaskURIs = taskURIs.filter((uri) => {
+      // Filter out SHACL shape files and other non-task resources
+      return !uri.endsWith('.ttl') && !uri.endsWith('.shacl')
+    })
 
     console.log(`Filtered to ${rdfTaskURIs.length} potential task URIs:`, rdfTaskURIs)
 

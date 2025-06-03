@@ -56,7 +56,9 @@ const router = useRouter()
  */
 const stepsList = ref([])
 const relevantSteps = computed(() =>
-  stepsList.value.filter((sli) => sli.version == selectedVersion.value).map((sli) => sli.step)
+  stepsList.value
+    .filter((sli) => sli.version == selectedVersion.value)
+    .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
 )
 
 /**
@@ -74,7 +76,7 @@ const taskVersions = ref([]) // is retrieved from schema:version in each step
 const selectedVersion = ref('') // the version to filter from.
 
 // UI: identifier of the accordeon sheet which is open
-const openStep = ref('TaskStep-0')
+const openStep = ref('TaskStep-1') // Changed: Start with TaskStep-1 instead of TaskStep-0
 
 // Alllw to add steps.
 const canAddStep = computed(
@@ -83,7 +85,9 @@ const canAddStep = computed(
 
 const shiftToStep = (s) => {
   console.log(`Emit received, setting to step ${s}!`)
-  openStep.value = `TaskStep-${s}`
+  // Ensure the step ID matches our new sequence numbering
+  const stepSequence = typeof s === 'number' ? s : parseInt(s) || 1
+  openStep.value = `TaskStep-${stepSequence}`
 }
 
 const setProcessTaskToAddStep = () => {
@@ -146,7 +150,6 @@ const recalculateOrder = () => {
       versionGroups[version].push({ current, next })
     }
   })
-
   // For each version, trace the chain starting from the beginning
   Object.entries(versionGroups).forEach(([version, pointers]) => {
     // Find the starting point (where current is null)
@@ -157,9 +160,9 @@ const recalculateOrder = () => {
       return
     }
 
-    // Trace the chain and assign sequences
+    console.log(`Processing version ${version} with starting point:`, startPoint.next) // Trace the chain and assign sequences (starting from 1, not 0)
     let currentURI = startPoint.next
-    let sequence = 0
+    let sequence = 1 // Changed: Start from 1 instead of 0
 
     while (currentURI) {
       // Find step in stepsList and update its sequence
@@ -169,6 +172,9 @@ const recalculateOrder = () => {
 
       if (stepIndex !== -1) {
         stepsList.value[stepIndex].sequence = sequence++
+        console.log(
+          `Assigned sequence ${stepsList.value[stepIndex].sequence} to step ${currentURI}`
+        )
       }
 
       // Find the next step in the chain
@@ -182,6 +188,15 @@ const recalculateOrder = () => {
     if (a.version !== b.version) return a.version - b.version
     return (a.sequence || 0) - (b.sequence || 0)
   })
+
+  console.log(
+    'Final stepsList after recalculateOrder:',
+    stepsList.value.map((s) => ({
+      sequence: s.sequence,
+      version: s.version,
+      stepURI: asUrl(s.step)
+    }))
+  )
 
   return stepsList.value
 }
@@ -505,11 +520,11 @@ const validationIssues = computed(() => {
       </p>
       <BAccordion v-model="openStep" v-else-if="selectedVersion">
         <StepItem
-          v-for="[i, step] of relevantSteps.entries()"
-          :key="i"
-          :sequence="i"
-          :step="step"
-          :id="`TaskStep-${i}`"
+          v-for="(stepItem, i) of relevantSteps"
+          :key="stepItem.sequence || i"
+          :sequence="stepItem.sequence || i + 1"
+          :step="stepItem.step"
+          :id="`TaskStep-${stepItem.sequence || i}`"
           @nextStep="shiftToStep"
         />
       </BAccordion>
