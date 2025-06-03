@@ -234,13 +234,15 @@ onMounted(async () => await loadShapesFromNonRDFFile())
         <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
           :key="ind" -->
         <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
+        <!-- TODO: what if NOT the first node!! 
+         data-shape-subject="props.targetResource.subjectClass" 
+        -->
         <shacl-form
           :data-shapes-url="cacheStore.getShapeBlobUrl(DATA_URL)"
           @change="changeListener"
           @submit="submitListener"
           data-show-node-ids
           data-collapse
-          :data-shape-subject="props.targetResource.subjectClass"
           :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
           data-submit-button="Save"
           :data-loading="`Retrieving shapes from ${DATA_URL}...`"

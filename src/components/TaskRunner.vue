@@ -44,7 +44,7 @@ const router = useRouter()
 /**
  * stepsList contains all steps of the task, no matter their version
  *
- * FIXME: steps have no order, which must be deduced from pointers
+ * DONE: steps have no order, which must be deduced from pointers
  * SOLVED: can be filtered on version
  * DONE: stepsList are Array
  * [
@@ -124,20 +124,28 @@ const recalculateOrder = () => {
   // Fix starting points first - match them with step versions
   const startingPoints = pointersList.value.filter((p) => p[0] === null)
 
+  // Create starting points for each version that has a step matching the starting URI
+  const newStartingPoints = []
+
   startingPoints.forEach((startPointer) => {
     const [, startURI] = startPointer
 
-    // Find the corresponding step to get its version
-    const matchingStep = stepsList.value.find((step) => asUrl(step.step) === startURI)
+    // Find ALL steps that match this starting URI (could be multiple versions)
+    const matchingSteps = stepsList.value.filter((step) => asUrl(step.step) === startURI)
 
-    if (matchingStep) {
-      // Update the starting point with the correct version
-      const pointerIndex = pointersList.value.findIndex((p) => p[0] === null && p[1] === startURI)
-      if (pointerIndex !== -1) {
-        pointersList.value[pointerIndex][2] = matchingStep.version
-      }
+    if (matchingSteps.length > 0) {
+      // Create a starting point for each version that has this step
+      matchingSteps.forEach((matchingStep) => {
+        newStartingPoints.push([null, startURI, matchingStep.version])
+      })
+    } else {
+      // Keep the original pointer if no matching steps found
+      newStartingPoints.push(startPointer)
     }
   })
+
+  // Remove old starting points and add new ones
+  pointersList.value = pointersList.value.filter((p) => p[0] !== null).concat(newStartingPoints)
 
   // Now group by version and calculate sequences
   const versionGroups = {}
