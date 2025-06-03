@@ -1,20 +1,14 @@
 <script setup>
 import { onBeforeMount, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  getSolidDataset,
-  getStringNoLocale,
-  getStringWithLocale,
-  getContainedResourceUrlAll,
-  getThing
-} from '@inrupt/solid-client'
+import { getSolidDataset, getContainedResourceUrlAll, getThing } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 import TaskItem from './TaskItem.vue'
 
 import { processStore } from '@/stores/process'
 import { cacheStore } from '@/stores/cache'
-import { RDFS } from '@inrupt/vocab-common-rdf'
+import { dataService } from '@/services/dataService'
 import {
   BCard,
   BCardBody,
@@ -141,18 +135,8 @@ const loadAllTasks = async (forceRefresh = false) => {
           const taskThing = getThing(taskDataSet, taskURI)
 
           if (taskThing) {
-            console.log(`Analysing individual Task @[${taskURI}]:`, taskThing)
-
-            // Extract the task name from the individual task resource
-            const taskName =
-              getStringNoLocale(taskThing, RDFS.comment) ||
-              getStringWithLocale(taskThing, RDFS.comment, 'en-US') ||
-              getStringWithLocale(taskThing, RDFS.comment, 'en') ||
-              getStringNoLocale(taskThing, RDFS.label) ||
-              getStringWithLocale(taskThing, RDFS.label, 'en-US') ||
-              getStringWithLocale(taskThing, RDFS.label, 'en') ||
-              taskURI.split('/').pop() || // Use the last part of URI as fallback
-              'Unknown task name'
+            console.log(`Analysing individual Task @[${taskURI}]:`, taskThing) // Extract the task name using dataService
+            const taskName = dataService.extractTaskName(taskThing, taskURI)
 
             taskData = {
               taskName: taskName,

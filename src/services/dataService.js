@@ -174,19 +174,42 @@ export const dataService = {
       getStringNoLocale(taskThing, 'http://purl.org/dc/elements/1.1/description') ||
       ''
     )
+  } /**
+   * Extract step name from step thing
+   * @param {Object} stepThing - The step RDF thing
+   * @param {string} stepURI - The step URI for fallback (optional)
+   * @returns {string} Step name
+   */,
+  extractStepName(stepThing, stepURI = null) {
+    const name =
+      getStringNoLocale(stepThing, 'http://schema.org/name') ||
+      getStringWithLocale(stepThing, 'http://schema.org/name', 'en-US') ||
+      getStringWithLocale(stepThing, 'http://schema.org/name', 'en') ||
+      getStringNoLocale(stepThing, RDFS.label) ||
+      getStringWithLocale(stepThing, RDFS.label, 'en-US') ||
+      getStringWithLocale(stepThing, RDFS.label, 'en') ||
+      getStringNoLocale(stepThing, RDFS.comment) ||
+      getStringWithLocale(stepThing, RDFS.comment, 'en-US') ||
+      getStringWithLocale(stepThing, RDFS.comment, 'en') ||
+      (stepURI ? stepURI.split('/').pop() : null) ||
+      'Unnamed step'
+    return name
   },
 
   /**
-   * Extract step name from step thing
+   * Extract step description from step thing
    * @param {Object} stepThing - The step RDF thing
-   * @returns {string} Step name
+   * @returns {string} Step description
    */
-  extractStepName(stepThing) {
+  extractStepDescription(stepThing) {
     return (
-      getStringNoLocale(stepThing, 'http://schema.org/name') ||
-      getStringNoLocale(stepThing, RDFS.label) ||
-      getStringNoLocale(stepThing, RDFS.comment) ||
-      'Unnamed step'
+      getStringWithLocale(stepThing, 'http://purl.org/dc/terms/description', 'en-US') ||
+      getStringWithLocale(stepThing, 'http://purl.org/dc/terms/description', 'en') ||
+      getStringWithLocale(stepThing, 'http://purl.org/dc/elements/1.1/description', 'en-US') ||
+      getStringWithLocale(stepThing, 'http://purl.org/dc/elements/1.1/description', 'en') ||
+      getStringNoLocale(stepThing, 'http://purl.org/dc/terms/description') ||
+      getStringNoLocale(stepThing, 'http://purl.org/dc/elements/1.1/description') ||
+      ''
     )
   },
 
@@ -289,12 +312,9 @@ export const dataService = {
   processTaskDescriptor(descriptor) {
     try {
       // Get first tasks in the sequence
-      const firstTasks = getUrlAll(descriptor, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first')
-
-      // Extract task metadata
-      const taskName = getStringNoLocale(descriptor, RDFS.comment) || 'Unnamed Task'
-      const taskContact =
-        getStringNoLocale(descriptor, VCARD.hasEmail) || getUrl(descriptor, VCARD.hasEmail) || ''
+      const firstTasks = getUrlAll(descriptor, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first') // Extract task metadata using the robust extraction method
+      const taskName = this.extractTaskName(descriptor, asUrl(descriptor))
+      const taskContact = this.extractTaskContact(descriptor)
 
       // Add starting points to pointers list
       const pointers = firstTasks.map((taskURI) => [null, taskURI, null])
@@ -419,5 +439,119 @@ export const dataService = {
     }
 
     return properties
+  },
+
+  /**
+   * Extract resource title from thing properties with comprehensive fallbacks
+   * @param {Object} resourceProperties - The resource properties object
+   * @param {string} resourceURI - The resource URI for fallback
+   * @returns {string} Resource title
+   */
+  extractResourceTitle(resourceProperties, resourceURI) {
+    if (!resourceProperties) {
+      return this.extractNameFromURI(resourceURI)
+    }
+
+    // Prioritize RDFS and SKOS label properties
+    const titleProps = [
+      'http://www.w3.org/2000/01/rdf-schema#label',
+      'http://www.w3.org/2004/02/skos/core#prefLabel',
+      'http://www.w3.org/2004/02/skos/core#altLabel',
+      'http://schema.org/name',
+      'http://purl.org/dc/terms/title',
+      'http://xmlns.com/foaf/0.1/name'
+    ]
+
+    for (const prop of titleProps) {
+      if (resourceProperties[prop]) {
+        const value = resourceProperties[prop]
+        return Array.isArray(value) ? value[0] : value
+      }
+    }
+
+    // Fallback to extracting from URI
+    return this.extractNameFromURI(resourceURI)
+  },
+
+  /**
+   * Extract human-readable property label from property URI
+   * @param {string} propertyURI - The property URI
+   * @returns {string} Human-readable label
+   */
+  extractPropertyLabel(propertyURI) {
+    const labelMap = {
+      'http://www.w3.org/2000/01/rdf-schema#label': 'Label',
+      'http://www.w3.org/2000/01/rdf-schema#comment': 'Description',
+      'http://www.w3.org/2004/02/skos/core#prefLabel': 'Preferred Label',
+      'http://www.w3.org/2004/02/skos/core#altLabel': 'Alternative Label',
+      'http://schema.org/name': 'Name',
+      'http://schema.org/description': 'Description',
+      'http://schema.org/email': 'Email',
+      'http://schema.org/url': 'URL',
+      'http://purl.org/dc/terms/title': 'Title',
+      'http://purl.org/dc/terms/description': 'Description',
+      'http://www.w3.org/2006/vcard/ns#hasEmail': 'Email',
+      'http://www.w3.org/2006/vcard/ns#hasURL': 'URL',
+      'http://xmlns.com/foaf/0.1/name': 'Name',
+      'http://xmlns.com/foaf/0.1/mbox': 'Email'
+    }
+
+    return labelMap[propertyURI] || propertyURI.split(/[#/]/).pop()
+  },
+
+  /**
+   * Extract human-readable type name from RDF type URI
+   * @param {string} rdfType - The RDF type URI
+   * @returns {string} Human-readable type name
+   */
+  extractRdfTypeLabel(rdfType) {
+    const typeMap = {
+      'http://www.w3.org/ns/org#FormalOrganization': 'Formal Org',
+      'http://www.w3.org/ns/org#Organization': 'Organization',
+      'http://www.w3.org/ns/org#OrganizationalUnit': 'Unit',
+      'http://www.w3.org/ns/org#Site': 'Site',
+      'http://schema.org/Organization': 'Org',
+      'http://schema.org/Place': 'Place',
+      'http://xmlns.com/foaf/0.1/Organization': 'Org',
+      'http://xmlns.com/foaf/0.1/Person': 'Person',
+      'https://www.w3.org/ns/activitystreams#Article': 'Article'
+    }
+
+    const shortLabel = typeMap[rdfType]
+    if (shortLabel) return shortLabel
+
+    // Fallback to extracting class name from URI
+    const parts = rdfType.split(/[#/]/)
+    return parts[parts.length - 1] || 'Resource'
+  },
+
+  /**
+   * Extract display type name for collections (pluralized)
+   * @param {string} rdfType - The RDF type URI
+   * @returns {string} Pluralized display name
+   */
+  extractDisplayTypeName(rdfType) {
+    const typeMap = {
+      'http://www.w3.org/ns/org#FormalOrganization': 'Organizations',
+      'http://www.w3.org/ns/org#OrganizationalUnit': 'Units',
+      'http://www.w3.org/ns/org#Site': 'Sites',
+      'http://schema.org/Organization': 'Organizations',
+      'http://schema.org/Place': 'Places',
+      'http://xmlns.com/foaf/0.1/Organization': 'Organizations',
+      'http://xmlns.com/foaf/0.1/Person': 'People'
+    }
+
+    return typeMap[rdfType] || this.extractTypeNameFromURI(rdfType)
+  },
+
+  /**
+   * Extract class name from URI and pluralize
+   * @param {string} uri - The URI to extract name from
+   * @returns {string} Pluralized class name
+   */
+  extractTypeNameFromURI(uri) {
+    const parts = uri.split(/[#/]/)
+    const className = parts[parts.length - 1]
+    return className ? className + 's' : 'Resources'
   }
 }

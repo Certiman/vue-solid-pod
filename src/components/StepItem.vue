@@ -21,12 +21,13 @@
  *
  */
 import { computed, onBeforeMount, ref } from 'vue'
-import { getStringWithLocale, getStringNoLocale, getUrl } from '@inrupt/solid-client'
-import { DCTERMS, RDFS } from '@inrupt/vocab-common-rdf'
+import { getStringNoLocale, getUrl } from '@inrupt/solid-client'
+import { DCTERMS } from '@inrupt/vocab-common-rdf'
 import { useRoute } from 'vue-router'
 
 import { sessionStore } from '@/stores/sessions'
 import { processStore } from '@/stores/process'
+import { dataService } from '@/services/dataService'
 import { ERA } from '@/vocabularies/ERA'
 import { DUL } from '@/vocabularies/DUL'
 
@@ -219,23 +220,9 @@ onBeforeMount(() => {
   if (!props.step) {
     console.error('StepItem: No step object provided!')
     return
-  }
-  // Try multiple English locale variants for stepTitle
-  stepTitle.value =
-    getStringWithLocale(props.step, RDFS.label, 'en-US') ||
-    getStringWithLocale(props.step, RDFS.label, 'en') ||
-    getStringNoLocale(props.step, RDFS.label) ||
-    'Untitled Step'
-
-  // Try multiple English locale variants for stepIntro
-  stepIntro.value =
-    getStringWithLocale(props.step, DCTERMS.description, 'en-US') ||
-    getStringWithLocale(props.step, DCTERMS.description, 'en') ||
-    getStringWithLocale(props.step, 'http://purl.org/dc/elements/1.1/description', 'en-US') ||
-    getStringWithLocale(props.step, 'http://purl.org/dc/elements/1.1/description', 'en') ||
-    getStringNoLocale(props.step, DCTERMS.description) ||
-    getStringNoLocale(props.step, 'http://purl.org/dc/elements/1.1/description') ||
-    ''
+  } // Use dataService for robust step name and description extraction
+  stepTitle.value = dataService.extractStepName(props.step)
+  stepIntro.value = dataService.extractStepDescription(props.step)
 
   formShapeFile.value = getUrl(props.step, DCTERMS.source)
 
@@ -247,8 +234,7 @@ onBeforeMount(() => {
     console.log(`Step defines dul:realizes: ${dulRealizesTarget.value}`)
   } else {
     console.log('Step does not define dul:realizes, will use task name derivation')
-  }
-  // Debug output for all extracted values
+  } // Debug output for all extracted values
   console.log('StepItem extracted values:', {
     stepTitle: stepTitle.value,
     stepIntro: stepIntro.value,
@@ -256,14 +242,10 @@ onBeforeMount(() => {
     dulRealizesTarget: dulRealizesTarget.value
   })
 
-  // Debug: show which locale variants were tried
-  console.log('Language extraction debug:', {
-    'rdfs:label with en-US': getStringWithLocale(props.step, RDFS.label, 'en-US'),
-    'rdfs:label with en': getStringWithLocale(props.step, RDFS.label, 'en'),
-    'rdfs:label no locale': getStringNoLocale(props.step, RDFS.label),
-    'dcterms:description with en-US': getStringWithLocale(props.step, DCTERMS.description, 'en-US'),
-    'dcterms:description with en': getStringWithLocale(props.step, DCTERMS.description, 'en')
-  })
+  // Note: Step name and description now extracted using dataService for consistency
+  console.log(
+    'Using dataService.extractStepName() and dataService.extractStepDescription() for robust extraction'
+  )
 })
 </script>
 

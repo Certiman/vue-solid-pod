@@ -85,6 +85,7 @@ import IMdiEyeOutline from '~icons/mdi/eye-outline'
 import IMdiPencilOutline from '~icons/mdi/pencil-outline'
 import IMdiClockOutline from '~icons/mdi/clock-outline'
 import IMdiCompassOutline from '~icons/mdi/compass-outline'
+import { dataService } from '@/services/dataService'
 
 const props = defineProps({
   resource: {
@@ -139,28 +140,7 @@ const navigateToProcess = () => {
 
 // Computed properties
 const resourceTitle = computed(() => {
-  // Prioritize RDFS and SKOS label properties
-  const titleProps = [
-    'http://www.w3.org/2000/01/rdf-schema#label',
-    'http://www.w3.org/2004/02/skos/core#prefLabel',
-    'http://www.w3.org/2004/02/skos/core#altLabel',
-    'http://schema.org/name',
-    'http://purl.org/dc/terms/title',
-    'http://xmlns.com/foaf/0.1/name'
-  ]
-
-  if (props.resource.properties) {
-    for (const prop of titleProps) {
-      if (props.resource.properties[prop]) {
-        const value = props.resource.properties[prop]
-        return Array.isArray(value) ? value[0] : value
-      }
-    }
-  }
-
-  // Fallback to extracting from URI
-  const uriParts = props.resource.uri.split(/[#/]/)
-  return uriParts[uriParts.length - 1] || 'Resource'
+  return dataService.extractResourceTitle(props.resource.properties, props.resource.uri)
 })
 
 const truncatedURI = computed(() => {
@@ -172,24 +152,7 @@ const truncatedURI = computed(() => {
 })
 
 const rdfTypeLabel = computed(() => {
-  const typeMap = {
-    'http://www.w3.org/ns/org#FormalOrganization': 'Formal Org',
-    'http://www.w3.org/ns/org#Organization': 'Organization',
-    'http://www.w3.org/ns/org#OrganizationalUnit': 'Unit',
-    'http://www.w3.org/ns/org#Site': 'Site',
-    'http://schema.org/Organization': 'Org',
-    'http://schema.org/Place': 'Place',
-    'http://xmlns.com/foaf/0.1/Organization': 'Org',
-    'http://xmlns.com/foaf/0.1/Person': 'Person',
-    'https://www.w3.org/ns/activitystreams#Article': 'Article'
-  }
-
-  const shortLabel = typeMap[props.rdfType]
-  if (shortLabel) return shortLabel
-
-  // Fallback to extracting class name from URI
-  const parts = props.rdfType.split(/[#/]/)
-  return parts[parts.length - 1] || 'Resource'
+  return dataService.extractRdfTypeLabel(props.rdfType)
 })
 
 const previewProperties = computed(() => {
@@ -214,7 +177,7 @@ const previewProperties = computed(() => {
     if (resourceProps[prop] && preview.length < 3) {
       preview.push({
         property: prop,
-        label: getPropertyLabel(prop),
+        label: dataService.extractPropertyLabel(prop),
         value: Array.isArray(resourceProps[prop]) ? resourceProps[prop][0] : resourceProps[prop]
       })
     }
@@ -225,7 +188,7 @@ const previewProperties = computed(() => {
       if (!importantProps.includes(property) && preview.length < 3) {
         preview.push({
           property,
-          label: getPropertyLabel(property),
+          label: dataService.extractPropertyLabel(property),
           value: Array.isArray(value) ? value[0] : value
         })
       }
@@ -236,25 +199,6 @@ const previewProperties = computed(() => {
 })
 
 // Methods
-const getPropertyLabel = (propertyURI) => {
-  const labelMap = {
-    'http://www.w3.org/2000/01/rdf-schema#label': 'Label',
-    'http://www.w3.org/2000/01/rdf-schema#comment': 'Description',
-    'http://www.w3.org/2004/02/skos/core#prefLabel': 'Preferred Label',
-    'http://www.w3.org/2004/02/skos/core#altLabel': 'Alternative Label',
-    'http://schema.org/name': 'Name',
-    'http://schema.org/description': 'Description',
-    'http://schema.org/email': 'Email',
-    'http://schema.org/url': 'URL',
-    'http://purl.org/dc/terms/title': 'Title',
-    'http://purl.org/dc/terms/description': 'Description',
-    'http://www.w3.org/2006/vcard/ns#hasEmail': 'Email',
-    'http://www.w3.org/2006/vcard/ns#hasURL': 'URL'
-  }
-
-  return labelMap[propertyURI] || propertyURI.split(/[#/]/).pop()
-}
-
 const formatDate = (dateString) => {
   if (!dateString) return ''
   try {

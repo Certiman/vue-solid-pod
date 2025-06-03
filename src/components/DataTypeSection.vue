@@ -68,6 +68,7 @@ import ResourceCard from '@/components/atoms/ResourceCard.vue'
 import ViewResourceModal from '@/components/modals/ViewResourceModal.vue'
 import { sessionStore } from '@/stores/sessions'
 import { modalStore } from '@/stores/ui'
+import { dataService } from '@/services/dataService'
 
 const props = defineProps({
   rdfType: {
@@ -102,18 +103,7 @@ const showViewModal = ref(false)
 
 // Computed properties
 const displayTypeName = computed(() => {
-  // Convert RDF type URI to human-readable name
-  const typeMap = {
-    'http://www.w3.org/ns/org#FormalOrganization': 'Organizations',
-    'http://www.w3.org/ns/org#OrganizationalUnit': 'Units',
-    'http://www.w3.org/ns/org#Site': 'Sites',
-    'http://schema.org/Organization': 'Organizations',
-    'http://schema.org/Place': 'Places',
-    'http://xmlns.com/foaf/0.1/Organization': 'Organizations',
-    'http://xmlns.com/foaf/0.1/Person': 'People'
-  }
-
-  return typeMap[props.rdfType] || extractTypeNameFromURI(props.rdfType)
+  return dataService.extractDisplayTypeName(props.rdfType)
 })
 
 const canAddNew = computed(() => {
@@ -121,13 +111,6 @@ const canAddNew = computed(() => {
 })
 
 // Methods
-const extractTypeNameFromURI = (uri) => {
-  // Extract class name from URI (e.g., "http://example.org/Class" -> "Class")
-  const parts = uri.split(/[#/]/)
-  const className = parts[parts.length - 1]
-  return className ? className + 's' : 'Resources'
-}
-
 const handleViewResource = async (resource) => {
   // Prevent multiple triggers while modal is already open
   if (showViewModal.value || modalStore.canShowViewModal) {
@@ -176,7 +159,7 @@ const handleViewResource = async (resource) => {
     'modalStore.canShowViewModal:',
     modalStore.canShowViewModal
   )
-  
+
   console.log('=== End ViewResource Debug Info ===')
 }
 
