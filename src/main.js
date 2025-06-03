@@ -2,10 +2,13 @@
 
 import { createApp } from 'vue'
 // import { createPinia } from 'pinia'
-import {createBootstrap} from 'bootstrap-vue-next'
+import { createBootstrap } from 'bootstrap-vue-next'
 
 import App from './App.vue'
 import router from './router'
+
+// Register the SHACL form custom element globally
+import '@ulb-darmstadt/shacl-form/dist/form-bootstrap.js'
 
 // Add the necessary CSS
 import 'bootstrap/dist/css/bootstrap.css'

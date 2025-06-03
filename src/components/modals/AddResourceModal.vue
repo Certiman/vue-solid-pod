@@ -15,7 +15,6 @@
 import { onMounted, computed } from 'vue'
 
 import { BModal, BAlert } from 'bootstrap-vue-next'
-import { ShaclForm } from '@ulb-darmstadt/shacl-form'
 import {
   getFile,
   fromRdfJsDataset,

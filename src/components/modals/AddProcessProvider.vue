@@ -104,7 +104,7 @@ const addProvider = async (WebId) => {
         if (!existingProvider) {
           processStore.processProviders.push({
             ContainerURI: ppPodProcessUrl,
-            Label: `P-${WebId}#${i + 1}`,
+            Label: `Process provided by ${WebId}#${i + 1}`,
             ProviderWebId: WebId,
             Active: isUsefulContainer,
             ProcessDataSet: foundDS
@@ -261,7 +261,7 @@ const checkSelfProcessContainer = async () => {
 
       processStore.processProviders.push({
         ContainerURI: ownPPUrl,
-        Label: `P-${sessionStore.loggedInWebId}`,
+        Label: `Your Container - Internal processes`,
         ProviderWebId: sessionStore.loggedInWebId,
         Active: true,
         ProcessDataSet: ds

@@ -36,7 +36,6 @@
 import { onMounted, computed } from 'vue'
 
 import { BModal, BAlert } from 'bootstrap-vue-next'
-import { ShaclForm } from '@ulb-darmstadt/shacl-form'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import {
   getFile,

@@ -52,6 +52,34 @@ const navigateToData = () => {
   }
 }
 
+// Get process provider information
+const processProvider = computed(() => {
+  if (!props.processURI) return null
+  return processStore.getProviderForURI(props.processURI)
+})
+
+// Get provider WebId for display
+const providerWebId = computed(() => {
+  const provider = processProvider.value
+  return provider ? provider.ProviderWebId : '[unknown provider]'
+})
+
+// Check if the current user is the process provider
+const isCurrentUserProvider = computed(() => {
+  const provider = processProvider.value
+  if (!provider || !sessionStore.loggedInWebId) return false
+  return provider.ProviderWebId === sessionStore.loggedInWebId
+})
+
+// Get contextual message for no tasks scenario
+const noTasksMessage = computed(() => {
+  if (isCurrentUserProvider.value) {
+    return 'As the process provider, you can add tasks yourself.'
+  } else {
+    return 'You can contact the Process Provider to learn more.'
+  }
+})
+
 const tasksOfYourOwnPod = computed(() => {
   const isOwn = processStore.isOwnedResource(props.processURI)
 
@@ -249,11 +277,14 @@ watch(
         </BListGroup>
       </BFormGroup>
     </BCardBody>
-
     <!-- No tasks found -->
     <BCardBody v-else>
-      This process provider has provided a process without tasks. If you are the owner of the
-      process, you can add these yourself. If not, contact the [process provider].
+      This process contains no tasks. {{ noTasksMessage }}
+      <template v-if="!isCurrentUserProvider">
+        <a :href="providerWebId" target="_blank" rel="noopener noreferrer" class="ms-1">
+          {{ providerWebId }}
+        </a>
+      </template>
     </BCardBody>
     <BCardFooter class="d-flex justify-content-between align-items-center">
       <!-- Cache status information -->

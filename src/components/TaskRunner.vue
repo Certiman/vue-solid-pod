@@ -488,9 +488,7 @@ const validationIssues = computed(() => {
     <BCardHeader>
       <BRow cols="12">
         <BCol class="col-10"
-          >[TaskRunner] <b>{{ action || taskName }}</b> ({{
-            taskContact || 'No contact information provided'
-          }})</BCol
+          ><b>{{ action || taskName }}</b></BCol
         >
         <BCol class="col-2" v-if="canDisplaySteps"
           ><BFormSelect
@@ -503,7 +501,7 @@ const validationIssues = computed(() => {
     </BCardHeader>
     <BCardBody>
       <p v-if="!canDisplaySteps">
-        This process task contains no steps. Please contact the owner if needed.
+        This process task contains no steps. Please contact the task author for further assistance.
       </p>
       <BAccordion v-model="openStep" v-else-if="selectedVersion">
         <StepItem
@@ -528,6 +526,7 @@ const validationIssues = computed(() => {
           • Cache: {{ processStore.getCacheStatus.value?.totalCached || 0 }} items
         </span>
         <span v-if="selectedVersion"> • Version: {{ selectedVersion }} </span>
+        <span> • Task Contact: {{ taskContact || 'No contact information provided' }}</span>
       </small>
       <!-- Add Step button -->
       <BButton

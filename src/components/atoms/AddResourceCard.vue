@@ -14,7 +14,6 @@
  */
 import { ref, onMounted, computed } from 'vue'
 
-import { ShaclForm } from '@ulb-darmstadt/shacl-form'
 import {
   getFile,
   fromRdfJsDataset,
@@ -250,7 +249,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
       </span>
       <BAlert v-else variant="warning" :model-value="true">
         This form is based on a Resource SHACL shape at: <code>{{ DATA_URL }}</code> which could not
-        be retrieved from the process provider. Please contact the task contact above.
+        be retrieved from the process provider. Please contact the task contact below.
       </BAlert>
     </BCardBody>
     <BCardFooter>
