@@ -15,7 +15,7 @@ const allPodUrlsKnown = computed(() => sessionStore.allPodUrls.length > 0)
   <BModal
     id="add-storage-provide"
     v-model="modalStore.canShowAddStorage"
-    title="Add your storage provider"
+    title="Connect to your Solid Pod"
     size="lg"
     ok-only
     scrollable

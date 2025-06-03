@@ -1,7 +1,7 @@
 <template>
   <BFormGroup
-    description="a. This is the Root Container we will write to"
-    label="3. Your Pod's Root Container"
+    description="This container is the Root Container we will write all data to. If only one container is available, it is selected by default."
+    label="Destination Pod Root Container"
     class="mt-2"
   >
     <!-- Loading state -->

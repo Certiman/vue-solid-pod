@@ -1,10 +1,10 @@
 <template>
   <!-- Update the select-idp option if not using PodSpaces -->
   <BFormGroup
-    description="Please select an Identity Provider (IdP)"
+    description="Your Identity Provider (IdP) hosts your Solid Pod. With a WebId from the IdP, you can manage linked data in your Pod."
     id="select-idp"
-    label="1. Select your Identity Provider:"
-    class="mt-2"
+    label="Your Identity Provider"
+    class="mb-4"
   >
     <BInputGroup prepend="IDP">
       <BFormSelect v-model="SELECTED_IDP" :options="idpProviders" :disabled="loggedIn" />

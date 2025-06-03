@@ -1,17 +1,14 @@
 <template>
-  <BFormGroup label="2. Logged in with your WebID:" id="readlabel" class="mt-2">
-    <BInputGroup prepend="Your WebId">
+  <BFormGroup label="Available Pod Root Containers" id="readlabel" class="mb-4">
+    <BInputGroup :prepend="labelGroup">
       <BFormInput disabled :placeholder="sessionStore.loggedInWebId" />
-    </BInputGroup>
-    <!-- Action button separated for clarity -->
-    <div class="mt-2 d-flex">
       <BButton name="btnRead" id="btnRead" :disabled="disabled || isLoadingPods" @click="getMyPods">
         <template v-if="isLoadingPods"> <BSpinner small class="me-1" />Loading Pods... </template>
         <template v-else>
           {{ labelButton }}
         </template>
       </BButton>
-    </div>
+    </BInputGroup>
   </BFormGroup>
 </template>
 
@@ -28,6 +25,7 @@ defineProps({ disabled: Boolean })
 
 // Local ref
 const labelButton = ref('Get Pod URL(s)')
+const labelGroup = ref('Checking containers for WebId')
 const isLoadingPods = ref(false) // Loading state for fetching pods
 
 // 2. Get Pod(s) associated with the WebID
@@ -52,6 +50,7 @@ onMounted(async () => {
   // just start getMyPods already...
   await getMyPods()
   labelButton.value = 'Pod URL(s) OK'
+  labelGroup.value = 'Checked containers for WebId'
 })
 </script>
 
