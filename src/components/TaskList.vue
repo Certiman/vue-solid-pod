@@ -193,7 +193,7 @@ const loadAllTasks = async (forceRefresh = false) => {
         // Add a placeholder entry for failed tasks
         const fallbackName = taskURI.split('/').pop() || 'Unknown task'
         loadedTasks.push({
-          taskName: `${fallbackName} (load failed)`,
+          taskName: `${fallbackName} (No Access)`,
           taskThings: { url: taskURI },
           taskProcessURI: props.processURI,
           loadStatus: 'failed',

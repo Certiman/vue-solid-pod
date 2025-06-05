@@ -28,7 +28,7 @@
 @prefix era-organisation-roles: <http://data.europa.eu/949/concepts/organisation-roles/> .
 
 
-################# A Conformity to Type Application, with Evidence added as ERADIS identifiers
+################# A Conformity to Type Application, with Evidence added elsewhere as ERADIS identifiers
 era:C2TApplicationShape a sh:NodeShape ;
   sh:targetClass era:VehicleTypeAuthorisationApplication ; # vpa:Request
 
@@ -37,66 +37,72 @@ era:C2TApplicationShape a sh:NodeShape ;
     sh:path rdfs:label ;
     sh:name "Project Name"@en ;
     sh:description "Project Name"@en ;
-    sh:group issform:GI ;
+    # sh:group issform:GI ;
     sh:datatype rdf:langString ;
     sh:languageIn ( "en" "fr" "de" "es" ) ;
-    sh:uniqueLang   true ;
+    sh:uniqueLang "true"^^xsd:boolean ;
     sh:maxCount 1 ;
     sh:minLength 6 ;
     sh:minCount 1
-  ] , [
+  ];
+  sh:property [
     sh:name "Your Application ID" ;
-    sh:group issform:GI ;
+    # sh:group issform:GI ;
     sh:path dcterms:identifier ;
     sh:description "Use a UNIQUE label you can retrieve the application with" ;
     sh:datatype xsd:string ;
     sh:minLength 8;
     sh:minCount 1 ;
     sh:maxCount 1
-  ] , [
+  ];
+  sh:property [
     sh:name "OSS Application ID" ;
     sh:description "Only fill in when the application also exists in OSS" ;
-    sh:group issform:GI ;
+    # sh:group issform:GI ;
     sh:path rdfs:seeAlso ;
     sh:datatype xsd:string ;
     sh:pattern "^V-20\\d{2}[01-12][0-3][1-9]-\\d{3}$" ;
     sh:maxCount 1
-  ]  , [
+  ];
+  sh:property [
     # rdfs:comment “{{Other relevant Information}}”@en ;
     sh:name "Other relevant Information"@en ;
-    sh:group issform:GI ;
+    # sh:group issform:GI ;
     sh:description "Other relevant Information"@en ;
     sh:path rdfs:comment ;
     dash:singleLine false ;
     sh:datatype rdf:langString ;
     sh:languageIn ( "en" "fr" "de" "es" ) ;
-    sh:uniqueLang   true ;
+    sh:uniqueLang "true"^^xsd:boolean ;
     sh:maxCount 1 ;
     sh:minCount 1
-  ] , [
-    # Always a set of C2T auth cases, no option there
-    sh:path vpa:constitutedBy ;
-    sh:node era:C2TAuthCaseShape ;
-    sh:group issform:AS ;
-    sh:name "Authorisation Case" ;
-    sh:description "The Authorisation Cases within this application, all of C2T permission type."@en ;
-    sh:minCount 1 ;
-    sh:maxCount 6 ; # Current VAI limit, can be extended.
-  ] , [
-    # PreEngagement is a choice
-    sh:name "Pre-Engagement" ;
-    sh:path era:hasPreEngagement ;
-    sh:group issform:GI ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:or (
-      [ sh:node era:PreEngagementShape ; sh:name "Yes" ]
-      [ sh:node era:noPreEngagementShape  ; sh:name "No" ]
-    )
-  ] , [
+  ];
+  # sh:property [
+  #   # Always a set of C2T auth cases, no option there
+  #   sh:node era:C2TAuthCaseShape ;
+  #   sh:path vpa:constitutedBy ;
+  #   sh:name "Authorisation Case" ;
+  #   sh:description "The Authorisation Cases within this application, all of C2T permission type."@en ;
+  #   # sh:group issform:AS ;
+  #   sh:minCount 1 ;
+  #   sh:maxCount 6 ; # Current VAI limit, can be extended.
+  # ];
+  # sh:property [
+  #   # PreEngagement is a choice
+  #   sh:name "Pre-Engagement" ;
+  #   sh:path era:hasPreEngagement ;
+  #   sh:group issform:GI ;
+  #   sh:minCount 1 ;
+  #   sh:maxCount 1 ;
+  #   sh:or (
+  #     [ sh:node era:PreEngagementShape ; sh:name "Yes" ]
+  #     [ sh:node era:noPreEngagementShape  ; sh:name "No" ]
+  #   )
+  # ];
+  sh:property [
     # dcterms:creator [ a era:OrganisationRole ; era:roleOf <URI of Applicant> ] ;
     sh:node era:ApplicantOrgRoleShape ;
-    sh:group issform:APP ;
+    # sh:group issform:APP ;
     sh:path dcterms:creator ;
     sh:name "Applicant's Information" ;
     sh:maxCount 1 ;
@@ -106,6 +112,7 @@ era:C2TApplicationShape a sh:NodeShape ;
 # All authorisation cases within a C2T application are of type C2t
 era:C2TAuthCaseShape a sh:NodeShape ;
   sh:targetClass era:VehicleTypeAuthorisationCase ;
+  rdfs:label "Authorisation Case" ;
 
   sh:property [
     sh:path vpa:permissionType ;
@@ -113,26 +120,28 @@ era:C2TAuthCaseShape a sh:NodeShape ;
     sh:name "Type of application" ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
-    sh:minCount 1 ;
+    sh:minCount 1 
   ] ;
 
   #  Non-disclosed - OSS data on the auth case can be placed here
   #  vpa:concerns eratv:13-178-0010-8-001-001 ; # one VT per case
   #  vpa:concerns evr:94801463223-6 , evr:94801863223-2 , evr:94801863723-1 , evr:94801463723-5 ;
   sh:property [
+    sh:node era:VehicleTypeScopeShape ;
     sh:name "Authorisation Case Scope: One Vehicle Type"@en ;
     sh:description "Add at least exactly one vehicle type" ;
     sh:path vpa:concerns ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:node era:VehicleTypeScopeShape 
-  ] , [
+  ] ;
+
+  sh:property [
+    sh:node era:VehicleNumberScopeShape ;
     sh:name "Authorisation Case Scope (Vehicles)"@en ;
     sh:description "Add at least one set of vehicles to this scope"@en ;
     sh:path vpa:concerns ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:node era:VehicleNumberScopeShape
   ].
 
 # The Scope can be one VehicleTypeScopeShape per case
@@ -143,6 +152,7 @@ era:VehicleTypeScopeShape a sh:NodeShape ;
     sh:name "VehicleType Identifier"@en ;
     sh:pattern "^\\d{2}-\\d{3}-\\d{4}-\\d-(\\d{3}(-\\d{3})?)$" ;
     sh:description "NN-MMM-LLLL-N-VAR(-VER)" ;
+    sh:hasValue "12-789-1324-4-007-009" ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:minLength 17 ;
@@ -158,9 +168,11 @@ era:VehicleNumberScopeShape a sh:NodeShape ;
     sh:name "Vehicle Identifier"@en ;
     sh:path rdfs:member ;
     sh:datatype xsd:string ;
+    sh:hasValue "132165498-9" ;
     sh:minCount 1 ;
     # sh:pattern See VAI
-  ] , [
+  ];
+  sh:property [
   # The datatype update: is caught by the form post processor
    sh:name "Pre-reserved Numbers" ;
    sh:path update:arePreReservedNumbers ;
@@ -186,7 +198,8 @@ era:ApplicantOrgRoleShape a sh:NodeShape ;
       sh:node era:ApplicantByCodeShape ; 
     # sh:name "By Code" ]
     # )
-  ] , [
+  ];
+  sh:property [
     sh:path era:hasOrganisationRole ;
     sh:hasValue era-organisation-roles:Applicant ;
     sh:nodeKind sh:IRI ;
@@ -227,7 +240,8 @@ era:PreEngagementShape a sh:NodeShape ;
     sh:hasValue true;
     sh:minCount 1 ;
     sh:maxCount 1
-  ] , [
+  ];
+  sh:property [
     # era:preEngagementBaseline era:Document
     sh:path era:preEngagementBaselineDocument ;
     sh:name "PreEngagement Reference"@en ;
@@ -235,7 +249,7 @@ era:PreEngagementShape a sh:NodeShape ;
     sh:minCount 1
   ] .
 
-# If NO PreEngagement, only boolean as already marked
+# # If NO PreEngagement, only boolean as already marked
 era:noPreEngagementShape a sh:NodeShape ;
   sh:targetClass era:PreEngagement ;
   sh:property [
@@ -250,12 +264,12 @@ era:noPreEngagementShape a sh:NodeShape ;
   sh:description "No pre-engagement" .
 
 # UI Groups
-issform:GI a sh:PropertyGroup ;
-  sh:order 1 ;
-  rdfs:label "General Information" .
-issform:AS a sh:PropertyGroup ;
-  sh:order 2 ;
-  rdfs:label "Application Scope" .
-issform:APP a sh:PropertyGroup ;
-  sh:order 3 ;
-  rdfs:label "Applicant" .
+# issform:GI a sh:PropertyGroup ;
+#   sh:order 1 ;
+#   rdfs:label "General Information" .
+# issform:AS a sh:PropertyGroup ;
+#   sh:order 2 ;
+#   rdfs:label "Application Scope" .
+# issform:APP a sh:PropertyGroup ;
+#   sh:order 3 ;
+#   rdfs:label "Applicant" .
