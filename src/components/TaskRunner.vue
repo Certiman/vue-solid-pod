@@ -36,6 +36,7 @@ import { processStore } from '@/stores/process'
 import { cacheStore } from '@/stores/cache'
 import { modalStore } from '@/stores/ui'
 import { dataService } from '@/services/dataService'
+import { RDF_CONFIG } from '@/services/rdfConfig'
 
 // Props, refs
 const props = defineProps({ taskURI: String, action: String })
@@ -389,11 +390,9 @@ const stepSourceInfo = computed(() => {
   return stepsList.value
     .map((stepItem, index) => {
       const step = stepItem.step
-      const stepURI = asUrl(step)
-
-      // Try to extract dcterms:source from the step
+      const stepURI = asUrl(step) // Try to extract dcterms:source from the step
       const source =
-        step.predicates?.['http://purl.org/dc/terms/source']?.[0]?.object?.value || 'No source'
+        step.predicates?.[RDF_CONFIG.SOURCE_REFERENCE]?.[0]?.object?.value || 'No source'
 
       return {
         index,
@@ -674,7 +673,7 @@ const validationIssues = computed(() => {
                       <code class="small">{{ asUrl(step.step).split('/').pop() }}</code>
                     </div>
                     <small class="text-muted">
-                      {{ getStringNoLocale(step.step, 'http://schema.org/name') || 'Unnamed step' }}
+                      {{ getStringNoLocale(step.step, RDF_CONFIG.NAME) || 'Unnamed step' }}
                     </small>
                   </BListGroupItem>
                   <BListGroupItem

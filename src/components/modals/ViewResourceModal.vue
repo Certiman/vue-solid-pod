@@ -10,6 +10,7 @@ import { BModal, BAlert } from 'bootstrap-vue-next'
 
 import { getFile, getSolidDataset, toRdfJsDataset, getThingAll, getUrl } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
+import { RDF_CONFIG } from '@/services/rdfConfig'
 
 // store
 import { cacheStore } from '@/stores/cache'
@@ -91,11 +92,9 @@ const loadDataAndShapesFromNonRDFFile = async () => {
 
       try {
         const things = getThingAll(foundDataset)
-        let extractedShapeUrl = null
-
-        // Look for dcterms:hasFormat property in any Thing
+        let extractedShapeUrl = null // Look for dcterms:hasFormat property in any Thing
         for (const thing of things) {
-          const hasFormatUrl = getUrl(thing, 'http://purl.org/dc/terms/hasFormat')
+          const hasFormatUrl = getUrl(thing, RDF_CONFIG.HAS_FORMAT)
           if (hasFormatUrl) {
             extractedShapeUrl = hasFormatUrl
             console.log('Found shape file URL in RDF data:', extractedShapeUrl)

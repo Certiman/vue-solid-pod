@@ -37,6 +37,7 @@ import {
   BRow,
   BCol
 } from 'bootstrap-vue-next'
+import { RDF_CONFIG } from '@/services/rdfConfig'
 
 // Store
 import { cacheStore } from '@/stores/cache'
@@ -190,7 +191,7 @@ const addResourceAsRDF = async () => {
       // This creates a reliable link between the resource and its creation shape file
       if (props.shapeFileUrl) {
         const updatedThing = buildThing(thing)
-          .setUrl('http://purl.org/dc/terms/hasFormat', props.shapeFileUrl)
+          .setUrl(RDF_CONFIG.HAS_FORMAT, props.shapeFileUrl)
           .build()
         targetDataset = setThing(targetDataset, updatedThing)
       } else {
@@ -246,7 +247,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
           :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
           data-submit-button="Save"
           :data-loading="`Retrieving shapes from ${DATA_URL}...`"
-          data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
+          :data-generate-node-shape-reference="RDF_CONFIG.CONFORMS_TO"
         />
       </span>
       <BAlert v-else variant="warning" :model-value="true">

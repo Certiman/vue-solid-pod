@@ -22,11 +22,10 @@
           Fill out the form below to create a new process definition. The process will be stored in
           your Pod's <code>/process/</code> container.
         </p>
-
         <!-- SHACL Form Component -->
         <shacl-form
           :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_URL)"
-          data-shape-subject="http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Workflow"
+          :data-shape-subject="SHACL_CONFIG.PROCESS_FORM.SHAPE_SUBJECT"
           data-values-namespace="#process"
           submit-button-text="Create Process"
           :submit-button-disabled="!isFormValid || isCreating"
@@ -69,6 +68,7 @@ import { fetch } from '@inrupt/solid-client-authn-browser'
 import { RDF, RDFS } from '@inrupt/vocab-common-rdf'
 import { DUL } from '@/vocabularies/DUL'
 import { BCard, BCardBody, BButton, BAlert, BSpinner } from 'bootstrap-vue-next'
+import { RDF_CONFIG, SHACL_CONFIG } from '@/services/rdfConfig'
 
 // Store
 import { cacheStore } from '@/stores/cache'
@@ -192,14 +192,11 @@ const createProcessFromForm = async () => {
     if (formThings.length === 0) {
       throw new Error('No data found in form')
     }
-
     const formThing = formThings[0]
-    const processIdentifier =
-      formThing.predicates['http://purl.org/dc/terms/identifier']?.[0]?.object?.value
+    const processIdentifier = formThing.predicates[RDF_CONFIG.IDENTIFIER]?.[0]?.object?.value
     const processTitle = formThing.predicates[RDFS.label]?.[0]?.object?.value
     const processDescription = formThing.predicates[RDFS.comment]?.[0]?.object?.value
-    const processVersion =
-      formThing.predicates['http://schema.org/version']?.[0]?.object?.value || '1.0'
+    const processVersion = formThing.predicates[RDF_CONFIG.VERSION]?.[0]?.object?.value || '1.0'
     const contactInfo =
       formThing.predicates['http://www.w3.org/2006/vcard/ns#hasContactInfo']?.[0]?.object?.value
 
@@ -236,21 +233,15 @@ const createProcessFromForm = async () => {
         throw containerError
       }
       console.warn('Process container might already exist, continuing...')
-    }
-
-    // Create process metadata
+    } // Create process metadata
     let processDataset = createSolidDataset()
     let processThing = createThing({ url: processContainerURL })
 
     // Add process properties from SHACL form
     processThing = addUrl(processThing, RDF.type, DUL.Workflow)
-    processThing = addStringNoLocale(
-      processThing,
-      'http://purl.org/dc/terms/identifier',
-      processIdentifier
-    )
+    processThing = addStringNoLocale(processThing, RDF_CONFIG.IDENTIFIER, processIdentifier)
     processThing = addStringNoLocale(processThing, RDFS.label, processTitle)
-    processThing = addStringNoLocale(processThing, 'http://schema.org/version', processVersion)
+    processThing = addStringNoLocale(processThing, RDF_CONFIG.VERSION, processVersion)
 
     if (processDescription) {
       processThing = addStringNoLocale(processThing, RDFS.comment, processDescription)

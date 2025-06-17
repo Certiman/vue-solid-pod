@@ -18,8 +18,8 @@ import {
   setThing
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
-import { RDF, RDFS } from '@inrupt/vocab-common-rdf'
-import { DUL } from '@/vocabularies/DUL'
+import { RDFS } from '@inrupt/vocab-common-rdf'
+import { RDF_CONFIG, SHACL_CONFIG } from '@/services/rdfConfig'
 import {
   BCard,
   BCardBody,
@@ -159,10 +159,10 @@ const createStepFromForm = async () => {
     const formThing = formThings[0]
     const stepTitle = formThing.predicates[RDFS.label]?.[0]?.object?.value
     const stepDescription = formThing.predicates[RDFS.comment]?.[0]?.object?.value
-    const stepVersion = formThing.predicates['http://schema.org/version']?.[0]?.object?.value
-    const stepSequence = formThing.predicates['http://schema.org/position']?.[0]?.object?.value
-    const shapeSource = formThing.predicates['http://purl.org/dc/terms/source']?.[0]?.object?.value
-    const dulRealizes = formThing.predicates[DUL.realizes]?.[0]?.object?.value
+    const stepVersion = formThing.predicates[RDF_CONFIG.VERSION]?.[0]?.object?.value
+    const stepSequence = formThing.predicates[RDF_CONFIG.POSITION]?.[0]?.object?.value
+    const shapeSource = formThing.predicates[RDF_CONFIG.SOURCE_REFERENCE]?.[0]?.object?.value
+    const dulRealizes = formThing.predicates[RDF_CONFIG.REALIZES]?.[0]?.object?.value
 
     if (!stepTitle || !stepVersion) {
       throw new Error('Missing required step information (title and version are mandatory)')
@@ -182,30 +182,27 @@ const createStepFromForm = async () => {
 
     // Generate a unique step URI within the task
     const stepIdentifier = stepTitle.replace(/\s+/g, '').toLowerCase()
-    const stepURI = `${props.taskUri}#${stepIdentifier}-v${stepVersion}-${Date.now()}`
-
-    // Create step thing
+    const stepURI = `${props.taskUri}#${stepIdentifier}-v${stepVersion}-${Date.now()}` // Create step thing
     let stepThing = createThing({ url: stepURI })
 
     // Add step properties
-    stepThing = addUrl(stepThing, RDF.type, DUL.Action)
+    stepThing = addUrl(stepThing, RDF_CONFIG.ENTITY_TYPE, RDF_CONFIG.TYPES.ACTION)
     stepThing = addStringNoLocale(stepThing, RDFS.label, stepTitle)
-    stepThing = addInteger(stepThing, 'http://schema.org/version', parseInt(stepVersion))
+    stepThing = addInteger(stepThing, RDF_CONFIG.VERSION, parseInt(stepVersion))
 
     if (stepDescription) {
       stepThing = addStringNoLocale(stepThing, RDFS.comment, stepDescription)
     }
-
     if (stepSequence) {
-      stepThing = addInteger(stepThing, 'http://schema.org/position', parseInt(stepSequence))
+      stepThing = addInteger(stepThing, RDF_CONFIG.POSITION, parseInt(stepSequence))
     }
 
     if (shapeSource) {
-      stepThing = addUrl(stepThing, 'http://purl.org/dc/terms/source', shapeSource)
+      stepThing = addUrl(stepThing, RDF_CONFIG.SOURCE_REFERENCE, shapeSource)
     }
 
     if (dulRealizes) {
-      stepThing = addStringNoLocale(stepThing, DUL.realizes, dulRealizes)
+      stepThing = addStringNoLocale(stepThing, RDF_CONFIG.REALIZES, dulRealizes)
     }
 
     // Add the step to the task dataset
@@ -267,7 +264,7 @@ onMounted(async () => {
               <!-- SHACL Form Component -->
               <shacl-form
                 :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_URL)"
-                data-shape-subject="http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Action"
+                :data-shape-subject="SHACL_CONFIG.STEP_FORM.SHAPE_SUBJECT"
                 data-values-namespace="#step"
                 submit-button-text="Create Step"
                 :submit-button-disabled="!isFormValid || isSubmitting"

@@ -22,7 +22,7 @@
         data-values-namespace="#title-"
         data-submit-button="Save"
         :data-loading="`Retrieving shapes from ${DATA_URL}...`"
-        data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
+        :data-generate-node-shape-reference="RDF_CONFIG.CONFORMS_TO"
       />
     </span>
     <BAlert v-else variant="warning" :model-value="true">
@@ -46,6 +46,7 @@ import {
   getThingAll,
   setThing
 } from '@inrupt/solid-client'
+import { RDF_CONFIG } from '@/services/rdfConfig'
 // import { RDF } from '@inrupt/vocab-common-rdf'
 
 const emit = defineEmits(['DataSetUpdated'])

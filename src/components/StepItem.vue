@@ -22,14 +22,12 @@
  */
 import { computed, onBeforeMount, ref } from 'vue'
 import { getStringNoLocale, getUrl } from '@inrupt/solid-client'
-import { DCTERMS } from '@inrupt/vocab-common-rdf'
 import { useRoute } from 'vue-router'
 
 import { sessionStore } from '@/stores/sessions'
 import { processStore } from '@/stores/process'
 import { dataService } from '@/services/dataService'
-import { ERA } from '@/vocabularies/ERA'
-import { DUL } from '@/vocabularies/DUL'
+import { SHACL_CONFIG } from '@/services/rdfConfig'
 
 const props = defineProps({ step: Object, sequence: Number })
 const emit = defineEmits(['nextStep'])
@@ -117,13 +115,12 @@ const dataTarget = computed(() => {
    *
    * Examples (legacy fallback):
    * {EUARPod}/process/organisation/add -> {UserPod}/data/organisation/org#
-   * {EUARPod}/process/organisation/addSite -> {UserPod}/data/organisation/site#
-   * {EUARPod}/process/organisation/addUnit -> {UserPod}/data/organisation/unit#
+   * {EUARPod}/process/organisation/addSite -> {UserPod}/data/organisation/site#   * {EUARPod}/process/organisation/addUnit -> {UserPod}/data/organisation/unit#
    */
   return {
     URI: resourceURI, // Use the resource URI with fragment identifier
     containerURI: containerURI, // Also provide container URI for creation if needed
-    subjectClass: ERA.NAMESPACE + 'OrgOrFormalOrgShape',
+    subjectClass: SHACL_CONFIG.ORGANIZATION_FORM.SHAPE_SUBJECT,
     subjectNodeId: ''
   }
 })
@@ -224,11 +221,12 @@ onBeforeMount(() => {
   stepTitle.value = dataService.extractStepName(props.step)
   stepIntro.value = dataService.extractStepDescription(props.step)
 
-  formShapeFile.value = getUrl(props.step, DCTERMS.source)
+  formShapeFile.value = getUrl(props.step, SHACL_CONFIG.SHAPE_SOURCE_PROPERTY)
 
   // Extract dul:realizes property if present (preferred approach for resource naming)
   dulRealizesTarget.value =
-    getUrl(props.step, DUL.realizes) || getStringNoLocale(props.step, DUL.realizes)
+    getUrl(props.step, SHACL_CONFIG.RESOURCE_REALIZATION_PROPERTY) ||
+    getStringNoLocale(props.step, SHACL_CONFIG.RESOURCE_REALIZATION_PROPERTY)
 
   if (dulRealizesTarget.value) {
     console.log(`Step defines dul:realizes: ${dulRealizesTarget.value}`)

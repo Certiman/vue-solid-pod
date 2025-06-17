@@ -31,6 +31,7 @@ import {
   BRow,
   BCol
 } from 'bootstrap-vue-next'
+import { RDF_CONFIG, SHACL_CONFIG } from '@/services/rdfConfig'
 
 // Store
 import { cacheStore } from '@/stores/cache'
@@ -157,11 +158,9 @@ const createTaskFromForm = async () => {
 
     const formThing = formThings[0]
     const taskName = formThing.predicates[RDFS.comment]?.[0]?.object?.value
-    const taskIdentifier =
-      formThing.predicates['http://purl.org/dc/terms/identifier']?.[0]?.object?.value
+    const taskIdentifier = formThing.predicates[RDF_CONFIG.IDENTIFIER]?.[0]?.object?.value
     const contactEmail = formThing.predicates[VCARD.hasEmail]?.[0]?.object?.value
-    const taskDescription =
-      formThing.predicates['http://purl.org/dc/terms/description']?.[0]?.object?.value
+    const taskDescription = formThing.predicates[RDF_CONFIG.DESCRIPTION]?.[0]?.object?.value
 
     if (!taskName || !taskIdentifier || !contactEmail) {
       throw new Error('Missing required task information')
@@ -193,11 +192,7 @@ const createTaskFromForm = async () => {
     taskThing = addUrl(taskThing, RDF.type, DUL.Task)
 
     if (taskDescription) {
-      taskThing = addStringNoLocale(
-        taskThing,
-        'http://purl.org/dc/terms/description',
-        taskDescription
-      )
+      taskThing = addStringNoLocale(taskThing, RDF_CONFIG.DESCRIPTION, taskDescription)
     }
 
     newTaskDS = setThing(newTaskDS, taskThing)
@@ -258,7 +253,7 @@ onMounted(async () => {
               <!-- SHACL Form Component -->
               <shacl-form
                 :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_URL)"
-                data-shape-subject="http://www.w3.org/ns/ldp#RDFSource"
+                :data-shape-subject="SHACL_CONFIG.TASK_FORM.SHAPE_SUBJECT"
                 data-values-namespace="#task"
                 submit-button-text="Create Task"
                 :submit-button-disabled="!isFormValid || isSubmitting"

@@ -13,6 +13,7 @@ import {
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { RDFS, RDF, LDP, VCARD } from '@inrupt/vocab-common-rdf'
 import { DUL } from '@/vocabularies/DUL'
+import { RDF_CONFIG, EXTRACTION_PRIORITIES } from './rdfConfig.js'
 
 /**
  * Data service for fetching and processing Solid Pod data
@@ -74,13 +75,11 @@ export const dataService = {
       // Extract task metadata
       const taskName = this.extractTaskName(taskThing, taskURI)
       const taskContact = this.extractTaskContact(taskThing)
-      const taskDescription = this.extractTaskDescription(taskThing)
-
-      // Check for task steps/actions
+      const taskDescription = this.extractTaskDescription(taskThing) // Check for task steps/actions
       const allThings = getThingAll(taskDataSet)
       const stepThings = allThings.filter((thing) => {
-        const types = getUrlAll(thing, RDF.type)
-        return types.includes(DUL.Action)
+        const types = getUrlAll(thing, RDF_CONFIG.ENTITY_TYPE)
+        return types.includes(RDF_CONFIG.TYPES.ACTION)
       })
 
       const taskData = {
@@ -125,8 +124,8 @@ export const dataService = {
       const stepData = {
         uri: stepURI,
         name: this.extractStepName(stepThing),
-        sequence: getInteger(stepThing, 'http://schema.org/position') || null,
-        version: getInteger(stepThing, 'http://schema.org/version') || 0,
+        sequence: getInteger(stepThing, RDF_CONFIG.POSITION) || null,
+        version: getInteger(stepThing, RDF_CONFIG.VERSION) || 0,
         stepThing: stepThing,
         fetchedAt: new Date()
       }
@@ -185,36 +184,43 @@ export const dataService = {
    * @returns {string} Step name
    */,
   extractStepName(stepThing, stepURI = null) {
-    const name =
-      getStringNoLocale(stepThing, 'http://schema.org/name') ||
-      getStringWithLocale(stepThing, 'http://schema.org/name', 'en-US') ||
-      getStringWithLocale(stepThing, 'http://schema.org/name', 'en') ||
-      getStringNoLocale(stepThing, RDFS.label) ||
-      getStringWithLocale(stepThing, RDFS.label, 'en-US') ||
-      getStringWithLocale(stepThing, RDFS.label, 'en') ||
-      getStringNoLocale(stepThing, RDFS.comment) ||
-      getStringWithLocale(stepThing, RDFS.comment, 'en-US') ||
-      getStringWithLocale(stepThing, RDFS.comment, 'en') ||
-      (stepURI ? stepURI.split('/').pop() : null) ||
-      'Unnamed step'
-    return name
-  },
+    // Use configurable property priorities for step name extraction
+    let name = null
 
+    for (const propertyUri of EXTRACTION_PRIORITIES.TITLE) {
+      for (const lang of EXTRACTION_PRIORITIES.LANGUAGES) {
+        name = getStringWithLocale(stepThing, propertyUri, lang)
+        if (name) break
+      }
+      if (!name) {
+        name = getStringNoLocale(stepThing, propertyUri)
+      }
+      if (name) break
+    }
+
+    return name || (stepURI ? stepURI.split('/').pop() : null) || 'Unnamed step'
+  },
   /**
    * Extract step description from step thing
    * @param {Object} stepThing - The step RDF thing
    * @returns {string} Step description
    */
   extractStepDescription(stepThing) {
-    return (
-      getStringWithLocale(stepThing, 'http://purl.org/dc/terms/description', 'en-US') ||
-      getStringWithLocale(stepThing, 'http://purl.org/dc/terms/description', 'en') ||
-      getStringWithLocale(stepThing, 'http://purl.org/dc/elements/1.1/description', 'en-US') ||
-      getStringWithLocale(stepThing, 'http://purl.org/dc/elements/1.1/description', 'en') ||
-      getStringNoLocale(stepThing, 'http://purl.org/dc/terms/description') ||
-      getStringNoLocale(stepThing, 'http://purl.org/dc/elements/1.1/description') ||
-      ''
-    )
+    // Use configurable property priorities for step description extraction
+    let description = null
+
+    for (const propertyUri of EXTRACTION_PRIORITIES.DESCRIPTION) {
+      for (const lang of EXTRACTION_PRIORITIES.LANGUAGES) {
+        description = getStringWithLocale(stepThing, propertyUri, lang)
+        if (description) break
+      }
+      if (!description) {
+        description = getStringNoLocale(stepThing, propertyUri)
+      }
+      if (description) break
+    }
+
+    return description || ''
   },
 
   /**
@@ -277,16 +283,16 @@ export const dataService = {
   /**
    * Process a DUL:Action step
    * @param {Object} step - The step thing
-   * @param {Set} versions - Versions set to update
-   * @param {Array} stepsList - Steps list to update
+   * @param {Set} versions - Versions set to update   * @param {Array} stepsList - Steps list to update
    * @param {Array} pointersList - Pointers list to update
-   */ processActionStep(step, versions, stepsList, pointersList) {
+   */
+  processActionStep(step, versions, stepsList, pointersList) {
     try {
       const stepURI = asUrl(step)
       console.log('Processing action step:', stepURI)
 
       // Extract version
-      let stepVersion = getInteger(step, 'http://schema.org/version') || 0
+      let stepVersion = getInteger(step, RDF_CONFIG.VERSION) || 0
       if (!stepVersion) {
         console.warn('Step is missing schema:version property')
         stepVersion = 0
@@ -373,14 +379,12 @@ export const dataService = {
             const types = getUrlAll(thing, RDF.type)
 
             // Extract properties for display
-            const properties = this.extractThingProperties(thing)
-
-            // Get created/modified dates if available
+            const properties = this.extractThingProperties(thing) // Get created/modified dates if available
             const created =
-              getStringNoLocale(thing, 'http://purl.org/dc/terms/created') ||
+              getStringNoLocale(thing, RDF_CONFIG.CREATED_DATE) ||
               getStringNoLocale(thing, 'http://schema.org/dateCreated')
             const modified =
-              getStringNoLocale(thing, 'http://purl.org/dc/terms/modified') ||
+              getStringNoLocale(thing, RDF_CONFIG.MODIFIED_DATE) ||
               getStringNoLocale(thing, 'http://schema.org/dateModified')
 
             const resourceData = {

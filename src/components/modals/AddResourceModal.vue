@@ -25,6 +25,7 @@ import {
   setThing
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
+import { RDF_CONFIG } from '@/services/rdfConfig'
 
 // Store
 import { cacheStore } from '@/stores/cache'
@@ -151,7 +152,7 @@ onMounted(async () => await loadShapesFromNonRDFFile())
         :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
         data-submit-button="Save"
         :data-loading="`Retrieving shapes from ${DATA_URL}...`"
-        data-generate-node-shape-reference="http://purl.org/dc/terms/conformsTo"
+        :data-generate-node-shape-reference="RDF_CONFIG.CONFORMS_TO"
       />
     </span>
     <BAlert v-else variant="warning" :model-value="true">

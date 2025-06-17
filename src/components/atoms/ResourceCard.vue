@@ -86,6 +86,7 @@ import IMdiPencilOutline from '~icons/mdi/pencil-outline'
 import IMdiClockOutline from '~icons/mdi/clock-outline'
 import IMdiCompassOutline from '~icons/mdi/compass-outline'
 import { dataService } from '@/services/dataService'
+import { EXTRACTION_PRIORITIES } from '@/services/rdfConfig'
 
 const props = defineProps({
   resource: {
@@ -156,17 +157,11 @@ const rdfTypeLabel = computed(() => {
 })
 
 const previewProperties = computed(() => {
-  if (!props.resource.properties) return []
-
-  // Show max 3 most important properties
+  if (!props.resource.properties) return [] // Show max 3 most important properties - using semantic extraction priorities
   const importantProps = [
-    'http://www.w3.org/2000/01/rdf-schema#comment',
-    'http://schema.org/description',
-    'http://purl.org/dc/terms/description',
-    'http://www.w3.org/2006/vcard/ns#hasEmail',
-    'http://schema.org/email',
-    'http://www.w3.org/2006/vcard/ns#hasURL',
-    'http://schema.org/url'
+    ...EXTRACTION_PRIORITIES.DESCRIPTION,
+    ...EXTRACTION_PRIORITIES.EMAIL,
+    ...EXTRACTION_PRIORITIES.URL
   ]
 
   const preview = []
