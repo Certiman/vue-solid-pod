@@ -3,9 +3,7 @@
     "vitest-globals/env": true,
     "node": true
   },
-  "extends": [
-    "vitest-globals"
-  ],
+  "extends": ["vitest-globals"],
   "globals": {
     "globalThis": "readonly"
   }

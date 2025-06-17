@@ -10,15 +10,21 @@ describe('RDF Configuration', () => {
     it('should have all required entity type URIs', () => {
       expect(RDF_CONFIG.ENTITY_TYPE).toBe('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
       expect(RDF_CONFIG.TYPES).toBeDefined()
-      expect(RDF_CONFIG.TYPES.TASK).toBe('http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Task')
-      expect(RDF_CONFIG.TYPES.ACTION).toBe('http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Action')
+      expect(RDF_CONFIG.TYPES.TASK).toBe(
+        'http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Task'
+      )
+      expect(RDF_CONFIG.TYPES.ACTION).toBe(
+        'http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#Action'
+      )
     })
 
     it('should have description properties with fallback chain in EXTRACTION_PRIORITIES', () => {
       expect(EXTRACTION_PRIORITIES.DESCRIPTION).toBeDefined()
       expect(Array.isArray(EXTRACTION_PRIORITIES.DESCRIPTION)).toBe(true)
       expect(EXTRACTION_PRIORITIES.DESCRIPTION).toContain('http://purl.org/dc/terms/description')
-      expect(EXTRACTION_PRIORITIES.DESCRIPTION).toContain('http://purl.org/dc/elements/1.1/description')
+      expect(EXTRACTION_PRIORITIES.DESCRIPTION).toContain(
+        'http://purl.org/dc/elements/1.1/description'
+      )
     })
 
     it('should have title properties with fallback chain in EXTRACTION_PRIORITIES', () => {
@@ -37,7 +43,9 @@ describe('RDF Configuration', () => {
     })
 
     it('should have realizes property for resource targeting', () => {
-      expect(RDF_CONFIG.REALIZES).toBe('http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#realizes')
+      expect(RDF_CONFIG.REALIZES).toBe(
+        'http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#realizes'
+      )
     })
   })
 
@@ -63,7 +71,7 @@ describe('RDF Configuration', () => {
   describe('Configuration Structure', () => {
     it('should have consistent property naming', () => {
       // All properties should be uppercase constants
-      Object.keys(RDF_CONFIG).forEach(key => {
+      Object.keys(RDF_CONFIG).forEach((key) => {
         expect(key).toMatch(/^[A-Z_]+$/)
       })
     })
