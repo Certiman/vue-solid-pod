@@ -1,0 +1,12 @@
+{
+  "env": {
+    "vitest-globals/env": true,
+    "node": true
+  },
+  "extends": [
+    "vitest-globals"
+  ],
+  "globals": {
+    "globalThis": "readonly"
+  }
+}

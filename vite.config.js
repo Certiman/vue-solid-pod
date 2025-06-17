@@ -35,5 +35,23 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  // Vitest configuration
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.js'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'tests/',
+        '**/*.d.ts',
+        'src/exclude/',
+        'src/vocabularies/',
+        'vite.config.js'
+      ]
+    }
   }
 })
