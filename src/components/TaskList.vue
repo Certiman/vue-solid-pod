@@ -115,21 +115,12 @@ const filteredTaskList = computed(() => {
 })
 
 const headerText = computed(() => {
-  const totalTasks = taskList.value.length
-  const visibleTasks = filteredTaskList.value.length
-  const filterText =
-    showRunnableOnly.value && totalTasks !== visibleTasks
-      ? ` (${visibleTasks}/${totalTasks} runnable)`
-      : ''
+  const processName = processStore.extractProcessName(props.processURI) || 'Unknown Process'
 
   if (isLoading.value) {
-    return '[TaskList] Loading tasks...'
-  } else if (visibleTasks > 0) {
-    return `[TaskList] Available tasks${filterText}`
-  } else if (totalTasks > 0 && showRunnableOnly.value) {
-    return '[TaskList] No runnable tasks (try toggling filter)'
+    return `Tasks in ${processName} - Loading...`
   } else {
-    return '[TaskList] Process contains no tasks'
+    return `Tasks in ${processName}`
   }
 })
 
@@ -339,17 +330,14 @@ watch(
             Show runnable tasks only
           </BFormCheckbox>
           <small class="text-muted d-block mt-1">
-            Runnable tasks have steps and are accessible to you
+            Runnable tasks have steps and are accessible to you. Run a task by clicking the play
+            button.
           </small>
         </BCol>
       </BRow>
 
       <!-- Task list -->
-      <BFormGroup
-        v-if="filteredTaskList.length > 0"
-        description="Run a task by clicking the play button."
-        class="mb-3"
-      >
+      <BFormGroup v-if="filteredTaskList.length > 0" class="mb-3">
         <BListGroup flush>
           <TaskItem v-for="task of filteredTaskList" :key="task.taskName" :task="task" />
         </BListGroup>
