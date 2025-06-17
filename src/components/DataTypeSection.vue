@@ -68,7 +68,7 @@ import ResourceCard from '@/components/atoms/ResourceCard.vue'
 import ViewResourceModal from '@/components/modals/ViewResourceModal.vue'
 import { sessionStore } from '@/stores/sessions'
 import { modalStore } from '@/stores/ui'
-import { dataService } from '@/services/dataService'
+import RDFExtractor from '@/core/RDFExtractor'
 
 const props = defineProps({
   rdfType: {
@@ -103,7 +103,7 @@ const showViewModal = ref(false)
 
 // Computed properties
 const displayTypeName = computed(() => {
-  return dataService.extractDisplayTypeName(props.rdfType)
+  return RDFExtractor.extractDisplayTypeName(props.rdfType)
 })
 
 const canAddNew = computed(() => {

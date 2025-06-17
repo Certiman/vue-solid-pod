@@ -14,7 +14,7 @@ import TaskItem from './TaskItem.vue'
 
 import { processStore } from '@/stores/process'
 import { cacheStore } from '@/stores/cache'
-import { dataService } from '@/services/dataService'
+import RDFExtractor from '@/core/RDFExtractor'
 import { RDF_CONFIG } from '@/services/rdfConfig'
 import {
   BCard,
@@ -178,8 +178,8 @@ const loadAllTasks = async (forceRefresh = false) => {
           const taskThing = getThing(taskDataSet, taskURI)
 
           if (taskThing) {
-            // Extract the task name using dataService
-            const taskName = dataService.extractTaskName(taskThing, taskURI) // Check for steps in this task
+            // Extract the task name using RDFExtractor
+            const taskName = RDFExtractor.extractTaskName(taskThing, taskURI) // Check for steps in this task
             const allThings = getThingAll(taskDataSet)
             const stepThings = allThings.filter((thing) => {
               const types = getUrlAll(thing, RDF_CONFIG.ENTITY_TYPE)

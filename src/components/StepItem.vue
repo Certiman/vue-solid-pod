@@ -26,7 +26,7 @@ import { useRoute } from 'vue-router'
 
 import { sessionStore } from '@/stores/sessions'
 import { processStore } from '@/stores/process'
-import { dataService } from '@/services/dataService'
+import RDFExtractor from '@/core/RDFExtractor'
 import { SHACL_CONFIG } from '@/services/rdfConfig'
 
 const props = defineProps({ step: Object, sequence: Number })
@@ -217,9 +217,9 @@ onBeforeMount(() => {
   if (!props.step) {
     console.error('StepItem: No step object provided!')
     return
-  } // Use dataService for robust step name and description extraction
-  stepTitle.value = dataService.extractStepName(props.step)
-  stepIntro.value = dataService.extractStepDescription(props.step)
+  } // Use RDFExtractor for robust step name and description extraction
+  stepTitle.value = RDFExtractor.extractStepName(props.step)
+  stepIntro.value = RDFExtractor.extractStepDescription(props.step)
 
   formShapeFile.value = getUrl(props.step, SHACL_CONFIG.SHAPE_SOURCE_PROPERTY)
 
@@ -239,10 +239,9 @@ onBeforeMount(() => {
     formShapeFile: formShapeFile.value,
     dulRealizesTarget: dulRealizesTarget.value
   })
-
-  // Note: Step name and description now extracted using dataService for consistency
+  // Note: Step name and description now extracted using RDFExtractor for consistency
   console.log(
-    'Using dataService.extractStepName() and dataService.extractStepDescription() for robust extraction'
+    'Using RDFExtractor.extractStepName() and RDFExtractor.extractStepDescription() for robust extraction'
   )
 })
 </script>

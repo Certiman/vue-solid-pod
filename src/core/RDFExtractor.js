@@ -4,11 +4,7 @@
  * This class consolidates all extraction logic from dataService, providing
  * a complete layer for property extraction, URI manipulation, and fallback chains.
  */
-import {
-  getStringNoLocale,
-  getStringWithLocale,
-  getUrl
-} from '@inrupt/solid-client'
+import { getStringNoLocale, getStringWithLocale, getUrl } from '@inrupt/solid-client'
 import { RDFS, VCARD } from '@inrupt/vocab-common-rdf'
 import { EXTRACTION_PRIORITIES } from '@/services/rdfConfig.js'
 
@@ -125,9 +121,7 @@ export class RDFExtractor {
    * @returns {string} Contact information
    */
   static extractTaskContact(taskThing) {
-    return getStringNoLocale(taskThing, VCARD.hasEmail) || 
-           getUrl(taskThing, VCARD.hasEmail) || 
-           ''
+    return getStringNoLocale(taskThing, VCARD.hasEmail) || getUrl(taskThing, VCARD.hasEmail) || ''
   }
 
   /**

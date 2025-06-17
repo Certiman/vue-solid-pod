@@ -31,7 +31,7 @@ export const dataService = {
       console.log(`Fetching process data for ${processURI}`)
 
       const containerDataSet = await getSolidDataset(processURI, { fetch })
-      const taskURIs = getContainedResourceUrlAll(containerDataSet)      // Filter out shape files and other non-task resources
+      const taskURIs = getContainedResourceUrlAll(containerDataSet) // Filter out shape files and other non-task resources
       // Filter out SHACL shape files and other non-task resources
       // TODO: this should better be based on these resources being of rdfs:type http://www.w3.org/ns/ldp#NonRDFSource
       const rdfTaskURIs = taskURIs.filter((uri) => {
@@ -69,7 +69,7 @@ export const dataService = {
 
       if (!taskThing) {
         throw new Error(`No task thing found at ${taskURI}`)
-      }      // Extract task metadata
+      } // Extract task metadata
       const taskName = RDFExtractor.extractTaskName(taskThing, taskURI)
       const taskContact = RDFExtractor.extractTaskContact(taskThing)
       const taskDescription = RDFExtractor.extractTaskDescription(taskThing) // Check for task steps/actions
@@ -133,25 +133,6 @@ export const dataService = {
       console.error(`Failed to fetch step data for ${stepURI}:`, error)
       throw error
     }
-  },
-
-  /**
-   * Extract task name from task thing with fallbacks
-   * @param {Object} taskThing - The task RDF thing
-   * @param {string} taskURI - The task URI for fallback
-   * @returns {string} Task name
-   */
-  extractTaskName(taskThing, taskURI) {
-    return (
-      getStringNoLocale(taskThing, RDFS.comment) ||
-      getStringWithLocale(taskThing, RDFS.comment, 'en-US') ||
-      getStringWithLocale(taskThing, RDFS.comment, 'en') ||
-      getStringNoLocale(taskThing, RDFS.label) ||
-      getStringWithLocale(taskThing, RDFS.label, 'en-US') ||
-      getStringWithLocale(taskThing, RDFS.label, 'en') ||
-      taskURI.split('/').pop() ||
-      'Unknown task name'
-    )
   },
 
   /**
