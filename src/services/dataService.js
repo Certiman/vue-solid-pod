@@ -14,6 +14,7 @@ import { fetch } from '@inrupt/solid-client-authn-browser'
 import { RDFS, RDF, LDP, VCARD } from '@inrupt/vocab-common-rdf'
 import { DUL } from '@/vocabularies/DUL'
 import { RDF_CONFIG, EXTRACTION_PRIORITIES } from './rdfConfig.js'
+import { RDFExtractor } from '@/core/RDFExtractor.js'
 
 /**
  * Data service for fetching and processing Solid Pod data
@@ -30,9 +31,7 @@ export const dataService = {
       console.log(`Fetching process data for ${processURI}`)
 
       const containerDataSet = await getSolidDataset(processURI, { fetch })
-      const taskURIs = getContainedResourceUrlAll(containerDataSet)
-
-      // Filter out shape files and other non-task resources
+      const taskURIs = getContainedResourceUrlAll(containerDataSet)      // Filter out shape files and other non-task resources
       // Filter out SHACL shape files and other non-task resources
       // TODO: this should better be based on these resources being of rdfs:type http://www.w3.org/ns/ldp#NonRDFSource
       const rdfTaskURIs = taskURIs.filter((uri) => {
@@ -41,7 +40,7 @@ export const dataService = {
 
       const processData = {
         uri: processURI,
-        name: this.extractNameFromURI(processURI),
+        name: RDFExtractor.extractNameFromURI(processURI),
         taskURIs: rdfTaskURIs,
         taskCount: rdfTaskURIs.length,
         containerDataSet,
@@ -70,12 +69,10 @@ export const dataService = {
 
       if (!taskThing) {
         throw new Error(`No task thing found at ${taskURI}`)
-      }
-
-      // Extract task metadata
-      const taskName = this.extractTaskName(taskThing, taskURI)
-      const taskContact = this.extractTaskContact(taskThing)
-      const taskDescription = this.extractTaskDescription(taskThing) // Check for task steps/actions
+      }      // Extract task metadata
+      const taskName = RDFExtractor.extractTaskName(taskThing, taskURI)
+      const taskContact = RDFExtractor.extractTaskContact(taskThing)
+      const taskDescription = RDFExtractor.extractTaskDescription(taskThing) // Check for task steps/actions
       const allThings = getThingAll(taskDataSet)
       const stepThings = allThings.filter((thing) => {
         const types = getUrlAll(thing, RDF_CONFIG.ENTITY_TYPE)
@@ -113,7 +110,7 @@ export const dataService = {
 
       // For steps, we might need to fetch from the parent task
       // This is a simplified version - might need more complex logic
-      const taskURI = this.extractTaskURIFromStep(stepURI)
+      const taskURI = RDFExtractor.extractTaskURIFromStep(stepURI)
       const taskDataSet = await getSolidDataset(taskURI, { fetch })
       const stepThing = getThing(taskDataSet, stepURI)
 
@@ -123,7 +120,7 @@ export const dataService = {
 
       const stepData = {
         uri: stepURI,
-        name: this.extractStepName(stepThing),
+        name: RDFExtractor.extractStepName(stepThing),
         sequence: getInteger(stepThing, RDF_CONFIG.POSITION) || null,
         version: getInteger(stepThing, RDF_CONFIG.VERSION) || 0,
         stepThing: stepThing,
@@ -328,9 +325,8 @@ export const dataService = {
       const firstTasks = getUrlAll(descriptor, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first')
       console.log('Task descriptor rdf:first pointers:', firstTasks)
 
-      // Extract task metadata using the robust extraction method
-      const taskName = this.extractTaskName(descriptor, asUrl(descriptor))
-      const taskContact = this.extractTaskContact(descriptor)
+      // Extract task metadata using the robust extraction method      const taskName = RDFExtractor.extractTaskName(descriptor, asUrl(descriptor))
+      const taskContact = RDFExtractor.extractTaskContact(descriptor)
 
       // Add starting points to pointers list
       const pointers = firstTasks.map((taskURI) => [null, taskURI, null])
@@ -379,7 +375,7 @@ export const dataService = {
             const types = getUrlAll(thing, RDF.type)
 
             // Extract properties for display
-            const properties = this.extractThingProperties(thing) // Get created/modified dates if available
+            const properties = RDFExtractor.extractThingProperties(thing) // Get created/modified dates if available
             const created =
               getStringNoLocale(thing, RDF_CONFIG.CREATED_DATE) ||
               getStringNoLocale(thing, 'http://schema.org/dateCreated')
@@ -464,7 +460,7 @@ export const dataService = {
    */
   extractResourceTitle(resourceProperties, resourceURI) {
     if (!resourceProperties) {
-      return this.extractNameFromURI(resourceURI)
+      return RDFExtractor.extractNameFromURI(resourceURI)
     }
 
     // Prioritize RDFS and SKOS label properties
@@ -485,7 +481,7 @@ export const dataService = {
     }
 
     // Fallback to extracting from URI
-    return this.extractNameFromURI(resourceURI)
+    return RDFExtractor.extractNameFromURI(resourceURI)
   },
 
   /**
@@ -556,7 +552,7 @@ export const dataService = {
       'http://xmlns.com/foaf/0.1/Person': 'People'
     }
 
-    return typeMap[rdfType] || this.extractTypeNameFromURI(rdfType)
+    return typeMap[rdfType] || RDFExtractor.extractTypeNameFromURI(rdfType)
   },
 
   /**
