@@ -44,7 +44,7 @@ Example of a report generation step:
 
 ## Modifications needed in current codebase
 
-- [ ] We must allow for properties of steps, tasks to be configurable, and not hard-coded. Some props are needing a change
+- [X] We must allow for properties of steps, tasks to be configurable, and not hard-coded. Some props are needing a change
 - [ ] We must provide tests on the internal operations of the codebase.
 - [ ] We must move code from components to reusable classes and assure test compliance.
 - [ ] We must allow the user to create a labeled collection of data sources, like ERADIS+, ERATV+, other than his own data.
