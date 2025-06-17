@@ -1,7 +1,13 @@
 <script setup>
 import { onBeforeMount, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSolidDataset, getContainedResourceUrlAll, getThing } from '@inrupt/solid-client'
+import {
+  getSolidDataset,
+  getContainedResourceUrlAll,
+  getThing,
+  getThingAll,
+  getUrlAll
+} from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 
 import TaskItem from './TaskItem.vue'
@@ -9,6 +15,7 @@ import TaskItem from './TaskItem.vue'
 import { processStore } from '@/stores/process'
 import { cacheStore } from '@/stores/cache'
 import { dataService } from '@/services/dataService'
+import { RDF_CONFIG } from '@/services/rdfConfig'
 import {
   BCard,
   BCardBody,
@@ -16,7 +23,10 @@ import {
   BSpinner,
   BButton,
   BFormGroup,
-  BListGroup
+  BListGroup,
+  BFormCheckbox,
+  BRow,
+  BCol
 } from 'bootstrap-vue-next'
 import { sessionStore } from '@/stores/sessions'
 
@@ -29,6 +39,9 @@ const router = useRouter()
 const taskList = ref([])
 const isLoading = ref(false)
 const loadError = ref(null)
+
+// UI state for filtering
+const showRunnableOnly = ref(true) // Default to true for better UX
 
 // Navigate to ERA Container add task process with current process as context
 const navigateToAddTask = () => {
@@ -82,34 +95,45 @@ const noTasksMessage = computed(() => {
 
 const tasksOfYourOwnPod = computed(() => {
   const isOwn = processStore.isOwnedResource(props.processURI)
-
-  console.log('TaskList - tasksOfYourOwnPod debug:', {
-    processURI: props.processURI,
-    selectedPodUrl: sessionStore.selectedPodUrl,
-    ownStoragePodRoot: sessionStore.ownStoragePodRoot(),
-    isOwn
-  })
-
   return isOwn
 })
 
+// Filtered task list based on "Runnable only" toggle
+const filteredTaskList = computed(() => {
+  if (!showRunnableOnly.value) {
+    return taskList.value // Show all tasks
+  }
+
+  // Only show tasks that are runnable (have steps and are accessible)
+  return taskList.value.filter((task) => {
+    const isAccessible = task.loadStatus !== 'failed'
+    const hasSteps = (task.stepCount || 0) > 0
+    const isRunnable = isAccessible && hasSteps
+
+    return isRunnable
+  })
+})
+
 const headerText = computed(() => {
+  const totalTasks = taskList.value.length
+  const visibleTasks = filteredTaskList.value.length
+  const filterText =
+    showRunnableOnly.value && totalTasks !== visibleTasks
+      ? ` (${visibleTasks}/${totalTasks} runnable)`
+      : ''
+
   if (isLoading.value) {
     return '[TaskList] Loading tasks...'
-  } else if (taskList.value.length > 0) {
-    return '[TaskList] Available tasks'
+  } else if (visibleTasks > 0) {
+    return `[TaskList] Available tasks${filterText}`
+  } else if (totalTasks > 0 && showRunnableOnly.value) {
+    return '[TaskList] No runnable tasks (try toggling filter)'
   } else {
     return '[TaskList] Process contains no tasks'
   }
 })
 
 const loadAllTasks = async (forceRefresh = false) => {
-  console.log('TaskList - loadAllTasks called:', {
-    processURI: props.processURI,
-    forceRefresh,
-    currentTaskCount: taskList.value.length
-  })
-
   // Check cache first if not forcing refresh
   if (!forceRefresh && props.processURI) {
     const cached = cacheStore.getCachedProcess(props.processURI)
@@ -156,7 +180,6 @@ const loadAllTasks = async (forceRefresh = false) => {
 
         if (cachedTask && cachedTask.loadStatus === 'loaded' && !forceRefresh) {
           taskData = cachedTask.data
-          console.log(`Using cached task data for ${taskURI}`)
         } else {
           // Fetch fresh data
           cacheStore.markLoading('task', taskURI)
@@ -164,20 +187,45 @@ const loadAllTasks = async (forceRefresh = false) => {
           const taskThing = getThing(taskDataSet, taskURI)
 
           if (taskThing) {
-            console.log(`Analysing individual Task @[${taskURI}]:`, taskThing) // Extract the task name using dataService
-            const taskName = dataService.extractTaskName(taskThing, taskURI)
+            // Extract the task name using dataService
+            const taskName = dataService.extractTaskName(taskThing, taskURI) // Check for steps in this task
+            const allThings = getThingAll(taskDataSet)
+            const stepThings = allThings.filter((thing) => {
+              const types = getUrlAll(thing, RDF_CONFIG.ENTITY_TYPE)
+              return types.includes(RDF_CONFIG.TYPES.ACTION)
+            })
 
             taskData = {
               taskName: taskName,
               taskThings: taskThing,
               taskProcessURI: props.processURI,
+              stepCount: stepThings.length, // Add step count for debugging
               loadStatus: 'loaded',
               loadedAt: new Date()
             }
 
             // Cache the task data
             cacheStore.cacheTask(taskURI, taskData, processStore.getProviderForURI(taskURI))
-            console.log(`Added task: ${taskName}`)
+          } else {
+            // Handle case where task URI exists but has no RDF thing
+            console.warn(
+              `Task URI ${taskURI} has no RDF thing - dataset loaded but getThing returned null`
+            )
+
+            const fallbackName = taskURI.split('/').pop() || 'Unknown task'
+
+            // For owners, show empty tasks as "No Steps" instead of hiding them
+            // For non-owners, this shouldn't happen (they'd get a 403 error instead)
+            taskData = {
+              taskName: `${fallbackName} (No Steps)`,
+              taskThings: { url: taskURI }, // Minimal task thing with just URL
+              taskProcessURI: props.processURI,
+              stepCount: 0,
+              loadStatus: 'empty',
+              loadedAt: new Date()
+            }
+
+            cacheStore.cacheTask(taskURI, taskData, processStore.getProviderForURI(taskURI))
           }
         }
 
@@ -188,20 +236,46 @@ const loadAllTasks = async (forceRefresh = false) => {
         console.warn(`Failed to load individual task ${taskURI}:`, taskError)
 
         // Mark as failed in cache
-        cacheStore.markLoadFailed('task', taskURI, taskError)
+        cacheStore.markLoadFailed('task', taskURI, taskError) // Determine if this is a permission error vs other types of errors
+        const isPermissionError =
+          taskError.status === 403 ||
+          taskError.message?.includes('Forbidden') ||
+          taskError.message?.includes('Unauthorized')
+        const isOwner = processStore.isOwnedResource(taskURI)
 
-        // Add a placeholder entry for failed tasks
-        const fallbackName = taskURI.split('/').pop() || 'Unknown task'
-        loadedTasks.push({
-          taskName: `${fallbackName} (No Access)`,
-          taskThings: { url: taskURI },
-          taskProcessURI: props.processURI,
-          loadStatus: 'failed',
-          error: taskError
-        })
+        // Only add placeholder entries based on error type and ownership
+        if (isOwner) {
+          // Owners should see their failed tasks with descriptive error messages
+          const fallbackName = taskURI.split('/').pop() || 'Unknown task'
+          const errorType = isPermissionError
+            ? 'Access Denied'
+            : taskError.status === 404
+              ? 'Not Found'
+              : taskError.status >= 500
+                ? 'Server Error'
+                : 'Load Failed'
+
+          loadedTasks.push({
+            taskName: `${fallbackName} (${errorType})`,
+            taskThings: { url: taskURI },
+            taskProcessURI: props.processURI,
+            loadStatus: 'failed',
+            error: taskError
+          })
+        } else if (isPermissionError) {
+          // Non-owners only see permission errors as "(No Access)"
+          const fallbackName = taskURI.split('/').pop() || 'Unknown task'
+          loadedTasks.push({
+            taskName: `${fallbackName} (No Access)`,
+            taskThings: { url: taskURI },
+            taskProcessURI: props.processURI,
+            loadStatus: 'failed',
+            error: taskError
+          })
+        }
+        // Non-owners don't see non-permission errors (silently skip them)
       }
     }
-
     taskList.value = loadedTasks
 
     // Cache the complete process data with tasks
@@ -234,7 +308,6 @@ onBeforeMount(async () => await loadAllTasks())
 watch(
   () => props.processURI,
   async (newProcessURI, oldProcessURI) => {
-    console.log('TaskList - processURI changed:', { oldProcessURI, newProcessURI })
     if (newProcessURI && newProcessURI !== oldProcessURI) {
       await loadAllTasks()
     }
@@ -257,26 +330,40 @@ watch(
         Try Again
       </BButton>
     </BCardBody>
-
     <!-- Tasks loaded successfully -->
     <BCardBody v-else-if="taskList.length > 0">
-      <!-- 
-      For future extension: task acl rights are defined PER WebId, or for the PublicAgent.
-      The list should visualise these rights depending on the selected Agent (WebId or Public)
+      <!-- Filter controls -->
+      <BRow class="mb-3">
+        <BCol>
+          <BFormCheckbox v-model="showRunnableOnly" :disabled="isLoading" switch size="sm">
+            Show runnable tasks only
+          </BFormCheckbox>
+          <small class="text-muted d-block mt-1">
+            Runnable tasks have steps and are accessible to you
+          </small>
+        </BCol>
+      </BRow>
+
+      <!-- Task list -->
       <BFormGroup
-        description="To change access rights, select Public Access or a WebId"
+        v-if="filteredTaskList.length > 0"
+        description="Run a task by clicking the play button."
         class="mb-3"
       >
-        <BFormRadioGroup v-model="aclRightsTarget" :options="aclRightsValues" />
-        <BFormGroup>
-          <BFormInput v-model="aclRightsWebId" />
-        </BFormGroup>
-      </BFormGroup> -->
-      <BFormGroup description="Run a task by clicking the play button." class="mb-3">
         <BListGroup flush>
-          <TaskItem v-for="task of taskList" :key="task.taskName" :task="task" />
+          <TaskItem v-for="task of filteredTaskList" :key="task.taskName" :task="task" />
         </BListGroup>
       </BFormGroup>
+
+      <!-- No tasks match filter -->
+      <div v-else class="text-center py-3 text-muted">
+        <p class="mb-2">
+          <strong>No {{ showRunnableOnly ? 'runnable ' : '' }}tasks found</strong>
+        </p>
+        <p class="small mb-0" v-if="showRunnableOnly && taskList.length > 0">
+          Try toggling "Show runnable tasks only" to see all {{ taskList.length }} tasks
+        </p>
+      </div>
     </BCardBody>
     <!-- No tasks found -->
     <BCardBody v-else>
@@ -291,6 +378,9 @@ watch(
       <!-- Cache status information -->
       <small class="text-muted">
         {{ taskList.length }} tasks loaded
+        <span v-if="showRunnableOnly && filteredTaskList.length !== taskList.length">
+          ({{ filteredTaskList.length }} runnable)
+        </span>
         <span v-if="!isLoading && !loadError">
           • Cache: {{ processStore.getCacheStatus.value?.totalCached || 0 }} items
         </span>
