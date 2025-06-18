@@ -73,17 +73,21 @@ era:VTAAShape a sh:NodeShape ;
   ];
   sh:property [
     # PreEngagement is a choice
+    # era:preEngagementBaseline era:Document
     sh:name "Pre-Engagement" ;
-    sh:path era:hasPreEngagement ;
+    sh:description "If a pre-engagement baseline was present, quote the reference document.";
     # sh:group issform:GI ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:or (
-      [ sh:node era:PreEngagementShape ; 
-        sh:name "Yes, pre-engagement baseline" ]
-      [ sh:node era:noPreEngagementShape  ; 
-        sh:name "No pre-engagement baseline" ]
-    )
+    # sh:minCount 1 ; If NOT given, NO pre-engagement
+    sh:maxCount 5 ;
+    sh:path era:preEngagementBaseline ;
+    sh:name "PreEngagement Reference Document"@en ;
+    sh:datatype xsd:anyURI;
+    # sh:or (
+    #   [ sh:node era:PreEngagementShape ; 
+    #     sh:name "Yes, pre-engagement baseline" ]
+    #   [ sh:node era:noPreEngagementShape  ; 
+    #     sh:name "No pre-engagement baseline" ]
+    # )
   ];
   sh:property [
     sh:node era:VTACShape ;
@@ -206,36 +210,35 @@ era:ApplicantByCodeShape a sh:NodeShape ;
   ].
 
 # If PreEngagement, a Reference to pre-engagement baseline is required
-era:PreEngagementShape a sh:NodeShape ;
-  sh:targetClass era:PreEngagement ;
-  # sh:property [
-  #   # era:preEngagementBaseline era:Document
-  #   sh:path era:preEngagementBaseline ;
-  #   sh:name "Pre-engagement baseline present"@en ;
-  #   sh:datatype xsd:boolean;
-  #   sh:hasValue "true"^^xsd:boolean;
-  #   sh:nodeKind sh:Literal ;
-  #   sh:minCount 1 ;
-  #   sh:maxCount 1
-  # ];
-  sh:property [
-    # era:preEngagementBaseline era:Document
-    sh:path era:preEngagementBaselineDocument ;
-    sh:name "PreEngagement Reference"@en ;
-    sh:datatype xsd:string;
-    sh:minCount 1
-  ] .
+# era:PreEngagementShape a sh:NodeShape ;
+#   sh:targetClass era:PreEngagement ;
+#   # sh:property [
+#   #   # era:preEngagementBaseline era:Document
+#   #   sh:path era:preEngagementBaseline ;
+#   #   sh:name "Pre-engagement baseline present"@en ;
+#   #   sh:datatype xsd:boolean;
+#   #   sh:hasValue "true"^^xsd:boolean;
+#   #   sh:nodeKind sh:Literal ;
+#   #   sh:minCount 1 ;
+#   #   sh:maxCount 1
+#   # ];
+#   sh:property [
+#     # era:preEngagementBaseline era:Document
+#     sh:path era:preEngagementBaseline ;
+#     sh:name "PreEngagement Reference Document"@en ;
+#     sh:datatype xsd:anyURI;
+#   ] .
 
 # # If NO PreEngagement, only boolean as already marked
-era:noPreEngagementShape a sh:NodeShape ;
-  sh:targetClass era:PreEngagement ;
-  sh:property [
-    # era:preEngagementBaseline era:Document
-    sh:path era:preEngagementBaseline ;
-    sh:name "Pre-engagement baseline present"@en ;
-    sh:datatype xsd:boolean;
-    sh:nodeKind sh:Literal ;
-    sh:hasValue "false"^^xsd:boolean ;
-    sh:minCount 1 ;
-    sh:maxCount 1
-  ] .
+# era:noPreEngagementShape a sh:NodeShape ;
+#   sh:targetClass era:PreEngagement ;
+#   sh:property [
+#     # era:preEngagementBaseline era:Document
+#     sh:path era:preEngagementBaseline ;
+#     sh:name "Pre-engagement baseline present"@en ;
+#     sh:datatype xsd:boolean;
+#     sh:nodeKind sh:Literal ;
+#     sh:hasValue "false"^^xsd:boolean ;
+#     sh:minCount 1 ;
+#     sh:maxCount 1
+#   ] .
