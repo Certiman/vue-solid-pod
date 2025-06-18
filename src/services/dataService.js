@@ -8,7 +8,8 @@ import {
   getUrl,
   getUrlAll,
   getInteger,
-  asUrl
+  asUrl,
+  toRdfJsDataset
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { RDFS, RDF, LDP, VCARD } from '@inrupt/vocab-common-rdf'
@@ -417,14 +418,15 @@ export const dataService = {
       throw error
     }
   },
-
   /**
    * Extract properties from a Thing for display
    * @param {Thing} thing - The RDF thing
    * @returns {Object} Properties object
    */
   extractThingProperties(thing) {
-    const properties = {} // Common properties to extract
+    const properties = {}
+
+    // Common properties to extract - try these first
     const propertiesToExtract = [
       RDFS.label,
       RDFS.comment,
@@ -436,26 +438,71 @@ export const dataService = {
       'http://schema.org/url',
       'http://purl.org/dc/terms/title',
       'http://purl.org/dc/terms/description',
+      'http://purl.org/dc/terms/identifier',
+      'http://purl.org/dc/terms/creator',
       'http://www.w3.org/2006/vcard/ns#hasEmail',
       'http://www.w3.org/2006/vcard/ns#hasURL',
       'http://xmlns.com/foaf/0.1/name',
       'http://xmlns.com/foaf/0.1/mbox'
-    ]
-
+    ] // First, try to extract known properties
     for (const property of propertiesToExtract) {
-      const value =
-        getStringNoLocale(thing, property) ||
-        getStringWithLocale(thing, property) ||
-        getUrl(thing, property)
+      let value = getStringNoLocale(thing, property) || getUrl(thing, property)
+
+      // If no non-locale value found, try common locales
+      if (!value) {
+        const commonLocales = ['en', 'en-US', 'en-GB', 'nl', 'de', 'fr']
+        for (const locale of commonLocales) {
+          value = getStringWithLocale(thing, property, locale)
+          if (value) break
+        }
+      }
 
       if (value) {
         properties[property] = value
       }
     }
 
+    // If no known properties found, extract ALL properties to ensure resource is still displayable
+    if (Object.keys(properties).length === 0) {
+      console.log(
+        'No standard properties found, extracting all properties for thing:',
+        asUrl(thing)
+      )
+
+      // Try to get all predicates for this thing - this is a fallback approach
+      // We'll extract a few other properties that might be useful for display
+      const additionalProps = [
+        'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        'http://www.w3.org/2002/07/owl#sameAs',
+        'http://purl.org/dc/terms/conformsTo',
+        'http://purl.org/dc/terms/hasFormat'
+      ]
+
+      for (const property of additionalProps) {
+        let value = getStringNoLocale(thing, property) || getUrl(thing, property)
+
+        // If no non-locale value found, try common locales
+        if (!value) {
+          const commonLocales = ['en', 'en-US', 'en-GB', 'nl', 'de', 'fr']
+          for (const locale of commonLocales) {
+            value = getStringWithLocale(thing, property, locale)
+            if (value) break
+          }
+        }
+
+        if (value) {
+          properties[property] = value
+        }
+      }
+
+      // If still no properties, at least add the subject URI as a display property
+      if (Object.keys(properties).length === 0) {
+        properties['_subject_uri'] = asUrl(thing)
+      }
+    }
+
     return properties
   },
-
   /**
    * Extract resource title from thing properties with comprehensive fallbacks
    * @param {Object} resourceProperties - The resource properties object
@@ -474,6 +521,7 @@ export const dataService = {
       'http://www.w3.org/2004/02/skos/core#altLabel',
       'http://schema.org/name',
       'http://purl.org/dc/terms/title',
+      'http://purl.org/dc/terms/identifier',
       'http://xmlns.com/foaf/0.1/name'
     ]
 
@@ -484,6 +532,11 @@ export const dataService = {
       }
     }
 
+    // Check if we have a fallback subject URI property
+    if (resourceProperties['_subject_uri']) {
+      return this.extractNameFromURI(resourceProperties['_subject_uri'])
+    }
+
     // Fallback to extracting from URI
     return this.extractNameFromURI(resourceURI)
   },
@@ -492,8 +545,7 @@ export const dataService = {
    * Extract human-readable property label from property URI
    * @param {string} propertyURI - The property URI
    * @returns {string} Human-readable label
-   */
-  extractPropertyLabel(propertyURI) {
+   */ extractPropertyLabel(propertyURI) {
     const labelMap = {
       'http://www.w3.org/2000/01/rdf-schema#label': 'Label',
       'http://www.w3.org/2000/01/rdf-schema#comment': 'Description',
@@ -505,10 +557,13 @@ export const dataService = {
       'http://schema.org/url': 'URL',
       'http://purl.org/dc/terms/title': 'Title',
       'http://purl.org/dc/terms/description': 'Description',
+      'http://purl.org/dc/terms/identifier': 'Identifier',
+      'http://purl.org/dc/terms/creator': 'Creator',
       'http://www.w3.org/2006/vcard/ns#hasEmail': 'Email',
       'http://www.w3.org/2006/vcard/ns#hasURL': 'URL',
       'http://xmlns.com/foaf/0.1/name': 'Name',
-      'http://xmlns.com/foaf/0.1/mbox': 'Email'
+      'http://xmlns.com/foaf/0.1/mbox': 'Email',
+      _subject_uri: 'Subject URI'
     }
 
     return labelMap[propertyURI] || propertyURI.split(/[#/]/).pop()
@@ -676,6 +731,26 @@ export const dataService = {
     } catch (error) {
       console.error('Error formatting RDF data:', error)
       return `Error formatting data: ${error.message}\n\nRaw data structure:\n${JSON.stringify(rdfData, null, 2).substring(0, 1000)}...`
+    }
+  },
+
+  /**
+   * Load RDF data from a resource URI for display in SHACL forms
+   * @param {string} resourceURI - The resource URI to load
+   * @returns {Promise<Object>} RDF/JS dataset
+   */
+  async getResourceRDF(resourceURI) {
+    try {
+      console.log(`Loading RDF data from ${resourceURI}`)
+
+      const foundDataset = await getSolidDataset(resourceURI, { fetch })
+      const rdfJsDataset = toRdfJsDataset(foundDataset)
+
+      console.log('RDF data loaded successfully for display')
+      return rdfJsDataset
+    } catch (error) {
+      console.error('Error loading RDF data:', error)
+      throw error
     }
   }
 }

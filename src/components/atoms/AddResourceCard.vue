@@ -12,7 +12,7 @@
  *      :data-shape-subject="props.targetResource.subjectClass"
         :data-values-namespace="`#${props.targetResource.subjectNodeId}`"
  */
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 
 import {
   getFile,
@@ -43,6 +43,9 @@ import { RDF_CONFIG } from '@/services/rdfConfig'
 import { cacheStore } from '@/stores/cache'
 import { modalStore } from '@/stores/ui'
 
+// Services
+import { dataService } from '@/services/dataService'
+
 // Props and Emits
 const emit = defineEmits(['DataSetUpdated'])
 
@@ -51,7 +54,9 @@ const emit = defineEmits(['DataSetUpdated'])
 const props = defineProps({
   shapeFileUrl: String, // absolute URL to the container!
   targetResource: Object,
-  cardData: Object // not needed in Step, as it is provided.
+  cardData: Object, // not needed in Step, as it is provided.
+  selectedResourceUri: String, // URI of existing resource to display/edit
+  displayMode: Boolean // true = read-only display, false = edit mode
 })
 
 // Alert system
@@ -64,6 +69,10 @@ const alertCountdown = ref(0)
 const currentRdfData = ref('')
 const isFormValid = ref(false)
 const showRdfPreview = ref(false)
+
+// Existing resource data for display mode
+const existingResourceData = ref(null)
+const existingResourceLoaded = ref(false)
 
 // Shape loading counter for triggering reloads
 const numberOfShapesLoaded = ref(0)
@@ -224,21 +233,94 @@ const addResourceAsRDF = async () => {
   }
 }
 
-onMounted(async () => await loadShapesFromNonRDFFile())
+// Function to load existing resource data for display mode
+const loadExistingResource = async () => {
+  if (!props.selectedResourceUri) {
+    existingResourceData.value = null
+    existingResourceLoaded.value = false
+    return
+  }
+
+  try {
+    existingResourceLoaded.value = false
+    console.log('Loading existing resource data from:', props.selectedResourceUri)
+
+    const resourceData = await dataService.getResourceRDF(props.selectedResourceUri)
+    existingResourceData.value = resourceData
+    existingResourceLoaded.value = true
+
+    console.log('Loaded existing resource:', resourceData)
+  } catch (error) {
+    console.error('Error loading existing resource:', error)
+    showAlert('Failed to load existing resource data', 'danger')
+    existingResourceData.value = null
+    existingResourceLoaded.value = false
+  }
+}
+
+// Watch for changes to selectedResourceUri
+watch(
+  () => props.selectedResourceUri,
+  (newUri) => {
+    console.log('AddResourceCard: selectedResourceUri changed to:', newUri)
+    console.log('AddResourceCard: displayMode is:', props.displayMode)
+
+    if (newUri && props.displayMode) {
+      loadExistingResource()
+    } else {
+      existingResourceData.value = null
+      existingResourceLoaded.value = false
+    }
+  }
+)
+
+onMounted(async () => {
+  await loadShapesFromNonRDFFile()
+
+  // Load existing resource if in display mode
+  if (props.displayMode && props.selectedResourceUri) {
+    await loadExistingResource()
+  }
+})
 </script>
 
 <template>
   <!-- Main form card -->
-  <BCard id="add-resource-form-card" header="Input the new resource data" class="mt-2" no-body>
+  <BCard
+    id="add-resource-form-card"
+    :header="props.displayMode ? 'View Resource Data' : 'Input the new resource data'"
+    class="mt-2"
+    no-body
+  >
     <BCardBody>
       <span v-if="dataShapesLoaded">
+        <!-- Debug info -->
+        <BAlert v-if="props.selectedResourceUri" variant="info" :model-value="true" class="mb-3">
+          <strong>Debug:</strong> Display Mode: {{ props.displayMode }}, Selected URI:
+          {{ props.selectedResourceUri }}, Data Loaded: {{ existingResourceLoaded }}
+        </BAlert>
+
         <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
           :key="ind" -->
         <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
         <!-- TODO: what if NOT the first node!! 
          data-shape-subject="props.targetResource.subjectClass" 
         -->
+        <!-- SHACL Form - Display Mode (Read-only) -->
         <shacl-form
+          v-if="props.displayMode && existingResourceLoaded && existingResourceData"
+          :data-shapes-url="cacheStore.getShapeBlobUrl(DATA_URL)"
+          :data-values="existingResourceData"
+          :data-values-subject="props.selectedResourceUri"
+          :data-loading="`Loading existing resource data...`"
+          data-view
+          data-show-node-ids
+          data-collapse
+        />
+
+        <!-- SHACL Form - Edit Mode (New or Edit) -->
+        <shacl-form
+          v-else
           :data-shapes-url="cacheStore.getShapeBlobUrl(DATA_URL)"
           @change="changeListener"
           @submit="submitListener"

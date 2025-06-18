@@ -13,7 +13,7 @@
           <BCol md="6">
             <SelectURI
               :container-path="`data/${containerPath}`"
-              rdf-type="http://data.europa.eu/949/era#VehicleAuthorisationApplication"
+              rdf-type="http://data.europa.eu/949/VehicleAuthorisationApplication"
               display-property="http://purl.org/dc/terms/identifier"
               label="Vehicle Authorization Application"
               description="Select an existing vehicle authorization application to edit"
@@ -25,7 +25,7 @@
           <BCol md="6">
             <SelectURI
               :container-path="`data/${containerPath}`"
-              rdf-type="http://data.europa.eu/949/era#VehicleTypeAuthorisationApplication"
+              rdf-type="http://data.europa.eu/949/VehicleTypeAuthorisationApplication"
               display-property="http://purl.org/dc/terms/identifier"
               label="Vehicle Type Authorization Application"
               description="Select an existing vehicle type authorization application to edit"
@@ -53,6 +53,8 @@
           v-if="shapeFileUrl"
           :shape-file-url="shapeFileUrl"
           :target-resource="dataTarget"
+          :selected-resource-uri="selectedResourceUri"
+          :display-mode="!!selectedResourceUri"
         />
       </div>
     </BCardBody>
@@ -101,10 +103,12 @@ const props = defineProps({
 const selectedVehicleAuth = ref(null)
 const selectedVehicleTypeAuth = ref(null)
 const selectedApplicationInfo = ref('')
+const selectedResourceUri = ref(null)
 
 // Methods to handle resource selection
 const handleVehicleAuthSelected = (resource) => {
   selectedVehicleTypeAuth.value = null // Clear other selection
+  selectedResourceUri.value = resource.uri
 
   // Format a more detailed display of the selected resource
   const resourceType = 'Vehicle Authorization Application'
@@ -113,10 +117,12 @@ const handleVehicleAuthSelected = (resource) => {
 
   selectedApplicationInfo.value = `${resourceType}: ${displayText} (${shortUri})`
   console.log('Selected Vehicle Auth Application:', resource)
+  console.log('Setting selectedResourceUri to:', resource.uri)
 }
 
 const handleVehicleTypeAuthSelected = (resource) => {
   selectedVehicleAuth.value = null // Clear other selection
+  selectedResourceUri.value = resource.uri
 
   // Format a more detailed display of the selected resource
   const resourceType = 'Vehicle Type Authorization Application'
@@ -125,12 +131,14 @@ const handleVehicleTypeAuthSelected = (resource) => {
 
   selectedApplicationInfo.value = `${resourceType}: ${displayText} (${shortUri})`
   console.log('Selected Vehicle Type Auth Application:', resource)
+  console.log('Setting selectedResourceUri to:', resource.uri)
 }
 
 const clearSelection = () => {
   selectedVehicleAuth.value = null
   selectedVehicleTypeAuth.value = null
   selectedApplicationInfo.value = ''
+  selectedResourceUri.value = null
 }
 
 /**

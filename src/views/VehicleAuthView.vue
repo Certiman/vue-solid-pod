@@ -65,7 +65,7 @@ import VehicleApplicationCard from '@/components/vehicle/VehicleApplicationCard.
 
 // SHACL shape URL from EUAR pod for vehicle authorization applications
 const vaShapeUrl =
-  'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/VehicleAuthorisation/va-c2t-admin-0.0.0.1.shacl'
+  'https://storage.inrupt.com/ea779a2c-b43d-4723-8b1a-aaa8990dd576/process/VehicleAuthorisation/va-c2t-admin-0.0.0.2.shacl'
 
 console.log('VehicleAuthView: Using VA shape from EUAR pod:', vaShapeUrl)
 </script>
