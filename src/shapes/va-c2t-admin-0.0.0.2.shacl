@@ -27,6 +27,7 @@
 @prefix era-va-authcase: <http://data.europa.eu/949/concepts/va-authcases/> .
 @prefix era-organisation-roles: <http://data.europa.eu/949/concepts/organisation-roles/> .
 
+# This version of the shape uses TWO different concern properties, which is not foreseen in the onto
 era:VTAAShape a sh:NodeShape ;
   sh:targetClass era:VTAApp ;
   sh:property [
@@ -65,7 +66,7 @@ era:VTACShape a sh:NodeShape ;
    sh:property [
      sh:path vpa:concerns2 ;
      # sh:path vpa:concerns ; BLOCKS multiple VTAC nodes!
-     sh:name "Vehilce Numbers" ;
+     sh:name "Vehicle Numbers" ;
      sh:shape era:VehicleNumberScopeShape ;
      sh:minCount 1
    ]. 
