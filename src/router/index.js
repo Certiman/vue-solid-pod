@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import BooksView from '../views/BooksView.vue'
+// import BooksView from '../views/BooksView.vue' // Moved to legacy/books
 import HomeView from '@/views/HomeView.vue'
 import ProcessView from '../views/ProcessView.vue'
 import AuthView from '@/views/AuthView.vue'
@@ -11,20 +11,20 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView
-    },
-    {
+    },    {
       path: '/auth',
       name: 'auth',
       component: AuthView // As a test what we get
     },
-    {
-      path: '/books',
-      name: 'books',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/BooksView.vue')
-    },
+    // Books route archived - moved to src/legacy/books/
+    // {
+    //   path: '/books',
+    //   name: 'books',
+    //   // route level code-splitting
+    //   // this generates a separate chunk (About.[hash].js) for this route
+    //   // which is lazy-loaded when the route is visited.
+    //   component: () => import('../legacy/books/views/BooksView.vue')
+    // },
     {
       path: '/about',
       name: 'about',
