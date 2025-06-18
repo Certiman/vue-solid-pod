@@ -78,6 +78,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SearchExternalSubjectNode: typeof import('./src/components/atoms/SearchExternalSubjectNode.vue')['default']
     SearchSubjectNode: typeof import('./src/components/atoms/SearchSubjectNode.vue')['default']
+    SelectURI: typeof import('./src/components/atoms/SelectURI.vue')['default']
     StepItem: typeof import('./src/components/StepItem.vue')['default']
     StepList: typeof import('./src/components/StepList.vue')['default']
     TaskItem: typeof import('./src/components/TaskItem.vue')['default']

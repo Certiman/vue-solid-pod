@@ -6,11 +6,55 @@
     <BCardBody>
       <p class="text-muted">{{ formDescription }}</p>
 
-      <AddResourceCard
-        v-if="shapeFileUrl"
-        :shape-file-url="shapeFileUrl"
-        :target-resource="dataTarget"
-      />
+      <!-- Section to select existing applications -->
+      <div class="mb-4">
+        <h5>Work with Existing Application</h5>
+        <BRow>
+          <BCol md="6">
+            <SelectURI
+              :container-path="`data/${containerPath}`"
+              rdf-type="http://data.europa.eu/949/era#VehicleAuthorisationApplication"
+              display-property="http://purl.org/dc/terms/identifier"
+              label="Vehicle Authorization Application"
+              description="Select an existing vehicle authorization application to edit"
+              placeholder="Choose existing application..."
+              v-model="selectedVehicleAuth"
+              @resource-selected="handleVehicleAuthSelected"
+            />
+          </BCol>
+          <BCol md="6">
+            <SelectURI
+              :container-path="`data/${containerPath}`"
+              rdf-type="http://data.europa.eu/949/era#VehicleTypeAuthorisationApplication"
+              display-property="http://purl.org/dc/terms/identifier"
+              label="Vehicle Type Authorization Application"
+              description="Select an existing vehicle type authorization application to edit"
+              placeholder="Choose existing type application..."
+              v-model="selectedVehicleTypeAuth"
+              @resource-selected="handleVehicleTypeAuthSelected"
+            />
+          </BCol>
+        </BRow>
+
+        <BAlert v-if="selectedApplicationInfo" variant="info" :model-value="true" class="mt-3">
+          <strong>Working with:</strong> {{ selectedApplicationInfo }}
+          <BButton variant="outline-secondary" size="sm" class="ms-2" @click="clearSelection">
+            Start New Application
+          </BButton>
+        </BAlert>
+      </div>
+
+      <hr class="my-4" />
+
+      <!-- SHACL Form Section -->
+      <div>
+        <h5>{{ selectedApplicationInfo ? 'Edit Application' : 'Create New Application' }}</h5>
+        <AddResourceCard
+          v-if="shapeFileUrl"
+          :shape-file-url="shapeFileUrl"
+          :target-resource="dataTarget"
+        />
+      </div>
     </BCardBody>
   </BCard>
 </template>
@@ -23,10 +67,11 @@
  * Uses SHACL forms to render vehicle authorization application forms with data
  * stored in the user's /data/VehicleAuthorisation/ container.
  */
-import { computed } from 'vue'
-import { BCard, BCardHeader, BCardBody } from 'bootstrap-vue-next'
+import { computed, ref } from 'vue'
+import { BCard, BCardHeader, BCardBody, BRow, BCol, BAlert, BButton } from 'bootstrap-vue-next'
 
 import AddResourceCard from '@/components/atoms/AddResourceCard.vue'
+import SelectURI from '@/components/atoms/SelectURI.vue'
 import { sessionStore } from '@/stores/sessions'
 
 const props = defineProps({
@@ -51,6 +96,30 @@ const props = defineProps({
     default: 'application'
   }
 })
+
+// Reactive state for handling resource selection
+const selectedVehicleAuth = ref(null)
+const selectedVehicleTypeAuth = ref(null)
+const selectedApplicationInfo = ref('')
+
+// Methods to handle resource selection
+const handleVehicleAuthSelected = (resource) => {
+  selectedVehicleTypeAuth.value = null // Clear other selection
+  selectedApplicationInfo.value = `Vehicle Authorization Application: ${resource.displayText}`
+  console.log('Selected Vehicle Auth Application:', resource)
+}
+
+const handleVehicleTypeAuthSelected = (resource) => {
+  selectedVehicleAuth.value = null // Clear other selection
+  selectedApplicationInfo.value = `Vehicle Type Authorization Application: ${resource.displayText}`
+  console.log('Selected Vehicle Type Auth Application:', resource)
+}
+
+const clearSelection = () => {
+  selectedVehicleAuth.value = null
+  selectedVehicleTypeAuth.value = null
+  selectedApplicationInfo.value = ''
+}
 
 /**
  * Calculate the data target for storing vehicle authorization data

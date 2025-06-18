@@ -1,32 +1,43 @@
 <script setup>
-import { ref, computed, onBeforeMount } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 import { processStore } from '@/stores/process'
 import { sessionStore } from '@/stores/sessions'
+import TimedAlert from '@/components/atoms/TimedAlert.vue'
 
 // Warn user to add storage Pod
 const noStorageProviderWarning = computed(() => sessionStore.selectedPodUrl === '')
-const noStorageAlertDuration = ref(30000)
-const StorageWarning = ref(null)
+const showStorageAlert = ref(false)
 const statusLabelStorageWarning = ref('Please connect to your Solid Pod for resource storage.')
-// const statusLabelStorageWarningHTML = ref('') if ever needed.
-const noStorageCountdown = ref(1000)
 
 // Warn user to add process providers
 const noProcessProviderWarning = computed(() => processStore.processProviders.length === 0)
-const noProcessAlertDuration = ref(30000)
-const ProcessWarning = ref(null)
+const showProcessAlert = ref(false)
 const statusLabelProcessWarning = ref('Please add a process provider. For more info, ')
 const statusLabelProcessWarningHTML = ref(
   '<BButton to="/about/process_providers">"What are Process Providers on Solid?""</BButton>'
 )
-const noProcessCountdown = ref(1000)
 
-// Show warnings at startup
-onBeforeMount(() => {
-  StorageWarning.value?.pause() //
-  ProcessWarning.value?.pause() //
-})
+// Watch for warning conditions and trigger alerts
+watch(
+  noStorageProviderWarning,
+  (newValue) => {
+    if (newValue) {
+      showStorageAlert.value = true
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  noProcessProviderWarning,
+  (newValue) => {
+    if (newValue) {
+      showProcessAlert.value = true
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -39,47 +50,38 @@ onBeforeMount(() => {
       </div>
       <div>Query full: {{ $route.query }}</div>
       <div>This route: {{ $route.fullPath }}</div>
+      <div><strong>Debug Alert State:</strong></div>
+      <div>noStorageProviderWarning: {{ noStorageProviderWarning }}</div>
+      <div>showStorageAlert: {{ showStorageAlert }}</div>
+      <div>noProcessProviderWarning: {{ noProcessProviderWarning }}</div>
+      <div>showProcessAlert: {{ showProcessAlert }}</div>
+      <div>sessionStore.selectedPodUrl: "{{ sessionStore.selectedPodUrl }}"</div>
+      <div>processStore.processProviders.length: {{ processStore.processProviders.length }}</div>
     </BAccordionItem>
   </BAccordion>
-  <BAlert
+  <TimedAlert
     v-if="noStorageProviderWarning"
-    v-model="noStorageAlertDuration"
-    ref="StorageWarning"
+    :show="showStorageAlert"
     variant="danger"
-    dismissible
-    fade
-    @close-countdown="noStorageCountdown = $event"
+    :duration="30000"
+    @hidden="showStorageAlert = false"
     class="mt-2"
   >
     <p><IMdiStorage class="me-2 mb-1" />{{ statusLabelStorageWarning }}</p>
-    <BProgress
-      variant="danger"
-      :max="noStorageAlertDuration"
-      :value="noStorageCountdown"
-      height="4px"
-    />
-  </BAlert>
-  <BAlert
+  </TimedAlert>
+  <TimedAlert
     v-if="noProcessProviderWarning"
-    v-model="noProcessAlertDuration"
-    ref="ProcessWarning"
+    :show="showProcessAlert"
     variant="warning"
-    dismissible
-    fade
-    @close-countdown="noProcessCountdown = $event"
+    :duration="30000"
+    @hidden="showProcessAlert = false"
     class="mt-2"
   >
     <p>
       <ICarbonProcess class="me-2 mb-1" />{{ statusLabelProcessWarning }}
       <span v-html="statusLabelProcessWarningHTML" />
     </p>
-    <BProgress
-      variant="warning"
-      :max="noProcessAlertDuration"
-      :value="noProcessCountdown"
-      height="4px"
-    />
-  </BAlert>
+  </TimedAlert>
   <div class="position-relative overflow-hidden p-3 p-md-5 m-md-3 text-center bg-body-secondary">
     <div class="col-md-10 p-lg-5 mx-auto my-2">
       <h1 class="display-4 font-weight-normal">Linked data processes</h1>

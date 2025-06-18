@@ -11,6 +11,7 @@ import { sessionStore } from '@/stores/sessions'
 // import { modalStore } from '@/stores/ui'
 
 import AsyncButton from '../atoms/AsyncButton.vue'
+import TimedAlert from '../atoms/TimedAlert.vue'
 import { BCardBody } from 'bootstrap-vue-next'
 
 const router = useRouter()
@@ -34,9 +35,8 @@ const addProvider = async (WebId) => {
    * - in the OWN container URLs, create the /process container.
    */ finishedAddingPP.value = false
   const providerExists = processStore.processProviders.find((o) => o.ProviderWebId == WebId.trim())
-
   if (providerExists) {
-    showAlert('Provider already added: please enter another WebId.', 'warning')
+    displayAlert('Provider already added: please enter another WebId.', 'warning')
     finishedAddingPP.value = true
     return null
   }
@@ -119,9 +119,9 @@ const addProvider = async (WebId) => {
   } catch (error) {
     // Add meaningful user messages based on error types
     if (error.message.includes('network')) {
-      showAlert('Network error: Could not connect to provider.', 'danger')
+      displayAlert('Network error: Could not connect to provider.', 'danger')
     } else {
-      showAlert(`Error adding provider: ${error.message}`, 'danger')
+      displayAlert(`Error adding provider: ${error.message}`, 'danger')
     }
     console.error(`(addProvider(${WebId}):`, error)
   }
@@ -140,7 +140,7 @@ const checkProcessRootContainerAt = async (pURL) => {
    * @pc Return the existence as a boolean under pc:
    */
   if (!isContainer(pURL)) {
-    showAlert(`URL ${pURL} is not a container`, 'danger')
+    displayAlert(`URL ${pURL} is not a container`, 'danger')
     return { pc: false, ds: null }
   }
   try {
@@ -153,13 +153,13 @@ const checkProcessRootContainerAt = async (pURL) => {
       processesDataSet
     )
 
-    showAlert(`Successfully accessed process container at ${pURL}`, 'success', 3000)
+    displayAlert(`Successfully accessed process container at ${pURL}`, 'success')
     return { pc: true, ds: processesDataSet }
   } catch (erreur) {
     console.error(
       `(checkProcessRootContainerAt) On /process container at ${pURL}: does not exist or error: ${erreur}`
     )
-    showAlert(`Could not access process container at ${pURL}: ${erreur.message}`, 'danger')
+    displayAlert(`Could not access process container at ${pURL}: ${erreur.message}`, 'danger')
     return { pc: false, ds: null }
   }
 }
@@ -180,15 +180,15 @@ const AddProcessProvider = async (WebId, forceReload = false) => {
       )
       processStore.processProviders = updatedProcessStore
       console.warn(processStore.processProviders)
-      showAlert(`Reloading provider ${WebId}`, 'info', 3000)
+      displayAlert(`Reloading provider ${WebId}`, 'info')
     }
     if (!providerExists || forceReload) await addProvider(WebId)
     else {
-      showAlert('Provider already added: please enter another WebId.', 'warning')
+      displayAlert('Provider already added: please enter another WebId.', 'warning')
       console.warn(`(addProcessProvider(${WebId}): skipping addProvider()!`)
     }
   } catch (err) {
-    showAlert(`Error adding process provider: ${err.message}`, 'danger')
+    displayAlert(`Error adding process provider: ${err.message}`, 'danger')
     console.error(
       `(addProcessProvider(${WebId}): Adding Process provider failed with error: ${err}`
     )
@@ -200,11 +200,11 @@ const addNewProvider = async () => {
   console.log(`Adding Provider from input, WebId ${newProviderWebId.value}...`)
 
   if (!newProviderWebId.value || newProviderWebId.value.trim() === '') {
-    showAlert('Please enter a valid WebId', 'warning')
+    displayAlert('Please enter a valid WebId', 'warning')
     return
   }
 
-  showAlert(`Attempting to add provider ${newProviderWebId.value}...`, 'info', 3000)
+  displayAlert(`Attempting to add provider ${newProviderWebId.value}...`, 'info')
   await AddProcessProvider(newProviderWebId.value)
 }
 
@@ -219,7 +219,7 @@ const navigateToAddProcess = () => {
   // Navigate to ERA add process
   router.push('/process/Process/add/0')
 
-  showAlert('Navigating to process creation...', 'info', 2000)
+  displayAlert('Navigating to process creation...', 'info')
 }
 
 const checkSelfProcessContainer = async () => {
@@ -241,7 +241,7 @@ const checkSelfProcessContainer = async () => {
   await addERAContainerProvider()
 
   if (sessionStore.selectedPodUrl.length === 0) {
-    showAlert('No Pod selected. Please log in first.', 'warning')
+    displayAlert('No Pod selected. Please log in first.', 'warning')
     return null
   }
 
@@ -267,11 +267,11 @@ const checkSelfProcessContainer = async () => {
         ProcessDataSet: ds
       })
 
-      showAlert('Found your process container and added it as a provider', 'success', 3000)
+      displayAlert('Found your process container and added it as a provider', 'success')
     }
     ownProcessContainerExists.value = pc
   } catch (e) {
-    showAlert(`Error checking your process container: ${e.message}`, 'danger')
+    displayAlert(`Error checking your process container: ${e.message}`, 'danger')
     ownProcessContainerExists.value = false
   }
 }
@@ -305,7 +305,7 @@ const addERAContainerProvider = async () => {
 
   try {
     console.log('Adding ERA Container provider...')
-    showAlert('Adding ERA Container (Shared Process Management)...', 'info', 2000)
+    displayAlert('Adding ERA Container (Shared Process Management)...', 'info')
 
     // Directly fetch the ERA Container dataset without going through addProvider
     const eraContainerURI =
@@ -323,7 +323,7 @@ const addERAContainerProvider = async () => {
 
       processStore.processProviders.push(eraProvider)
       console.log('Added ERA Container provider directly:', eraProvider)
-      showAlert(
+      displayAlert(
         'ERA Container provider added successfully! You now have access to shared processes.',
         'success',
         4000
@@ -335,7 +335,7 @@ const addERAContainerProvider = async () => {
     }
   } catch (error) {
     console.error('Failed to add ERA Container provider:', error)
-    showAlert(`Failed to add ERA Container: ${error.message}`, 'danger')
+    displayAlert(`Failed to add ERA Container: ${error.message}`, 'danger')
 
     // Add inactive provider as fallback
     const eraContainerURI =
@@ -374,26 +374,24 @@ const clearDuplicateProviders = () => {
 
   const removedCount = processStore.processProviders.length - uniqueProviders.length
   processStore.processProviders = uniqueProviders
-  showAlert(`Removed ${removedCount} duplicate providers`, 'info', 3000)
+  displayAlert(`Removed ${removedCount} duplicate providers`, 'info')
 }
 
 const clearAllProviders = () => {
   processStore.processProviders = []
-  showAlert('Cleared all providers', 'info', 2000)
+  displayAlert('Cleared all providers', 'info')
 }
 
 // Alert system
 const alertMessage = ref('')
 const alertVariant = ref('info')
-const alertDuration = ref(0) // 0 = hidden, positive value = shown with countdown
-const alertCountdown = ref(0)
+const showAlert = ref(false)
 
 // Helper function to show alerts
-const showAlert = (message, variant = 'warning', duration = 5000) => {
+const displayAlert = (message, variant = 'warning') => {
   alertMessage.value = message
   alertVariant.value = variant
-  alertDuration.value = duration
-  alertCountdown.value = duration
+  showAlert.value = true
 }
 </script>
 
@@ -413,21 +411,13 @@ const showAlert = (message, variant = 'warning', duration = 5000) => {
       when you open this modal.
     </p>
 
-    <BAlert
-      v-model="alertDuration"
-      ref="statusAlert"
+    <TimedAlert
+      :message="alertMessage"
       :variant="alertVariant"
-      @close-countdown="alertCountdown = $event"
+      :show="showAlert"
+      @hidden="showAlert = false"
       class="mb-3"
-    >
-      <p>{{ alertMessage }}</p>
-      <BProgress
-        :variant="alertVariant"
-        :max="alertDuration"
-        :value="alertCountdown"
-        height="4px"
-      />
-    </BAlert>
+    />
     <BCard class="mt-3" v-if="processStore.processProviders.length > 0" header="Process providers">
       <BCardBody>
         <BInputGroup
