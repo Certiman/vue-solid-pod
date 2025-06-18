@@ -6,7 +6,7 @@
  * (targetResourceUrl) Writes the data into the Central Pod's /organizations/sites#UUID dataset.
  */
 import { ref, computed } from 'vue'
-import { BModal, BAlert } from 'bootstrap-vue-next'
+import { BModal, BAlert, BTabs, BTab } from 'bootstrap-vue-next'
 
 import { getFile, getSolidDataset, toRdfJsDataset, getThingAll, getUrl } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
@@ -14,6 +14,9 @@ import { RDF_CONFIG } from '@/services/rdfConfig'
 
 // store
 import { cacheStore } from '@/stores/cache'
+
+// services
+import { dataService } from '@/services/dataService'
 
 // util to load shape and determine where to write the data
 // CANNOT WORK as event handler : import { loadDataAndShapesFromNonRDFFile } from '@/utils/pod-helpers'
@@ -153,43 +156,73 @@ const handleHidingModal = () => {
     :ok-only="props.modalData?.noCancel ?? true"
     @shown="loadDataAndShapesFromNonRDFFile"
     @hidden="handleHidingModal"
-    size="lg"
+    size="xl"
     scrollable
     no-close-on-backdrop
   >
-    <!-- Show SHACL form if we have both shape file and data -->
-    <span v-if="dataShapesLoaded && foundRDFData">
-      <shacl-form
-        :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_DATA_URL)"
-        :data-values="foundRDFData"
-        :data-values-subject="props.thingUri || props.resourceUri"
-        :data-loading="`Retrieving shapes from ${getDSUriEnding(SHAPE_DATA_URL)}, data from ${getDSUriEnding(SOURCE_DATA_URL)}...`"
-        data-view
-      />
-    </span>
+    <!-- Tabbed interface for human-readable and RDF views -->
+    <BTabs content-class="mt-3" justified>
+      <!-- Human-readable view tab -->
+      <BTab title="Human-Readable View" active>
+        <!-- Show SHACL form if we have both shape file and data -->
+        <div v-if="dataShapesLoaded && foundRDFData">
+          <shacl-form
+            :data-shapes-url="cacheStore.getShapeBlobUrl(SHAPE_DATA_URL)"
+            :data-values="foundRDFData"
+            :data-values-subject="props.thingUri || props.resourceUri"
+            :data-loading="`Retrieving shapes from ${getDSUriEnding(SHAPE_DATA_URL)}, data from ${getDSUriEnding(SOURCE_DATA_URL)}...`"
+            data-view
+          />
+        </div>
 
-    <!-- Show warning if no shape file is available -->
-    <BAlert
-      v-else-if="!SHAPE_DATA_URL || !SHAPE_DATA_URL.trim()"
-      variant="info"
-      :model-value="true"
-    >
-      <h6>No SHACL Shape Form Available</h6>
-      <p>No shape file is configured for this resource type. The raw data is shown below:</p>
-      <div v-if="foundRDFData" class="mt-3">
-        <strong>Raw RDF Data:</strong>
-        <pre class="bg-light p-2 mt-2 small">{{ foundRDFData }}</pre>
-      </div>
-    </BAlert>
+        <!-- Show message if no shape file is available -->
+        <div v-else-if="!SHAPE_DATA_URL || !SHAPE_DATA_URL.trim()">
+          <BAlert variant="info" :model-value="true">
+            <h6>No SHACL Shape Form Available</h6>
+            <p>
+              No shape file is configured for this resource type. Please use the "RDF Data" tab to
+              view the raw data.
+            </p>
+          </BAlert>
+        </div>
 
-    <!-- Show warning if shape file failed to load -->
-    <BAlert v-else variant="warning" :model-value="true">
-      This viewing form is based on a Resource SHACL shape at:
-      <code>{{ SHAPE_DATA_URL }}</code> which could not be retrieved from the process provider!
-    </BAlert>
+        <!-- Show warning if shape file failed to load -->
+        <div v-else>
+          <BAlert variant="warning" :model-value="true">
+            This viewing form is based on a Resource SHACL shape at:
+            <code>{{ SHAPE_DATA_URL }}</code> which could not be retrieved from the process
+            provider! Please use the "RDF Data" tab to view the raw data.
+          </BAlert>
+        </div>
+      </BTab>
+
+      <!-- RDF data view tab -->
+      <BTab title="RDF Data">
+        <div v-if="foundRDFData">
+          <div class="mb-3">
+            <h6>Raw RDF Data</h6>
+            <p class="text-muted small">
+              This shows the underlying RDF triples for the resource. You can copy this data for
+              external processing or debugging.
+            </p>
+          </div>
+          <pre
+            class="bg-light p-3 border rounded small text-monospace overflow-auto"
+            style="max-height: 60vh"
+            >{{ dataService.formatRDFData(foundRDFData) }}</pre
+          >
+        </div>
+        <div v-else>
+          <BAlert variant="info" :model-value="true">
+            <h6>No RDF Data Available</h6>
+            <p>RDF data is still loading or could not be retrieved from the resource URI.</p>
+          </BAlert>
+        </div>
+      </BTab>
+    </BTabs>
 
     <!-- Debug information -->
-    <div class="mt-3 small text-muted">
+    <div class="mt-3 pt-3 border-top small text-muted">
       <strong>Debug Info:</strong><br />
       Dataset URI: {{ props.resourceUri }}<br />
       Thing URI: {{ props.thingUri }}<br />

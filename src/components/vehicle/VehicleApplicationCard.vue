@@ -105,13 +105,25 @@ const selectedApplicationInfo = ref('')
 // Methods to handle resource selection
 const handleVehicleAuthSelected = (resource) => {
   selectedVehicleTypeAuth.value = null // Clear other selection
-  selectedApplicationInfo.value = `Vehicle Authorization Application: ${resource.displayText}`
+
+  // Format a more detailed display of the selected resource
+  const resourceType = 'Vehicle Authorization Application'
+  const displayText = resource.displayText || 'Untitled'
+  const shortUri = resource.uri.split('/').pop() || resource.uri
+
+  selectedApplicationInfo.value = `${resourceType}: ${displayText} (${shortUri})`
   console.log('Selected Vehicle Auth Application:', resource)
 }
 
 const handleVehicleTypeAuthSelected = (resource) => {
   selectedVehicleAuth.value = null // Clear other selection
-  selectedApplicationInfo.value = `Vehicle Type Authorization Application: ${resource.displayText}`
+
+  // Format a more detailed display of the selected resource
+  const resourceType = 'Vehicle Type Authorization Application'
+  const displayText = resource.displayText || 'Untitled'
+  const shortUri = resource.uri.split('/').pop() || resource.uri
+
+  selectedApplicationInfo.value = `${resourceType}: ${displayText} (${shortUri})`
   console.log('Selected Vehicle Type Auth Application:', resource)
 }
 

@@ -1,12 +1,12 @@
 <template>
   <div class="select-uri-component">
-    <BFormGroup :label="label" :description="description">
+    <BFormGroup :label="label" :description="dynamicDescription">
       <BFormSelect
         v-model="selectedURI"
         :options="selectOptions"
         :state="validationState"
         :disabled="loading || disabled"
-        @change="handleSelectionChange"
+        @update:model-value="handleSelectionChange"
       >
         <template #first>
           <BFormSelectOption :value="null" disabled>
@@ -14,9 +14,6 @@
           </BFormSelectOption>
         </template>
       </BFormSelect>
-      <BFormText v-if="selectedResourceInfo" class="mt-2">
-        <strong>Selected:</strong> {{ selectedResourceInfo }}
-      </BFormText>
 
       <TimedAlert
         :message="alertMessage"
@@ -49,20 +46,19 @@
  * users need to select existing RDF resources from their pod.
  */
 import { ref, computed, onMounted, watch } from 'vue'
-import { BFormGroup, BFormSelect, BFormSelectOption, BFormText, BAlert } from 'bootstrap-vue-next'
+import { BFormGroup, BFormSelect, BFormSelectOption, BAlert } from 'bootstrap-vue-next'
 import {
   getSolidDataset,
   getContainedResourceUrlAll,
   getThingAll,
   getUrlAll,
-  getStringNoLocale,
-  getStringWithLocale,
   asUrl
 } from '@inrupt/solid-client'
 import { fetch } from '@inrupt/solid-client-authn-browser'
 import { RDF } from '@inrupt/vocab-common-rdf'
 
 import { sessionStore } from '@/stores/sessions'
+import { dataService } from '@/services/dataService'
 import TimedAlert from '@/components/atoms/TimedAlert.vue'
 
 const props = defineProps({
@@ -107,17 +103,15 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: 'Choose an existing resource...'
-  },
-  /**
+  } /**
    * Whether the component is disabled
-   */
+   */,
   disabled: {
     type: Boolean,
     default: false
-  },
-  /**
+  } /**
    * Initially selected URI
-   */
+   */,
   modelValue: {
     type: String,
     default: null
@@ -160,7 +154,19 @@ const selectedResourceInfo = computed(() => {
   const selected = resources.value.find((r) => r.uri === selectedURI.value)
   if (!selected) return null
 
-  return `${selected.displayText} (${selected.uri})`
+  return selected.displayText || selected.uri.split('/').pop()
+})
+
+const dynamicDescription = computed(() => {
+  if (selectedURI.value && selectedResourceInfo.value) {
+    return `Chosen URI: ${selectedURI.value} (${selectedResourceInfo.value})`
+  }
+
+  if (resources.value.length > 0) {
+    return `Choose from ${resources.value.length} available ${rdfTypeName.value.toLowerCase()} resources`
+  }
+
+  return props.description
 })
 
 const validationState = computed(() => {
@@ -186,15 +192,10 @@ const loadResources = async () => {
   loading.value = true
   showAlert.value = false // Clear any existing alerts
   resources.value = []
-
   try {
-    console.log(`SelectURI: Loading resources from ${fullContainerPath.value}`)
-
     // Get the container dataset
     const containerDataset = await getSolidDataset(fullContainerPath.value, { fetch })
     const resourceURIs = getContainedResourceUrlAll(containerDataset)
-
-    console.log(`SelectURI: Found ${resourceURIs.length} resources in container`)
 
     // Process each resource to find matching RDF types
     for (const resourceURI of resourceURIs) {
@@ -207,13 +208,11 @@ const loadResources = async () => {
 
           // Check if this thing has the target RDF type
           if (types.includes(props.rdfType)) {
-            const thingURI = asUrl(thing)
-
-            // Extract display text using the specified property
-            let displayText =
-              getStringNoLocale(thing, props.displayProperty) ||
-              getStringWithLocale(thing, props.displayProperty) ||
-              thingURI.split('/').pop()
+            const thingURI = asUrl(thing) // Extract display text using the centralized service
+            const displayText = dataService.extractDisplayTextFromThing(
+              thing,
+              props.displayProperty
+            )
 
             resources.value.push({
               uri: thingURI,
@@ -221,8 +220,6 @@ const loadResources = async () => {
               displayText: displayText,
               types: types
             })
-
-            console.log(`SelectURI: Found ${props.rdfType} resource: ${displayText} (${thingURI})`)
           }
         }
       } catch (resourceError) {
@@ -230,8 +227,6 @@ const loadResources = async () => {
         // Continue with other resources
       }
     }
-
-    console.log(`SelectURI: Loaded ${resources.value.length} ${rdfTypeName.value} resources`)
   } catch (err) {
     console.error('SelectURI: Failed to load resources:', err)
     displayAlert(`Failed to load resources: ${err.message}`)
@@ -247,7 +242,6 @@ const handleSelectionChange = (newValue) => {
   const selectedResource = resources.value.find((r) => r.uri === newValue)
   if (selectedResource) {
     emit('resourceSelected', selectedResource)
-    console.log('SelectURI: Resource selected:', selectedResource)
   }
 }
 

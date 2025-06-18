@@ -7,11 +7,43 @@
           >RDF Type: <code>{{ rdfType }}</code></small
         >
       </p>
-
-      <!-- Resources list -->
-      <div class="row">
+      <!-- Resources display - Cards mode -->
+      <div v-if="displayMode === 'cards'" class="row">
         <div v-for="resource in resources" :key="resource.uri" class="col-md-6 col-lg-4 mb-3">
           <ResourceCard :resource="resource" :rdf-type="rdfType" @view="handleViewResource" />
+        </div>
+      </div>
+
+      <!-- Resources display - List mode -->
+      <div v-else-if="displayMode === 'list'">
+        <SelectURI
+          :container-path="`data/${processName}`"
+          :rdf-type="rdfType"
+          display-property="http://purl.org/dc/terms/title"
+          :label="`Select ${displayTypeName.slice(0, -1)}`"
+          :description="`Choose from ${resources.length} available ${displayTypeName.toLowerCase()}`"
+          :placeholder="`Select a ${displayTypeName.slice(0, -1).toLowerCase()}...`"
+          @resource-selected="handleSelectResource"
+        />
+
+        <!-- Show selected resource details -->
+        <div v-if="selectedResource" class="mt-3 p-3 border rounded">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="mb-1">{{ selectedResource.displayText }}</h6>
+              <small class="text-muted">{{ selectedResource.uri }}</small>
+            </div>
+            <div class="btn-group btn-group-sm">
+              <BButton variant="outline-primary" size="sm" @click="handleViewSelectedResource">
+                <IMdiEye class="me-1" />
+                View
+              </BButton>
+              <BButton variant="outline-secondary" size="sm" @click="clearSelection">
+                <IMdiClose class="me-1" />
+                Clear
+              </BButton>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -63,8 +95,11 @@ import { useRouter } from 'vue-router'
 import { BCard, BCardBody, BCardFooter, BButton } from 'bootstrap-vue-next'
 import IMdiPlus from '~icons/mdi/plus'
 import IMdiDownload from '~icons/mdi/download'
+import IMdiEye from '~icons/mdi/eye'
+import IMdiClose from '~icons/mdi/close'
 
 import ResourceCard from '@/components/atoms/ResourceCard.vue'
+import SelectURI from '@/components/atoms/SelectURI.vue'
 import ViewResourceModal from '@/components/modals/ViewResourceModal.vue'
 import { sessionStore } from '@/stores/sessions'
 import { modalStore } from '@/stores/ui'
@@ -82,6 +117,11 @@ const props = defineProps({
   processName: {
     type: String,
     required: true
+  },
+  displayMode: {
+    type: String,
+    default: 'cards',
+    validator: (value) => ['cards', 'list'].includes(value)
   }
 })
 
@@ -100,6 +140,9 @@ const viewModalData = ref({
 
 // Local modal visibility control
 const showViewModal = ref(false)
+
+// Selected resource for list mode
+const selectedResource = ref(null)
 
 // Computed properties
 const displayTypeName = computed(() => {
@@ -189,6 +232,26 @@ const handleViewerHidden = (data) => {
     }
   }
   console.log('ViewModalData reset after modal close - showViewModal:', showViewModal.value)
+}
+
+// Methods for list mode (SelectURI)
+const handleSelectResource = (resource) => {
+  selectedResource.value = resource
+  console.log('Selected resource from list:', resource)
+}
+
+const handleViewSelectedResource = () => {
+  if (selectedResource.value) {
+    // Find the full resource object from the resources array
+    const fullResource = props.resources.find((r) => r.uri === selectedResource.value.uri)
+    if (fullResource) {
+      handleViewResource(fullResource)
+    }
+  }
+}
+
+const clearSelection = () => {
+  selectedResource.value = null
 }
 </script>
 

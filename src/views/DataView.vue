@@ -25,13 +25,46 @@
         >
           {{ error }}
         </BAlert>
-
-        <!-- Data summary -->
-        <div v-if="!isLoading && !error" class="mb-3">
+        <!-- Data summary and display toggle -->
+        <div
+          v-if="!isLoading && !error"
+          class="mb-3 d-flex justify-content-between align-items-center"
+        >
           <small class="text-muted">
             Found {{ totalResourceCount }} resources across {{ Object.keys(dataByType).length }} RDF
             types
           </small>
+
+          <!-- Display mode toggle -->
+          <div class="btn-group btn-group-sm" role="group" aria-label="Display mode">
+            <input
+              type="radio"
+              class="btn-check"
+              name="displayMode"
+              id="cardView"
+              autocomplete="off"
+              :checked="displayMode === 'cards'"
+              @change="displayMode = 'cards'"
+            />
+            <label class="btn btn-outline-secondary" for="cardView">
+              <IMdiViewGrid class="me-1" />
+              Cards
+            </label>
+
+            <input
+              type="radio"
+              class="btn-check"
+              name="displayMode"
+              id="listView"
+              autocomplete="off"
+              :checked="displayMode === 'list'"
+              @change="displayMode = 'list'"
+            />
+            <label class="btn btn-outline-secondary" for="listView">
+              <IMdiViewList class="me-1" />
+              List
+            </label>
+          </div>
         </div>
       </BCardBody>
     </BCard>
@@ -42,6 +75,7 @@
           :rdf-type="rdfType"
           :resources="resources"
           :process-name="processName"
+          :display-mode="displayMode"
           @refresh="loadData"
         />
       </div>
@@ -80,6 +114,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BCard, BCardBody, BAlert, BSpinner, BButton } from 'bootstrap-vue-next'
 import IMdiNotePlus from '~icons/mdi/note-plus'
+import IMdiViewGrid from '~icons/mdi/view-grid'
+import IMdiViewList from '~icons/mdi/view-list'
 
 import DataTypeSection from '@/components/DataTypeSection.vue'
 import DebugAccordion from '@/components/atoms/DebugAccordion.vue'
@@ -94,6 +130,7 @@ const router = useRouter()
 const isLoading = ref(false)
 const error = ref(null)
 const dataByType = ref({})
+const displayMode = ref('cards') // 'cards' or 'list'
 
 // Computed properties
 const processName = computed(() => route.params.process || '')

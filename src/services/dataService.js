@@ -558,7 +558,6 @@ export const dataService = {
 
     return typeMap[rdfType] || this.extractTypeNameFromURI(rdfType)
   },
-
   /**
    * Extract class name from URI and pluralize
    * @param {string} uri - The URI to extract name from
@@ -568,5 +567,115 @@ export const dataService = {
     const parts = uri.split(/[#/]/)
     const className = parts[parts.length - 1]
     return className ? className + 's' : 'Resources'
+  },
+
+  /**
+   * Extract human-readable display text from an RDF Thing
+   * Uses the same priority system as extractResourceTitle but works directly with RDF Things
+   * @param {Thing} thing - The RDF Thing object from @inrupt/solid-client
+   * @param {string} preferredProperty - Optional preferred property URI to try first
+   * @returns {string} Human-readable display text
+   */
+  extractDisplayTextFromThing(thing, preferredProperty = null) {
+    // Build priority list with preferred property first (if provided)
+    const titleProps = [
+      ...(preferredProperty ? [preferredProperty] : []),
+      'http://www.w3.org/2000/01/rdf-schema#label',
+      'http://www.w3.org/2004/02/skos/core#prefLabel',
+      'http://www.w3.org/2004/02/skos/core#altLabel',
+      'http://schema.org/name',
+      'http://purl.org/dc/terms/title',
+      'http://xmlns.com/foaf/0.1/name',
+      'http://purl.org/dc/terms/identifier'
+    ]
+
+    // Try each property in order
+    for (const prop of titleProps) {
+      const value = getStringNoLocale(thing, prop) || getStringWithLocale(thing, prop)
+      if (value) {
+        return value
+      }
+    }
+
+    // Fallback to extracting from Thing URI
+    const thingURI = asUrl(thing)
+    return this.extractNameFromURI(thingURI)
+  },
+
+  /**
+   * Format RDF data for human-readable display
+   * Converts RDF/JS dataset objects to readable Turtle-like format
+   * @param {*} rdfData - The RDF data to format (can be string, RDF/JS dataset, etc.)
+   * @returns {string} Formatted RDF data as string
+   */
+  formatRDFData(rdfData) {
+    if (!rdfData) return 'No data available'
+
+    try {
+      // If it's already a string, return it as-is
+      if (typeof rdfData === 'string') {
+        return rdfData
+      }
+
+      // If it's an RDF/JS dataset object, extract the quads and format them
+      if (typeof rdfData === 'object') {
+        const quads = []
+
+        // Check if it's an RDF/JS dataset with the match() method
+        if (typeof rdfData.match === 'function') {
+          // Use the standard RDF/JS dataset interface
+          for (const quad of rdfData.match()) {
+            quads.push(quad)
+          }
+        } else if (rdfData.quads) {
+          // Handle case where quads are directly available
+          quads.push(...rdfData.quads)
+        } else if (Array.isArray(rdfData)) {
+          // Handle case where it's already an array of quads
+          quads.push(...rdfData)
+        } else {
+          // Try to extract from the internal structure
+          console.log('Attempting to extract from complex RDF structure:', rdfData)
+          return `Complex RDF Dataset Structure (${JSON.stringify(rdfData, null, 2).substring(0, 500)}...)`
+        }
+
+        if (quads.length > 0) {
+          // Convert quads to Turtle-like format
+          return quads
+            .map((quad) => {
+              const subject =
+                quad.subject.termType === 'NamedNode'
+                  ? `<${quad.subject.value}>`
+                  : quad.subject.value
+              const predicate =
+                quad.predicate.termType === 'NamedNode'
+                  ? `<${quad.predicate.value}>`
+                  : quad.predicate.value
+              let object
+              if (quad.object.termType === 'NamedNode') {
+                object = `<${quad.object.value}>`
+              } else if (quad.object.termType === 'Literal') {
+                const datatype = quad.object.datatype ? `^^<${quad.object.datatype.value}>` : ''
+                const language = quad.object.language ? `@${quad.object.language}` : ''
+                object = `"${quad.object.value}"${language}${datatype}`
+              } else {
+                object = quad.object.value
+              }
+
+              const graph = quad.graph && quad.graph.value ? ` # Graph: <${quad.graph.value}>` : ''
+              return `${subject} ${predicate} ${object} .${graph}`
+            })
+            .join('\n')
+        }
+
+        // Fallback to JSON representation if no quads found
+        return JSON.stringify(rdfData, null, 2)
+      }
+
+      return String(rdfData)
+    } catch (error) {
+      console.error('Error formatting RDF data:', error)
+      return `Error formatting data: ${error.message}\n\nRaw data structure:\n${JSON.stringify(rdfData, null, 2).substring(0, 1000)}...`
+    }
   }
 }
