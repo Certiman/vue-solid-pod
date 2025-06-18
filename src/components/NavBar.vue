@@ -29,6 +29,7 @@ import { sessionStore } from '@/stores/sessions'
     <BCollapse id="nav-collapse" is-nav>
       <BNavbarNav>
         <BNavItem><RouterLink to="/process">Processes</RouterLink></BNavItem>
+        <BNavItem><RouterLink to="/vehicle-auth">VA Inspector</RouterLink></BNavItem>
         <BNavItem><RouterLink to="/about">About</RouterLink></BNavItem>
         <BNavItem><RouterLink to="/query">Query</RouterLink></BNavItem>
         <!-- <BNavItem><RouterLink to="/form">Data Forms</RouterLink></BNavItem> -->

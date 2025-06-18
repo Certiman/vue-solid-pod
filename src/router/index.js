@@ -36,11 +36,18 @@ const router = createRouter({
     },
     {
       path: '/query',
-      name: 'query',
+      name: 'query'
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.      component: () => import('../views/QueryView.vue')
+    },
+    {
+      path: '/vehicle-auth',
+      name: 'vehicle-auth',
+      // route level code-splitting
+      // this generates a separate chunk for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import('../views/QueryView.vue')
+      component: () => import('../views/VehicleAuthView.vue')
     },
     {
       path: '/process/:process?/:task?/:step?',
