@@ -5,16 +5,21 @@
         v-model="selectedURI"
         :options="selectOptions"
         :state="validationState"
-        :disabled="loading || disabled"
+        :disabled="loading || disabled || isDisabledDueToNoResources"
         @update:model-value="handleSelectionChange"
       >
         <template #first>
           <BFormSelectOption :value="null" disabled>
-            {{ loading ? 'Loading resources...' : placeholder }}
+            {{
+              loading
+                ? 'Loading resources...'
+                : isDisabledDueToNoResources
+                  ? `No ${rdfTypeName} resources found`
+                  : placeholder
+            }}
           </BFormSelectOption>
         </template>
       </BFormSelect>
-
       <TimedAlert
         :message="alertMessage"
         :variant="alertVariant"
@@ -22,14 +27,9 @@
         @hidden="showAlert = false"
       />
 
-      <BAlert
-        v-if="!loading && resources.length === 0"
-        variant="info"
-        :model-value="true"
-        class="mt-2"
-      >
-        <small>No {{ rdfTypeName }} resources found in {{ containerPath }}</small>
-      </BAlert>
+      <BFormInvalidFeedback v-if="!loading && resources.length === 0">
+        No {{ rdfTypeName }} resources found in {{ containerPath }}
+      </BFormInvalidFeedback>
     </BFormGroup>
   </div>
 </template>
@@ -46,7 +46,12 @@
  * users need to select existing RDF resources from their pod.
  */
 import { ref, computed, onMounted, watch } from 'vue'
-import { BFormGroup, BFormSelect, BFormSelectOption, BAlert } from 'bootstrap-vue-next'
+import {
+  BFormGroup,
+  BFormSelect,
+  BFormSelectOption,
+  BFormInvalidFeedback
+} from 'bootstrap-vue-next'
 import {
   getSolidDataset,
   getContainedResourceUrlAll,
@@ -171,8 +176,13 @@ const dynamicDescription = computed(() => {
 
 const validationState = computed(() => {
   if (showAlert.value) return false
+  if (!loading.value && resources.value.length === 0) return false
   if (selectedURI.value) return true
   return null
+})
+
+const isDisabledDueToNoResources = computed(() => {
+  return !loading.value && resources.value.length === 0
 })
 
 // Helper function to show alerts

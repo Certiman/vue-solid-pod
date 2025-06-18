@@ -116,8 +116,6 @@ const handleVehicleAuthSelected = (resource) => {
   const shortUri = resource.uri.split('/').pop() || resource.uri
 
   selectedApplicationInfo.value = `${resourceType}: ${displayText} (${shortUri})`
-  console.log('Selected Vehicle Auth Application:', resource)
-  console.log('Setting selectedResourceUri to:', resource.uri)
 }
 
 const handleVehicleTypeAuthSelected = (resource) => {
@@ -130,8 +128,6 @@ const handleVehicleTypeAuthSelected = (resource) => {
   const shortUri = resource.uri.split('/').pop() || resource.uri
 
   selectedApplicationInfo.value = `${resourceType}: ${displayText} (${shortUri})`
-  console.log('Selected Vehicle Type Auth Application:', resource)
-  console.log('Setting selectedResourceUri to:', resource.uri)
 }
 
 const clearSelection = () => {

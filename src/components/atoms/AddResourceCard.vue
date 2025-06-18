@@ -262,9 +262,6 @@ const loadExistingResource = async () => {
 watch(
   () => props.selectedResourceUri,
   (newUri) => {
-    console.log('AddResourceCard: selectedResourceUri changed to:', newUri)
-    console.log('AddResourceCard: displayMode is:', props.displayMode)
-
     if (newUri && props.displayMode) {
       loadExistingResource()
     } else {
@@ -294,12 +291,6 @@ onMounted(async () => {
   >
     <BCardBody>
       <span v-if="dataShapesLoaded">
-        <!-- Debug info -->
-        <BAlert v-if="props.selectedResourceUri" variant="info" :model-value="true" class="mb-3">
-          <strong>Debug:</strong> Display Mode: {{ props.displayMode }}, Selected URI:
-          {{ props.selectedResourceUri }}, Data Loaded: {{ existingResourceLoaded }}
-        </BAlert>
-
         <!-- v-for="[ind, DATA_SHAPE_BLOB] of cacheStore.allShapeBlobUrls.entries()"
           :key="ind" -->
         <!-- :data-shapes-url="DATA_SHAPE_BLOB" -->
