@@ -14,6 +14,9 @@ import '@ulb-darmstadt/shacl-form/dist/form-bootstrap.js'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 
+// Initialize search store
+import { searchStore } from './stores/search'
+
 const app = createApp(App)
 
 // app.use(createPinia())
@@ -21,3 +24,6 @@ app.use(router)
 app.use(createBootstrap()) // Important
 
 app.mount('#app')
+
+// Initialize default SPARQL providers after app is mounted
+searchStore.addDefaultSparqlProviders()

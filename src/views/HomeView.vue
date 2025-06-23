@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 
 import { processStore } from '@/stores/process'
 import { sessionStore } from '@/stores/sessions'
+import { searchStore, searchProviders, podProviders, sparqlProviders } from '@/stores/search'
 import TimedAlert from '@/components/atoms/TimedAlert.vue'
 
 // Warn user to add storage Pod
@@ -57,6 +58,19 @@ watch(
       <div>showProcessAlert: {{ showProcessAlert }}</div>
       <div>sessionStore.selectedPodUrl: "{{ sessionStore.selectedPodUrl }}"</div>
       <div>processStore.processProviders.length: {{ processStore.processProviders.length }}</div>
+      <div><strong>Search Providers Debug:</strong></div>
+      <div>Total searchProviders: {{ searchProviders.length }}</div>
+      <div>Pod providers: {{ podProviders.length }}</div>
+      <div>SPARQL providers: {{ sparqlProviders.length }}</div>
+      <div>Active SPARQL providers: {{ searchStore.activeSparqlProviders.length }}</div>
+      <div><strong>All Search Providers:</strong></div>
+      <div v-for="provider in searchProviders" :key="provider.id" class="ms-3">
+        - {{ provider.name }} ({{ provider.type }}) - {{ provider.url }}
+      </div>
+      <div><strong>Pod Providers Details:</strong></div>
+      <div v-for="provider in podProviders" :key="provider.id" class="ms-3">
+        - ID: {{ provider.id }}, Name: "{{ provider.name }}", URL: {{ provider.url }}
+      </div>
     </BAccordionItem>
   </BAccordion>
   <TimedAlert

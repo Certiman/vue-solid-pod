@@ -5,6 +5,7 @@ export const modalStore = reactive({
   canShowAddStorage: true,
   canShowAddTaskStep: false,
   canShowResourceACL: false,
+  canShowAddSparqlProviderModal: false,
   selectedResourceACL: '',
   mode: 'light',
   switch() {

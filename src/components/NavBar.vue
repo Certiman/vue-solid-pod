@@ -13,6 +13,7 @@ import {
 // Import icons
 import IMdiStorage from '~icons/mdi/storage'
 import ICarbonProcess from '~icons/carbon/process'
+import IMdiDatabase from '~icons/mdi/database'
 import IMaterialSymbolsLightLightMode from '~icons/material-symbols-light/light-mode'
 import IMaterialSymbolsLightDarkModeRounded from '~icons/material-symbols-light/dark-mode-rounded'
 
@@ -20,6 +21,7 @@ import IMaterialSymbolsLightDarkModeRounded from '~icons/material-symbols-light/
 import { modalStore } from '@/stores/ui'
 import { processStore } from '@/stores/process'
 import { sessionStore } from '@/stores/sessions'
+import { searchStore } from '@/stores/search'
 </script>
 
 <template>
@@ -50,6 +52,15 @@ import { sessionStore } from '@/stores/sessions'
             :variant="processStore.canProcessData() ? 'success' : 'danger'"
             ><ICarbonProcess class="mb-1" />{{
               processStore.canProcessData() ? ' Process providers' : ''
+            }}</BButton
+          ></BNavItem
+        >
+        <BNavItem
+          ><BButton
+            @click="modalStore.canShowAddSparqlProviderModal = true"
+            :variant="searchStore.hasActiveSparqlProviders ? 'success' : 'outline-primary'"
+            ><IMdiDatabase class="mb-1" />{{
+              searchStore.hasActiveSparqlProviders ? ' SPARQL endpoints' : ''
             }}</BButton
           ></BNavItem
         >

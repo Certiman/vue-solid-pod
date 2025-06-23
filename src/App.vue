@@ -8,8 +8,10 @@ import { modalStore } from '@/stores/ui'
 
 // components
 import NavBar from './components/NavBar.vue'
+import SearchNavBar from './components/SearchNavBar.vue'
 import AddStorageProvider from '@/components/modals/AddStorageProvider.vue'
 import AddProcessProvider from './components/modals/AddProcessProvider.vue'
+import AddSparqlProviderModal from './components/modals/AddSparqlProviderModal.vue'
 
 // Initialize app
 onMounted(() => {
@@ -49,6 +51,7 @@ const applyThemeToDocument = (mode) => {
 <template>
   <header>
     <NavBar />
+    <SearchNavBar />
   </header>
   <main>
     <BContainer>
@@ -57,6 +60,7 @@ const applyThemeToDocument = (mode) => {
   </main>
   <AddStorageProvider />
   <AddProcessProvider />
+  <AddSparqlProviderModal v-model="modalStore.canShowAddSparqlProviderModal" />
 </template>
 
 <style scoped></style>
