@@ -25,6 +25,7 @@
               description="Choose an existing vehicle authorization application to work with, or proceed to create a new one."
               :completed="stepStates.selectApplication.completed"
               :disabled="stepStates.selectApplication.disabled"
+              :allow-progress-when-incomplete="true"
               @nextStep="proceedToNextStep('step-select-application')"
             >
               <SelectApplicationStep
@@ -43,6 +44,7 @@
               description="Create a new vehicle authorization application using the standardized form."
               :completed="stepStates.createApplication.completed"
               :disabled="stepStates.createApplication.disabled"
+              :allow-progress-when-incomplete="true"
               @nextStep="proceedToNextStep('step-create-application')"
             >
               <CreateApplicationStep
@@ -52,7 +54,6 @@
                 @application-created="handleApplicationCreated"
               />
             </VehicleAuthStepItem>
-
             <!-- Step 3: Add Evidence -->
             <VehicleAuthStepItem
               step-id="step-add-evidence"
@@ -60,6 +61,7 @@
               description="Link existing evidence documents to your vehicle authorization application."
               :completed="stepStates.addEvidence.completed"
               :disabled="stepStates.addEvidence.disabled"
+              :allow-progress-when-incomplete="true"
               @nextStep="proceedToNextStep('step-add-evidence')"
             >
               <AddEvidenceStep
@@ -80,6 +82,7 @@
               description="Create new evidence documentation for your vehicle authorization application."
               :completed="stepStates.createEvidence.completed"
               :disabled="stepStates.createEvidence.disabled"
+              :allow-progress-when-incomplete="true"
               @nextStep="proceedToNextStep('step-create-evidence')"
             >
               <CreateEvidenceStep
@@ -166,12 +169,12 @@ const stepStates = reactive({
   },
   addEvidence: {
     completed: false,
-    disabled: computed(() => !currentApplicationUri.value),
+    disabled: false, // Never disable - let the component handle the no-application state
     visible: true
   },
   createEvidence: {
     completed: false,
-    disabled: computed(() => !currentApplicationUri.value),
+    disabled: false, // Let users create evidence even without application
     visible: computed(() => linkedEvidence.value.length === 0)
   },
   reviewSubmit: {
@@ -224,22 +227,35 @@ const handleApplicationCreated = (applicationData) => {
 const handleEvidenceLinked = (evidenceData) => {
   console.log('Evidence linked:', evidenceData)
 
-  // Update linked evidence list (handled by AddEvidenceStep component)
-  stepStates.addEvidence.completed = true
-
-  // Auto-advance to review step if we have evidence
-  if (addEvidenceStepRef.value?.hasLinkedEvidence) {
-    openStep.value = 'step-review-submit'
+  // Update linked evidence list
+  if (!linkedEvidence.value.find((e) => e.uri === evidenceData.evidenceUri)) {
+    linkedEvidence.value.push({
+      uri: evidenceData.evidenceUri,
+      displayText: evidenceData.displayText || evidenceData.evidenceUri.split('/').pop()
+    })
   }
+
+  // Mark step as completed if we have evidence
+  stepStates.addEvidence.completed = linkedEvidence.value.length > 0
+
+  console.log('Current linked evidence count:', linkedEvidence.value.length)
+  console.log('Add evidence step completed:', stepStates.addEvidence.completed)
 }
 
 const handleEvidenceRemoved = (evidenceData) => {
   console.log('Evidence removed:', evidenceData)
 
-  // Check if we still have evidence
-  if (!addEvidenceStepRef.value?.hasLinkedEvidence) {
-    stepStates.addEvidence.completed = false
+  // Remove from linked evidence list
+  const index = linkedEvidence.value.findIndex((e) => e.uri === evidenceData.evidenceUri)
+  if (index >= 0) {
+    linkedEvidence.value.splice(index, 1)
   }
+
+  // Update completion state
+  stepStates.addEvidence.completed = linkedEvidence.value.length > 0
+
+  console.log('Evidence removed, remaining count:', linkedEvidence.value.length)
+  console.log('Add evidence step completed:', stepStates.addEvidence.completed)
 }
 
 const handleEvidenceCreated = (evidenceData) => {
@@ -270,6 +286,11 @@ const handleViewApplicationDetails = (applicationUri) => {
 }
 
 const proceedToNextStep = (currentStepId) => {
+  console.log('=== Proceeding to next step ===')
+  console.log('Current step:', currentStepId)
+  console.log('currentApplicationUri:', currentApplicationUri.value)
+  console.log('Step states:', stepStates)
+
   const stepOrder = [
     'step-select-application',
     'step-create-application',
@@ -281,22 +302,41 @@ const proceedToNextStep = (currentStepId) => {
   const currentIndex = stepOrder.indexOf(currentStepId)
   const nextIndex = currentIndex + 1
 
+  console.log('Current index:', currentIndex, 'Next index:', nextIndex)
+
   if (nextIndex < stepOrder.length) {
     const nextStepId = stepOrder[nextIndex]
+    console.log('Next step ID:', nextStepId)
 
     // Skip invisible steps
     if (nextStepId === 'step-create-application' && selectedApplication.value) {
+      console.log('Skipping create application step (already have selection)')
       proceedToNextStep(nextStepId)
       return
     }
 
     if (nextStepId === 'step-create-evidence' && linkedEvidence.value.length > 0) {
+      console.log('Skipping create evidence step (already have evidence)')
       proceedToNextStep(nextStepId)
       return
     }
+    console.log('Opening step:', nextStepId)
+
+    // Map step ID to stepStates key
+    const stepStateMapping = {
+      'step-select-application': 'selectApplication',
+      'step-create-application': 'createApplication',
+      'step-add-evidence': 'addEvidence',
+      'step-create-evidence': 'createEvidence',
+      'step-review-submit': 'reviewSubmit'
+    }
+    const stepStateKey = stepStateMapping[nextStepId]
+    console.log('Step state key:', stepStateKey)
+    console.log('Step disabled state:', stepStates[stepStateKey]?.disabled)
 
     openStep.value = nextStepId
   }
+  console.log('=== End proceedToNextStep ===')
 }
 
 console.log('VehicleAuthView: Using VA shape from EUAR pod:', vaShapeUrl)

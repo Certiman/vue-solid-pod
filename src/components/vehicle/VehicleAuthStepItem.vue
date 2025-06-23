@@ -16,10 +16,21 @@
           <BBadge v-if="completed" variant="success" class="me-2"> ✓ Completed </BBadge>
           <BBadge v-else-if="disabled" variant="secondary"> Disabled </BBadge>
           <BBadge v-else variant="primary"> Active </BBadge>
-        </div>
 
+          <BBadge
+            v-if="!completed && allowProgressWhenIncomplete"
+            variant="outline-info"
+            class="ms-1"
+          >
+            Optional
+          </BBadge>
+        </div>
         <div>
-          <BButton v-if="!isLastStep && completed" variant="primary" @click="$emit('nextStep')">
+          <BButton
+            v-if="!isLastStep && (completed || allowProgressWhenIncomplete)"
+            variant="primary"
+            @click="$emit('nextStep')"
+          >
             Next Step
           </BButton>
         </div>
@@ -59,6 +70,10 @@ const props = defineProps({
     default: false
   },
   isLastStep: {
+    type: Boolean,
+    default: false
+  },
+  allowProgressWhenIncomplete: {
     type: Boolean,
     default: false
   }
